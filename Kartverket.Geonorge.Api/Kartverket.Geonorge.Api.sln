@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kartverket.Geonorge.Api", "Kartverket.Geonorge.Api\Kartverket.Geonorge.Api.csproj", "{05A03686-3337-4238-B8E7-9DF297FC05EA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kartverket.Geonorge.Api", "Kartverket.Geonorge.Api.csproj", "{05A03686-3337-4238-B8E7-9DF297FC05EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
