@@ -14,7 +14,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         /// <summary>
         /// Catalogue in dcat format
         /// </summary>
-        [System.Web.Http.Route("api/dcat")]
+        [System.Web.Http.Route("metadata/dcat")]
         [System.Web.Http.HttpGet]
         public System.Net.Http.HttpResponseMessage GetDcat()
         {
@@ -24,7 +24,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             { Content = new System.Net.Http.StringContent(doc.OuterXml, System.Text.Encoding.UTF8, "application/xml") };
         }
 
-        [System.Web.Http.Route("api/updatedcat")]
+        [System.Web.Http.Route("metadata/updatedcat")]
         [System.Web.Http.HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]
         public System.Net.Http.HttpResponseMessage UpdateDcat()
