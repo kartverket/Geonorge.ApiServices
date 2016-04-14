@@ -21,7 +21,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
             doc.Load(System.Web.HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
             return new System.Net.Http.HttpResponseMessage()
-            { Content = new System.Net.Http.StringContent(doc.OuterXml, System.Text.Encoding.UTF8, "application/xml") };
+            { Content = new System.Net.Http.StringContent(doc.OuterXml, System.Text.Encoding.UTF8, "application/rdf+xml") };
         }
 
         [System.Web.Http.Route("metadata/updatedcat")]
@@ -31,7 +31,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         {
             var dcat = new DcatService().GenerateDcat();
             return new System.Net.Http.HttpResponseMessage()
-            { Content = new System.Net.Http.StringContent(dcat.OuterXml, System.Text.Encoding.UTF8, "application/xml") };
+            { Content = new System.Net.Http.StringContent(dcat.OuterXml, System.Text.Encoding.UTF8, "application/rdf+xml") };
         }
     }
 }
