@@ -96,7 +96,7 @@ namespace Kartverket.Geonorge.Api.Services
                 foreach (var keyword in data.Keywords)
                 {
 
-                    XmlElement datasetKeyword = doc.CreateElement("dct", "keyword", xmlnsDct);
+                    XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
                     datasetKeyword.InnerText = keyword.Keyword;
                     dataset.AppendChild(datasetKeyword);
 
@@ -305,7 +305,7 @@ namespace Kartverket.Geonorge.Api.Services
             catalogLanguage.InnerText = "nor";
             catalog.AppendChild(catalogLanguage);
 
-            XmlElement catalogThemeTaxonomy = doc.CreateElement("dct", "themeTaxonomy", xmlnsDct);
+            XmlElement catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
             catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "http://www.eionet.europa.eu/gemet/inspire_themes");
             catalog.AppendChild(catalogThemeTaxonomy);
             return catalog;
