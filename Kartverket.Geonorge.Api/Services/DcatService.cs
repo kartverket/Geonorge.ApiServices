@@ -69,7 +69,7 @@ namespace Kartverket.Geonorge.Api.Services
                 var data = new SimpleMetadata(md);
 
                 //Map dataset to catalog
-                XmlElement catalogDataset = doc.CreateElement("dct", "dataset", xmlnsDct);
+                XmlElement catalogDataset = doc.CreateElement("dcat", "dataset", xmlnsDct);
                 catalogDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
                 catalog.AppendChild(catalogDataset);
 
