@@ -106,8 +106,46 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.AppendChild(datasetKeyword);
 
                     }
+                  
+                    var theme = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
 
-                    //Todo theme
+                    XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+
+                    XmlElement datasetConcept = doc.CreateElement("skos", "Concept", xmlnsSkos);
+                    datasetTheme.AppendChild(datasetConcept);
+
+                    XmlElement datasetConceptPrefLabel = doc.CreateElement("skos", "prefLabel", xmlnsSkos);
+                    datasetConceptPrefLabel.SetAttribute("xml:lang", "no");
+                    if (theme != null && theme.Count > 0)
+                        datasetConceptPrefLabel.InnerText = theme[0].Keyword;
+                    else
+                        datasetConceptPrefLabel.InnerText = "Mangler";
+                    datasetConcept.AppendChild(datasetConceptPrefLabel);
+
+                    XmlElement datasetConceptInScheme = doc.CreateElement("skos", "inScheme", xmlnsSkos);
+
+                    XmlElement datasetConceptConceptScheme = doc.CreateElement("skos", "ConceptScheme", xmlnsSkos);
+
+                    XmlElement datasetConceptConceptSchemeTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                    datasetConceptConceptSchemeTitle.SetAttribute("xml:lang", "no");
+                    datasetConceptConceptSchemeTitle.InnerText = "Nasjonal temakategori";
+                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeTitle);
+ 
+                    XmlElement datasetConceptConceptSchemeLabel = doc.CreateElement("rdfs", "label", xmlnsRdfs);
+                    datasetConceptConceptSchemeLabel.SetAttribute("xml:lang", "no");
+                    datasetConceptConceptSchemeLabel.InnerText = "Nasjonal temakategori for geografiske data";
+                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeLabel);
+
+                    XmlElement datasetConceptConceptSchemeIssued = doc.CreateElement("dct", "issued", xmlnsDct);
+                    datasetConceptConceptSchemeIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                    datasetConceptConceptSchemeIssued.InnerText = "2010-01-13";
+                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeIssued);
+
+                    datasetConceptInScheme.AppendChild(datasetConceptConceptScheme);
+
+                    datasetConcept.AppendChild(datasetConceptInScheme);
+
+                    dataset.AppendChild(datasetTheme);
 
                     if (data.Thumbnails != null && data.Thumbnails.Count > 0)
                     {
@@ -131,6 +169,7 @@ namespace Kartverket.Geonorge.Api.Services
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
+
                     dataset.AppendChild(datasetPublisher);
 
                     Organization organization = null;
