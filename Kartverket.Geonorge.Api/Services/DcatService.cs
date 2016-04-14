@@ -107,7 +107,7 @@ namespace Kartverket.Geonorge.Api.Services
                 if (data.Thumbnails != null && data.Thumbnails.Count > 0)
                 {
                     XmlElement datasetThumbnail = doc.CreateElement("foaf", "thumbnail", xmlnsFoaf);
-                    datasetThumbnail.SetAttribute("resource", xmlnsRdf, data.Thumbnails[0].URL.Replace(" ", "%20"));
+                    datasetThumbnail.SetAttribute("resource", xmlnsRdf, data.Thumbnails[0].URL.Replace(" ", "%20").Replace(",", "%2C"));
                     dataset.AppendChild(datasetThumbnail);
                 }
 
