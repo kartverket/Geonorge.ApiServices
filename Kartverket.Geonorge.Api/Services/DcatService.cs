@@ -27,6 +27,8 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsGmd = "http://www.isotc211.org/2005/gmd";
         const string xmlnsRdfs = "http://www.w3.org/2000/01/rdf-schema#";
 
+        string geoNetworkendPoint = "srv/nor/csw-dataset?";
+
         string kartkatalogenUrl = WebConfigurationManager.AppSettings["KartkatalogenUrl"];
 
         XmlDocument doc;
@@ -348,7 +350,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         public SearchResultsType GetDatasets()
         {
-            GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"] + "srv/nor/csw-dataset?");
+            GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"] + geoNetworkendPoint);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
             var filters = new object[]
