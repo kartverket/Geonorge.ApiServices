@@ -338,7 +338,12 @@ namespace Kartverket.Geonorge.Api.Services
             catalog.AppendChild(catalogUriLookupEndpoint);
 
             XmlElement catalogPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
-            catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/register/organisasjoner/kartverket/kartverket");
+
+            if(WebConfigurationManager.AppSettings["EnvironmentName"] == "dev" )
+                catalogPublisher.SetAttribute("resource", xmlnsRdf, "http://register.dev.geonorge.no/register/organisasjoner/kartverket/kartverket");
+            else
+                catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/register/organisasjoner/kartverket/kartverket");
+
             catalog.AppendChild(catalogPublisher);
 
             XmlElement catalogLicense = doc.CreateElement("dct", "license", xmlnsDct);
