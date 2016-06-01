@@ -150,7 +150,7 @@ namespace Kartverket.Geonorge.Api.Services
                     if (data.Thumbnails != null && data.Thumbnails.Count > 0)
                     {
                         XmlElement datasetThumbnail = doc.CreateElement("foaf", "thumbnail", xmlnsFoaf);
-                        datasetThumbnail.SetAttribute("resource", xmlnsRdf, data.Thumbnails[0].URL.Replace(" ", "%20").Replace(",", "%2C"));
+                        datasetThumbnail.SetAttribute("resource", xmlnsRdf, EncodeUrl(data.Thumbnails[0].URL));
                         dataset.AppendChild(datasetThumbnail);
                     }
 
@@ -433,6 +433,11 @@ namespace Kartverket.Geonorge.Api.Services
         private void LogEventsError(string log, Exception ex)
         {
             Log.Error(log, ex);
+        }
+
+        string EncodeUrl(string url)
+        {
+            return url.Replace(" ", "%20").Replace(",", "%2C").Replace("[", "%5B").Replace("]", "%5D");
         }
 
         public Dictionary<string, string> GetOrganizationsLink()
