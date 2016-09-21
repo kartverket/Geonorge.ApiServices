@@ -100,8 +100,8 @@ namespace Kartverket.Geonorge.Api.Services
                             escapeChar = "\\",
                             singleChar = "_",
                             wildCard = "%",
-                            PropertyName = new PropertyNameType {Text = new[] {"Subject"}},
-                            Literal = new LiteralType {Text = new[] {"åpne data"}}
+                            PropertyName = new PropertyNameType {Text = new[] {"protocol"}},
+                            Literal = new LiteralType {Text = new[] {"GEONORGE:DOWNLOAD"}}
                         }
             };
 
