@@ -11,7 +11,7 @@ namespace Kartverket.Geonorge.Api.Controllers
     public class DownloadController : ApiController
     {
         /// <summary>
-        /// Catalogue in dcat format
+        /// Check for problems in download distribution
         /// </summary>
         [System.Web.Http.Route("metadata/downloadinvalid")]
         [System.Web.Http.HttpGet]
