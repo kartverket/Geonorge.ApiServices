@@ -19,5 +19,15 @@ namespace Kartverket.Geonorge.Api.Controllers
         {
             return new DownloadService().CheckDownload();
         }
+
+        /// <summary>
+        /// Check for problems in service capabilities
+        /// </summary>
+        [System.Web.Http.Route("metadata/serviceinvalid")]
+        [System.Web.Http.HttpGet]
+        public List<MetadataEntry> GetServices()
+        {
+            return new ServiceChecker().Check();
+        }
     }
 }
