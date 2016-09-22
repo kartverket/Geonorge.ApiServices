@@ -71,7 +71,9 @@ namespace Kartverket.Geonorge.Api.Services
                                 {
                                     var text = response.Content.ReadAsStringAsync().Result;
                                     System.Diagnostics.Debug.WriteLine(text);
-                                    if(!text.Contains("<?xml") && text.Contains("<html"))
+                                    if(text.Contains("<ServiceExceptionReport"))
+                                        serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer xml unntak: " + url });
+                                    else if(!text.Contains("<?xml") && text.Contains("<html"))
                                         serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer ikke xml: " + url });
 
                                 }
