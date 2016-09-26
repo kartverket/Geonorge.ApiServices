@@ -12,6 +12,11 @@
     ILookup<HttpControllerDescriptor, ApiDescription> apiGroups = Model.ToLookup(api => api.ActionDescriptor.ControllerDescriptor);
 }
 
+@section breadcrumb {
+
+    <li>Dokumentasjon</li>
+}
+
 <link type="text/css" href="~/Areas/HelpPage/HelpPage.css" rel="stylesheet" />
 <header class="help-page">
     <div class="content-wrapper">
