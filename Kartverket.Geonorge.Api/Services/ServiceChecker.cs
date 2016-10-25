@@ -119,12 +119,12 @@ namespace Kartverket.Geonorge.Api.Services
             var response2 = Newtonsoft.Json.Linq.JObject.Parse(data2);
             var result2 = response2.SelectToken("Results").ToList();
 
-            var data3 = c.DownloadString(kartkatalogenUrl + "api/search?limit=1000&facets[0]name=type&facets[0]value=servicelayer&facets[1]name=DistributionProtocols&facets[1]value=WMS-tjeneste");
-            var response3 = Newtonsoft.Json.Linq.JObject.Parse(data3);
-            var result3 = response3.SelectToken("Results").ToList();
+            //var data3 = c.DownloadString(kartkatalogenUrl + "api/search?limit=1000&facets[0]name=type&facets[0]value=servicelayer&facets[1]name=DistributionProtocols&facets[1]value=WMS-tjeneste");
+            //var response3 = Newtonsoft.Json.Linq.JObject.Parse(data3);
+            //var result3 = response3.SelectToken("Results").ToList();
             
 
-            var result = result1.Concat(result2).Concat(result3);
+            var result = result1.Concat(result2);
 
 
             return result;
