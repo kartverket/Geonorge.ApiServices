@@ -42,22 +42,28 @@ namespace Kartverket.Geonorge.Api.Services
 
         private void CheckConstraints()
         {
-            foreach (var metadata in metadataSets.ToList())
+            foreach (var downloadSet in downloadSets.ToList())
             {
-                string metadataAccess = (string)metadata["DataAccess"];
-                var downloadSet = downloadSets.FirstOrDefault(d => (string)d["metadataUuid"] == (string)metadata["Uuid"]);
-                JToken downloadAccessObject = null;
-
-                if (downloadSet != null)
-                { 
-                    downloadAccessObject = downloadSet["AccessConstraint"];
-                }
                 string downloadAccess = "";
+                JToken downloadAccessObject = downloadSet["AccessConstraint"];
                 if (downloadAccessObject != null)
+                {
                     downloadAccess = downloadAccessObject.ToString();
+                }
+
+                var metadataSet = metadataSets.FirstOrDefault(d => (string)d["Uuid"] == (string)downloadSet["metadataUuid"]);
+                JToken metadataAccessObject = null;
+                string metadataAccess = "";
+                if (metadataSet != null)
+                {
+                    metadataAccessObject = metadataSet["DataAccess"];
+                }
+
+                if (metadataAccessObject != null)
+                    metadataAccess = metadataAccessObject.ToString();
 
                 if (metadataAccess != downloadAccess)
-                    metadataProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Kartkatalogen har tilgangsrestriksjon: " + metadataAccess + ", nedlasting: " + downloadAccess });
+                    metadataProblems.Add(new MetadataEntry { Uuid = downloadSet["metadataUuid"].ToString(), Title = downloadSet["Tittel"].ToString(), Problem = "Kartkatalogen har tilgangsrestriksjon: " + metadataAccess + ", nedlasting: " + downloadAccess });
             }
 
         }
@@ -75,7 +81,7 @@ namespace Kartverket.Geonorge.Api.Services
             System.Net.WebClient c = new System.Net.WebClient();
             c.Encoding = System.Text.Encoding.UTF8;
 
-            var data1 = c.DownloadString(kartkatalogenUrl + "api/search?limit=10000");
+            var data1 = c.DownloadString(kartkatalogenUrl + "api/search?limit=10000&facets[0]name=type&facets[0]value=dataset");
             var response1 = Newtonsoft.Json.Linq.JObject.Parse(data1);
             var result = response1.SelectToken("Results").ToList();
 
