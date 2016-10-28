@@ -26,9 +26,16 @@ namespace Kartverket.Geonorge.Api.Services
 
         public List<MetadataEntry> Check()
         {
-            metadataSets = GetMetadata();
-            downloadSets = GetDownload();
-            CheckConstraints();
+            try
+            {
+                metadataSets = GetMetadata();
+                downloadSets = GetDownload();
+                CheckConstraints();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex);
+            }
 
             return metadataProblems;
         }
