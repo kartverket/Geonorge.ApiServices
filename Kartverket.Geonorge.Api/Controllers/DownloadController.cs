@@ -29,5 +29,15 @@ namespace Kartverket.Geonorge.Api.Controllers
         {
             return new ServiceChecker().Check();
         }
+
+        /// <summary>
+        /// Check for AccessConstraint mismatch between kartkatalog and download
+        /// </summary>
+        [System.Web.Http.Route("metadata/constraintproblems")]
+        [System.Web.Http.HttpGet]
+        public List<MetadataEntry> GetConstraints()
+        {
+            return new ConstraintChecker().Check();
+        }
     }
 }

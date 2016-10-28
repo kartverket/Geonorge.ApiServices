@@ -214,6 +214,7 @@
     </Compile>
     <Compile Include="Helpers\HtmlHelperExtension.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\ConstraintChecker.cs" />
     <Compile Include="Services\DcatService.cs" />
     <Compile Include="Services\DownloadService.cs" />
     <Compile Include="Services\ServiceChecker.cs" />
