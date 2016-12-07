@@ -219,6 +219,7 @@
     <Compile Include="Services\DownloadService.cs" />
     <Compile Include="Services\ServiceChecker.cs" />
     <Compile Include="Startup.cs" />
+    <Compile Include="App_Start\TraceExceptionLogger.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_Data\XmlDocument.xml">

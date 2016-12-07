@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Web.Http;
 using Newtonsoft.Json.Serialization;
+using System.Web.Http.ExceptionHandling;
 
 namespace Kartverket.Geonorge.Api
 {
@@ -19,6 +20,9 @@ namespace Kartverket.Geonorge.Api
                 routeTemplate: "api/{controller}/{id}",
                 defaults: new { id = RouteParameter.Optional }
             );
+
+            config.Services.Add(typeof(IExceptionLogger), new TraceExceptionLogger());
+
         }
     }
 }
