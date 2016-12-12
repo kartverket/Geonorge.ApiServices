@@ -7,6 +7,7 @@ using System.Web;
 using System.Web.Configuration;
 using System.Xml;
 using www.opengis.net;
+using Kartverket.Geonorge.Api.Models;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -32,6 +33,9 @@ namespace Kartverket.Geonorge.Api.Services
         string kartkatalogenUrl = WebConfigurationManager.AppSettings["KartkatalogenUrl"];
 
         XmlDocument doc;
+        XmlDocument conceptsDoc;
+        XmlNamespaceManager nsmgr;
+
         SearchResultsType metadataSets;
 
         GeoNorge geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
@@ -49,9 +53,13 @@ namespace Kartverket.Geonorge.Api.Services
 
             XmlElement root = Setup();
 
+            GetConcepts();
+
             XmlElement catalog = CreateCatalog(root);
 
             CreateDatasets(root, catalog);
+
+            AddConcepts(root);
 
             Finalize(root, catalog);
 
@@ -60,6 +68,38 @@ namespace Kartverket.Geonorge.Api.Services
             return doc;
         }
 
+        private void GetConcepts()
+        {
+            conceptsDoc = new XmlDocument();
+            conceptsDoc.Load(HttpContext.Current.Server.MapPath("~/App_Data/Concepts.xml"));
+        }
+
+        private string GetConcept(string prefLabel)
+        {
+            var concept = conceptsDoc.SelectSingleNode("//skos:Concept[skos:prefLabel='"+ prefLabel + "']", nsmgr);
+            var about = concept.Attributes.GetNamedItem("rdf:about");
+            if (about != null)
+                return about.Value;
+
+           return null;
+        }
+
+        private void AddConcepts(XmlElement root)
+        {
+            var conceptSchemes = conceptsDoc.SelectNodes("//skos:ConceptScheme", nsmgr);
+            foreach (XmlNode conceptScheme in conceptSchemes)
+            {
+                XmlNode import = doc.ImportNode(conceptScheme, true);
+                root.AppendChild(import);
+            }
+
+            var concepts = conceptsDoc.SelectNodes("//skos:Concept", nsmgr);
+            foreach (XmlNode concept in concepts)
+            {
+                XmlNode import = doc.ImportNode(concept, true);
+                root.AppendChild(import);
+            }
+        }
 
         private void CreateDatasets(XmlElement root, XmlElement catalog)
         {
@@ -107,45 +147,34 @@ namespace Kartverket.Geonorge.Api.Services
 
                     }
                   
-                    var theme = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
+                    //National theme
+                    var themes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
 
-                    XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                    foreach (var theme in themes)
+                    {
+                        var aboutConcept = GetConcept(theme.Keyword);
+                        if(!string.IsNullOrEmpty(aboutConcept))
+                        {
+                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                        datasetTheme.SetAttribute("resource", xmlnsRdf, aboutConcept);
+                        dataset.AppendChild(datasetTheme);
+                        }
+                    }
 
-                    XmlElement datasetConcept = doc.CreateElement("skos", "Concept", xmlnsSkos);
-                    datasetTheme.AppendChild(datasetConcept);
+                    //Inspire thene
+                    var themeInspires = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_GEMET_INSPIRE_V1);
 
-                    XmlElement datasetConceptPrefLabel = doc.CreateElement("skos", "prefLabel", xmlnsSkos);
-                    datasetConceptPrefLabel.SetAttribute("xml:lang", "no");
-                    if (theme != null && theme.Count > 0)
-                        datasetConceptPrefLabel.InnerText = theme[0].Keyword;
-                    else
-                        datasetConceptPrefLabel.InnerText = "Mangler";
-                    datasetConcept.AppendChild(datasetConceptPrefLabel);
+                    foreach (var themeInspire in themeInspires)
+                    {
+                        if (Mappings.ThemeInspireToEU.ContainsKey(themeInspire.Keyword))
+                        { 
+                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                        datasetTheme.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/data-theme/" + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
+                        dataset.AppendChild(datasetTheme);
+                        }
+                    }
 
-                    XmlElement datasetConceptInScheme = doc.CreateElement("skos", "inScheme", xmlnsSkos);
 
-                    XmlElement datasetConceptConceptScheme = doc.CreateElement("skos", "ConceptScheme", xmlnsSkos);
-
-                    XmlElement datasetConceptConceptSchemeTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                    datasetConceptConceptSchemeTitle.SetAttribute("xml:lang", "no");
-                    datasetConceptConceptSchemeTitle.InnerText = "Nasjonal temakategori";
-                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeTitle);
- 
-                    XmlElement datasetConceptConceptSchemeLabel = doc.CreateElement("rdfs", "label", xmlnsRdfs);
-                    datasetConceptConceptSchemeLabel.SetAttribute("xml:lang", "no");
-                    datasetConceptConceptSchemeLabel.InnerText = "Nasjonal temakategori for geografiske data";
-                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeLabel);
-
-                    XmlElement datasetConceptConceptSchemeIssued = doc.CreateElement("dct", "issued", xmlnsDct);
-                    datasetConceptConceptSchemeIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
-                    datasetConceptConceptSchemeIssued.InnerText = "2010-01-13";
-                    datasetConceptConceptScheme.AppendChild(datasetConceptConceptSchemeIssued);
-
-                    datasetConceptInScheme.AppendChild(datasetConceptConceptScheme);
-
-                    datasetConcept.AppendChild(datasetConceptInScheme);
-
-                    dataset.AppendChild(datasetTheme);
 
                     if (data.Thumbnails != null && data.Thumbnails.Count > 0)
                     {
@@ -351,18 +380,32 @@ namespace Kartverket.Geonorge.Api.Services
             catalog.AppendChild(catalogLicense);
 
             XmlElement catalogLanguage = doc.CreateElement("dct", "language", xmlnsDct);
-            catalogLanguage.InnerText = "nor";
+            catalogLanguage.InnerText = "no";
             catalog.AppendChild(catalogLanguage);
 
             XmlElement catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
             catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "http://www.eionet.europa.eu/gemet/inspire_themes");
             catalog.AppendChild(catalogThemeTaxonomy);
+
+            catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
+            catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/mdr/resource/authority/data-theme/html/data-theme-eng.html");
+            catalog.AppendChild(catalogThemeTaxonomy);
+
+            catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
+            catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling");
+            catalog.AppendChild(catalogThemeTaxonomy);
+
             return catalog;
         }
 
         private XmlElement Setup()
         {
             doc = new XmlDocument();
+
+            nsmgr = new XmlNamespaceManager(doc.NameTable);
+            nsmgr.AddNamespace("rdf", xmlnsRdf);
+            nsmgr.AddNamespace("skos", xmlnsSkos);
+            nsmgr.AddNamespace("dct", xmlnsDct);
 
             XmlDeclaration dec = doc.CreateXmlDeclaration("1.0", null, null);
             doc.AppendChild(dec);
