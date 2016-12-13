@@ -10,7 +10,7 @@ namespace Kartverket.Geonorge.Api.Controllers
     {
         public ActionResult Index()
         {
-            ViewBag.Title = "Geonorge api";
+            ViewBag.Title = "Diverse APIer";
 
             return View();
         }

@@ -5,9 +5,11 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using Kartverket.Geonorge.Api.Services;
+using System.Web.Http.Description;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class DownloadController : ApiController
     {
         /// <summary>
