@@ -146,18 +146,26 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.AppendChild(datasetKeyword);
 
                     }
-                  
-                    //National theme
-                    var themes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
 
-                    foreach (var theme in themes)
+                    List<string> themes = new List<string>();
+
+                    string euLink = "http://publications.europa.eu/resource/authority/data-theme/";
+
+                    //National theme
+                    var nationalThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
+
+                    foreach (var theme in nationalThemes)
                     {
                         var aboutConcept = GetConcept(theme.Keyword);
+
                         if(!string.IsNullOrEmpty(aboutConcept))
                         {
-                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
-                        datasetTheme.SetAttribute("resource", xmlnsRdf, aboutConcept);
-                        dataset.AppendChild(datasetTheme);
+                            themes.Add(aboutConcept);
+                        }
+
+                        if (Mappings.ThemeNationalToEU.ContainsKey(theme.Keyword))
+                        {
+                            themes.Add(euLink + Mappings.ThemeNationalToEU[theme.Keyword]);
                         }
                     }
 
@@ -168,12 +176,17 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         if (Mappings.ThemeInspireToEU.ContainsKey(themeInspire.Keyword))
                         { 
-                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
-                        datasetTheme.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/data-theme/" + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
-                        dataset.AppendChild(datasetTheme);
+                            if(!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
+                                themes.Add(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
                         }
                     }
 
+                    foreach (var theme in themes)
+                    {
+                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                        datasetTheme.SetAttribute("resource", xmlnsRdf, theme);
+                        dataset.AppendChild(datasetTheme);
+                    }
 
 
                     if (data.Thumbnails != null && data.Thumbnails.Count > 0)

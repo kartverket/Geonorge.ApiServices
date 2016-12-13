@@ -7,6 +7,24 @@ namespace Kartverket.Geonorge.Api.Models
 {
     public class Mappings
     {
+        public static readonly Dictionary<string, string> ThemeNationalToEU = new Dictionary<string, string>()
+        {
+            {"Basis geodata", "REGI"},
+            {"Befolkning", "SOCI"},
+            {"Energi", "ENER"},
+            {"Forurensning", "ENVI"},
+            {"Friluftsliv", "HEAL"},
+            {"Geologi", "REGI"},
+            {"Kulturminner", "EDUC"},
+            {"Kyst og fiskeri", "AGRI"},
+            {"Landbruk", "AGRI"},
+            {"Landskap", "ENVI"},
+            {"Natur", "ENVI"},
+            {"Plan", "GOVE"},
+            {"Samferdsel", "TRAN"},
+            {"Samfunnssikkerhet", "JUST"}
+        };
+
         public static readonly Dictionary<string, string> ThemeInspireToEU = new Dictionary<string, string>()
         {
             {"Addresses", "REGI"},
@@ -20,7 +38,7 @@ namespace Kartverket.Geonorge.Api.Models
             {"Coordinate reference systems", "REGI"},
             {"Elevation", "REGI"},
             {"Energy resources", "ENER"},
-            {"Environmental monitoring", "facilities ENVI"},
+            {"Environmental monitoring facilities", "ENVI"},
             {"Geographical grid systems", "REGI"},
             {"Geographical names", "REGI"},
             {"Geology", "REGI"},
@@ -28,7 +46,7 @@ namespace Kartverket.Geonorge.Api.Models
             {"Human health and safety", "HEAL"},
             {"Hydrography", "ENVI"},
             {"Land cover", "ENVI"},
-            {"Land use", "ENV"},
+            {"Land use", "ENVI"},
             {"Meteorological geographical features", "ENVI"},
             {"Mineral resources", "ECON"},
             {"Natural risk zones", "ENVI"},
