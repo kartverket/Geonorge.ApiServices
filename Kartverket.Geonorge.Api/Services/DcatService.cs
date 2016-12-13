@@ -393,7 +393,7 @@ namespace Kartverket.Geonorge.Api.Services
             catalog.AppendChild(catalogLicense);
 
             XmlElement catalogLanguage = doc.CreateElement("dct", "language", xmlnsDct);
-            catalogLanguage.InnerText = "no";
+            catalogLanguage.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/language/NOR");
             catalog.AppendChild(catalogLanguage);
 
             XmlElement catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
