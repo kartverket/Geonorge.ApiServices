@@ -104,6 +104,9 @@ namespace Kartverket.Geonorge.Api.Services
         private void CreateDatasets(XmlElement root, XmlElement catalog)
         {
 
+            Dictionary<string, XmlNode> foafAgents = new Dictionary<string, XmlNode>();
+            Dictionary<string, XmlNode> vcardKinds = new Dictionary<string, XmlNode>();
+
             for (int d = 0; d < metadataSets.Items.Length; d++)
             {
                 string uuid = ((www.opengis.net.DCMIRecordType)(metadataSets.Items[d])).Items[0].Text[0];
@@ -223,10 +226,13 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
                     XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                        datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
                     dataset.AppendChild(datasetContactPoint);
 
                     XmlElement datasetKind = doc.CreateElement("vcard", "Kind", xmlnsVcard);
-                    datasetContactPoint.AppendChild(datasetKind);
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                        datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
 
                     XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-name", xmlnsVcard);
                     datasetOrganizationName.SetAttribute("xml:lang", "");
@@ -240,6 +246,9 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
                         datasetKind.AppendChild(datasetHasEmail);
                     }
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                        if (!vcardKinds.ContainsKey(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/")))
+                            vcardKinds.Add(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"), datasetKind);
 
 
                     XmlElement datasetAccrualPeriodicity = doc.CreateElement("dct", "accrualPeriodicity", xmlnsDct);
@@ -319,7 +328,6 @@ namespace Kartverket.Geonorge.Api.Services
                     XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         agent.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
-                    root.AppendChild(agent);
 
                     XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
                     agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
@@ -336,7 +344,24 @@ namespace Kartverket.Geonorge.Api.Services
                         agentMbox.InnerText = data.ContactOwner.Email;
                         agent.AppendChild(agentMbox);
                     }
+
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    {
+                        if (!foafAgents.ContainsKey(OrganizationsLink[data.ContactOwner.Organization]))
+                            foafAgents.Add(OrganizationsLink[data.ContactOwner.Organization], agent);
+                    }
+
                 }
+            }
+
+            foreach (var foafAgent in foafAgents)
+            {
+                root.AppendChild(foafAgent.Value);
+            }
+
+            foreach (var vcardKind in vcardKinds)
+            {
+                root.AppendChild(vcardKind.Value);
             }
         }
 
