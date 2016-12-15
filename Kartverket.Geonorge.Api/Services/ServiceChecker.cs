@@ -59,26 +59,28 @@ namespace Kartverket.Geonorge.Api.Services
                             try
                             {
                                 url = DistributionDetailsGetCapabilitiesUrl(distributionUrl, distributionProtocol);
-                                System.Diagnostics.Debug.WriteLine(url);
-                                HttpResponseMessage response = client.GetAsync(new Uri(url)).Result;
-
-                                if (response.StatusCode != HttpStatusCode.OK)
+                                if (shouldCheckUrl(url))
                                 {
-                                    System.Diagnostics.Debug.WriteLine("Http status kode:" + response.StatusCode);
-                                    serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Http feil statuskode: " + response.StatusCode + ", " + url });
-                                }
-                                else
-                                {
-                                    var text = response.Content.ReadAsStringAsync().Result;
-                                    System.Diagnostics.Debug.WriteLine(text);
-                                    if(text.Contains("<ServiceExceptionReport"))
-                                        serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer xml unntak: " + url });
-                                    else if(!text.Contains("<?xml") && text.Contains("<html"))
-                                        serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer ikke xml: " + url });
+                                    System.Diagnostics.Debug.WriteLine(url);
+                                    HttpResponseMessage response = client.GetAsync(new Uri(url)).Result;
+
+                                    if (response.StatusCode != HttpStatusCode.OK)
+                                    {
+                                        System.Diagnostics.Debug.WriteLine("Http status kode:" + response.StatusCode);
+                                        serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Http feil statuskode: " + response.StatusCode + ", " + url });
+                                    }
+                                    else
+                                    {
+                                        var text = response.Content.ReadAsStringAsync().Result;
+                                        System.Diagnostics.Debug.WriteLine(text);
+                                        if(text.Contains("<ServiceExceptionReport"))
+                                            serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer xml unntak: " + url });
+                                        else if(!text.Contains("<?xml") && text.Contains("<html"))
+                                            serviceProblems.Add(new MetadataEntry { Uuid = metadata["Uuid"].ToString(), Title = metadata["Title"].ToString(), Problem = "Tjenesten returnerer ikke xml: " + url });
+
+                                    }
 
                                 }
-
-
                             }
                             catch (Exception ex)
                             {
@@ -96,6 +98,16 @@ namespace Kartverket.Geonorge.Api.Services
 
             System.Diagnostics.Debug.WriteLine(metadataSets.Count());
 
+        }
+
+        private bool shouldCheckUrl(string url)
+        {
+            if (url.Contains("gatekeeper1")) // Tjenester som ikke kan vises uten at en sender med "token".
+                return false;
+            else if (url.Contains("www.nd.matrikkel.no")) //Denne krever pålogging.
+                return false;
+            else
+                return true;
         }
 
         public IEnumerable<JToken> GetServices()
