@@ -6,6 +6,8 @@ using System.Net.Http;
 using System.Web.Http;
 using Kartverket.Geonorge.Api.Services;
 using System.Web.Http.Description;
+using System.Threading;
+using System.Web;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
@@ -23,13 +25,35 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         /// <summary>
-        /// Check for problems in service capabilities
+        /// Get problems in service capabilities
         /// </summary>
         [System.Web.Http.Route("metadata/serviceinvalid")]
         [System.Web.Http.HttpGet]
-        public List<MetadataEntry> GetServices()
+        public List<MetadataEntry>  GetServices()
         {
-            return new ServiceChecker().Check();
+            if (HttpContext.Current.Application["ServiceErrors"] != null)
+                return (List<MetadataEntry>)HttpContext.Current.Application["ServiceErrors"];
+
+            return null;
+
+        }
+
+        /// <summary>
+        /// Run checking for problems in service capabilities
+        /// </summary>
+        [System.Web.Http.Route("metadata/checkforinvalid")]
+        [System.Web.Http.HttpGet]
+        public IHttpActionResult CheckServices()
+        {
+            HttpContext ctx = HttpContext.Current;
+            Thread t = new Thread(new ThreadStart(() =>
+            {
+                HttpContext.Current = ctx;
+                new ServiceChecker().Check();
+            }));
+            t.Start();
+
+            return Ok();
         }
 
         /// <summary>

@@ -21,14 +21,13 @@ namespace Kartverket.Geonorge.Api.Services
 
         IEnumerable<JToken> metadataSets;
 
-        List<MetadataEntry> serviceProblems = new List<MetadataEntry>();
+        public List<MetadataEntry> serviceProblems = new List<MetadataEntry>();
 
-        public List<MetadataEntry> Check()
+        public void Check()
         {
             metadataSets = GetServices();
             CheckServices();
-
-            return serviceProblems;
+            HttpContext.Current.Application["ServiceErrors"] = serviceProblems;
         }
 
         private void CheckServices()

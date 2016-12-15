@@ -493,7 +493,12 @@
         </member>
         <member name="M:Kartverket.Geonorge.Api.Controllers.DownloadController.GetServices">
             <summary>
-            Check for problems in service capabilities
+            Get problems in service capabilities
+            </summary>
+        </member>
+        <member name="M:Kartverket.Geonorge.Api.Controllers.DownloadController.CheckServices">
+            <summary>
+            Run checking for problems in service capabilities
             </summary>
         </member>
         <member name="M:Kartverket.Geonorge.Api.Controllers.DownloadController.GetConstraints">
