@@ -53,7 +53,7 @@ namespace Kartverket.Geonorge.Api.Services
                     else
                     {
                         string url = "";
-                        using (var client = new HttpClient())
+                        using (var client = new HttpClient { Timeout = new TimeSpan(0, 0, 20) })
                         {
                             client.DefaultRequestHeaders.Accept.Clear();
                             try
