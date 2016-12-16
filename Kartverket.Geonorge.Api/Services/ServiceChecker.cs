@@ -29,7 +29,7 @@ namespace Kartverket.Geonorge.Api.Services
             metadataSets = GetServices();
             CheckServices();
             MemoryCache memoryCache = MemoryCache.Default;
-            memoryCache.Add("ServiceErrors", serviceProblems, new DateTimeOffset(DateTime.Now.AddYears(1)));
+            memoryCache.Add("ServiceErrors", serviceProblems, new DateTimeOffset(DateTime.Now.AddDays(7)));
         }
 
         private void CheckServices()

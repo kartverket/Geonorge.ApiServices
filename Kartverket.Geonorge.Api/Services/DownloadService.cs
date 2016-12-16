@@ -132,5 +132,6 @@ namespace Kartverket.Geonorge.Api.Services
         public string Uuid { get; set; }
         public string Title { get; set; }
         public string Problem { get; set; }
+        public DateTime DateChecked { get; set; } = DateTime.Now;
     }
 }

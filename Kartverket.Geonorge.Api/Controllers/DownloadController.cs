@@ -36,6 +36,8 @@ namespace Kartverket.Geonorge.Api.Controllers
             var cache = memoryCache.Get("ServiceErrors") as List<MetadataEntry>;
             if (cache != null)
                 return cache;
+            else
+                CheckServices();
 
             return null;
 
@@ -44,14 +46,12 @@ namespace Kartverket.Geonorge.Api.Controllers
         /// <summary>
         /// Run checking for problems in service capabilities
         /// </summary>
-        [System.Web.Http.Route("metadata/checkforinvalid")]
+        [System.Web.Http.Route("metadata/runservicecheck")]
         [System.Web.Http.HttpGet]
         public IHttpActionResult CheckServices()
         {
-            HttpContext ctx = HttpContext.Current;
             Thread t = new Thread(new ThreadStart(() =>
             {
-                HttpContext.Current = ctx;
                 new ServiceChecker().Check();
             }));
             t.Start();
