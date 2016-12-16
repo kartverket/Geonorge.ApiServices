@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Net;
 using System.IO;
 using System.Text;
+using System.Runtime.Caching;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -27,7 +28,8 @@ namespace Kartverket.Geonorge.Api.Services
         {
             metadataSets = GetServices();
             CheckServices();
-            HttpContext.Current.Application["ServiceErrors"] = serviceProblems;
+            MemoryCache memoryCache = MemoryCache.Default;
+            memoryCache.Add("ServiceErrors", serviceProblems, new DateTimeOffset(DateTime.Now.AddYears(1)));
         }
 
         private void CheckServices()

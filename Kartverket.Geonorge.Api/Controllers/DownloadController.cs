@@ -8,6 +8,7 @@ using Kartverket.Geonorge.Api.Services;
 using System.Web.Http.Description;
 using System.Threading;
 using System.Web;
+using System.Runtime.Caching;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
@@ -31,8 +32,10 @@ namespace Kartverket.Geonorge.Api.Controllers
         [System.Web.Http.HttpGet]
         public List<MetadataEntry>  GetServices()
         {
-            if (HttpContext.Current.Application["ServiceErrors"] != null)
-                return (List<MetadataEntry>)HttpContext.Current.Application["ServiceErrors"];
+            MemoryCache memoryCache = MemoryCache.Default;
+            var cache = memoryCache.Get("ServiceErrors") as List<MetadataEntry>;
+            if (cache != null)
+                return cache;
 
             return null;
 
