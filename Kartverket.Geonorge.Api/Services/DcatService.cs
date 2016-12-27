@@ -322,6 +322,62 @@ namespace Kartverket.Geonorge.Api.Services
 
                     }
 
+                    // Dataset distribution wms
+                    // Get distribution from index in kartkatalog 
+                    string metadataUrl = System.Web.Configuration.WebConfigurationManager.AppSettings["KartkatalogenUrl"] + "api/getdata/" + uuid;
+                    System.Net.WebClient c = new System.Net.WebClient();
+                    c.Encoding = System.Text.Encoding.UTF8;
+
+                    var json = c.DownloadString(metadataUrl);
+
+                    dynamic metadata = Newtonsoft.Json.Linq.JObject.Parse(json);
+
+                    if (metadata != null && metadata.ServiceDistributionUrlForDataset != null 
+                        && metadata.ServiceDistributionProtocolForDataset == "OGC:WMS")
+                    {
+                        //Map distribution to dataset
+                        XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+                        distributionDataset.SetAttribute("resource", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
+                        dataset.AppendChild(distributionDataset);
+
+                        XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
+                        distribution.SetAttribute("about", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
+                        root.AppendChild(distribution);
+
+                        XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                        distributionTitle.SetAttribute("xml:lang", "no");
+                        distributionTitle.InnerText = "OGC:WMS";
+                        distribution.AppendChild(distributionTitle);
+
+                        distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                        distributionTitle.SetAttribute("xml:lang", "en");
+                        distributionTitle.InnerText = "OGC:WMS";
+                        distribution.AppendChild(distributionTitle);
+
+                        XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                        distributionDescription.SetAttribute("xml:lang", "no");
+                        distributionDescription.InnerText = "Visningstjeneste(WMS)";
+                        distribution.AppendChild(distributionDescription);
+
+                        distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                        distributionDescription.SetAttribute("xml:lang", "en");
+                        distributionDescription.InnerText = "View Service (WMS)";
+                        distribution.AppendChild(distributionDescription);
+
+                        XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+                        distributionFormat.InnerText = "PNG";
+                        distribution.AppendChild(distributionFormat);
+
+                        XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
+                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
+                        distribution.AppendChild(distributionAccessURL);
+
+                        XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
+                        if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
+                            distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+                        distribution.AppendChild(distributionLicense);
+                    }
+
 
                     //Agent/publisher
 
