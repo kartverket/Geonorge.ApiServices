@@ -106,6 +106,7 @@ namespace Kartverket.Geonorge.Api.Services
 
             Dictionary<string, XmlNode> foafAgents = new Dictionary<string, XmlNode>();
             Dictionary<string, XmlNode> vcardKinds = new Dictionary<string, XmlNode>();
+            Dictionary<string, XmlNode> wmsServices = new Dictionary<string, XmlNode>();
 
             for (int d = 0; d < metadataSets.Items.Length; d++)
             {
@@ -342,7 +343,6 @@ namespace Kartverket.Geonorge.Api.Services
 
                         XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
                         distribution.SetAttribute("about", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
-                        root.AppendChild(distribution);
 
                         XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
                         distributionTitle.SetAttribute("xml:lang", "no");
@@ -376,6 +376,10 @@ namespace Kartverket.Geonorge.Api.Services
                         if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
                             distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
                         distribution.AppendChild(distributionLicense);
+
+                        if (!wmsServices.ContainsKey(metadata.ServiceDistributionUrlForDataset.Value))
+                            wmsServices.Add(metadata.ServiceDistributionUrlForDataset.Value, distribution);
+
                     }
 
 
@@ -418,6 +422,11 @@ namespace Kartverket.Geonorge.Api.Services
             foreach (var vcardKind in vcardKinds)
             {
                 root.AppendChild(vcardKind.Value);
+            }
+
+            foreach (var wmsService in wmsServices)
+            {
+                root.AppendChild(wmsService.Value);
             }
         }
 
