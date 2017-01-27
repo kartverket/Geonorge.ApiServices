@@ -338,11 +338,11 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         //Map distribution to dataset
                         XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                        distributionDataset.SetAttribute("resource", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
+                        distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + metadata.ServiceUuid.Value);
                         dataset.AppendChild(distributionDataset);
 
                         XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                        distribution.SetAttribute("about", xmlnsRdf, metadata.ServiceDistributionUrlForDataset.Value);
+                        distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" +  metadata.ServiceUuid.Value);
 
                         XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
                         distributionTitle.SetAttribute("xml:lang", "no");
@@ -356,7 +356,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                         XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
                         distributionDescription.SetAttribute("xml:lang", "no");
-                        distributionDescription.InnerText = "Visningstjeneste(WMS)";
+                        distributionDescription.InnerText = "Visningstjeneste (WMS)";
                         distribution.AppendChild(distributionDescription);
 
                         distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
@@ -365,7 +365,7 @@ namespace Kartverket.Geonorge.Api.Services
                         distribution.AppendChild(distributionDescription);
 
                         XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                        distributionFormat.InnerText = "PNG";
+                        distributionFormat.InnerText = "WMS";
                         distribution.AppendChild(distributionFormat);
 
                         XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
