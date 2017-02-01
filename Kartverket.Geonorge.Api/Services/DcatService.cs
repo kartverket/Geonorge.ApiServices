@@ -133,11 +133,13 @@ namespace Kartverket.Geonorge.Api.Services
                     dataset.AppendChild(datasetIdentifier);
 
                     XmlElement datasetTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                    datasetTitle.SetAttribute("xml:lang", "no");
                     datasetTitle.InnerText = data.Title;
                     dataset.AppendChild(datasetTitle);
 
 
                     XmlElement datasetDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                    datasetDescription.SetAttribute("xml:lang", "no");
                     if (!string.IsNullOrEmpty(data.Abstract))
                         datasetDescription.InnerText = data.Abstract;
                     dataset.AppendChild(datasetDescription);
@@ -146,6 +148,7 @@ namespace Kartverket.Geonorge.Api.Services
                     {
 
                         XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
+                        datasetKeyword.SetAttribute("xml:lang", "no");
                         datasetKeyword.InnerText = keyword.Keyword;
                         dataset.AppendChild(datasetKeyword);
 
