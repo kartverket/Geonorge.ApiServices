@@ -45,6 +45,7 @@ namespace Kartverket.Geonorge.Api.Services
         private readonly OrganizationService _organizationService = new OrganizationService(WebConfigurationManager.AppSettings["RegistryUrl"], new HttpClientFactory());
 
         Dictionary<string, string> OrganizationsLink;
+        Dictionary<string, string> ConceptObjects = new Dictionary<string, string>();
 
         public XmlDocument GenerateDcat()
         {
@@ -185,6 +186,24 @@ namespace Kartverket.Geonorge.Api.Services
                         { 
                             if(!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
                                 themes.Add(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
+                        }
+                    }
+
+                    //Concepts
+                    var conceptThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_CONCEPT);
+
+                    foreach (var theme in conceptThemes)
+                    {
+                        var aboutConcept = theme.KeywordLink;
+
+                        if (!string.IsNullOrEmpty(aboutConcept))
+                        {
+                            
+                            if (!ConceptObjects.ContainsKey(aboutConcept))
+                            { 
+                                ConceptObjects.Add(aboutConcept, aboutConcept);
+                                themes.Add(aboutConcept);
+                            }
                         }
                     }
 
@@ -431,6 +450,28 @@ namespace Kartverket.Geonorge.Api.Services
             {
                 root.AppendChild(wmsService.Value);
             }
+
+            foreach (var conceptObject in ConceptObjects)
+            {
+
+                string url = conceptObject.Value;
+                System.Diagnostics.Debug.WriteLine("Url:" + url);
+
+                System.Net.WebClient client = new System.Net.WebClient();
+                client.Encoding = System.Text.Encoding.UTF8;
+                client.Headers["Accept"] = "application/rdf+xml";
+                string data = client.DownloadString(url);
+
+                var conceptObjectDoc = new XmlDocument();
+                conceptObjectDoc.LoadXml(data);
+                var concepts = conceptObjectDoc.SelectNodes("//skos:Concept", nsmgr);
+                foreach (XmlNode concept in concepts)
+                {
+                    XmlNode import = doc.ImportNode(concept, true);
+                    root.AppendChild(import);
+                }
+            }
+
         }
 
         private XmlElement CreateCatalog(XmlElement root)
