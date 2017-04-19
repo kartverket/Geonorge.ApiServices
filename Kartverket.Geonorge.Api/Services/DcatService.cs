@@ -27,6 +27,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsXslUtils = "java:org.fao.geonet.util.XslUtil";
         const string xmlnsGmd = "http://www.isotc211.org/2005/gmd";
         const string xmlnsRdfs = "http://www.w3.org/2000/01/rdf-schema#";
+        const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
 
         string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -435,6 +436,14 @@ namespace Kartverket.Geonorge.Api.Services
                     agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
                     agent.AppendChild(agentType);
 
+
+                    if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                    {
+                        XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                        agentIdentifier.InnerText = organization.Number;
+                        agent.AppendChild(agentIdentifier);
+                    }
+
                     XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
                     if (organization != null)
                         agentName.InnerText = organization.Name;
@@ -445,6 +454,13 @@ namespace Kartverket.Geonorge.Api.Services
                         XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
                         agentMbox.InnerText = data.ContactOwner.Email;
                         agent.AppendChild(agentMbox);
+                    }
+
+                    if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                    {
+                        XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
+                        agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                        agent.AppendChild(agentSameAs);
                     }
 
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
@@ -590,6 +606,7 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:xslUtils", xmlnsXslUtils);
             root.SetAttribute("xmlns:gmd", xmlnsGmd);
             root.SetAttribute("xmlns:rdfs", xmlnsRdfs);
+            root.SetAttribute("xmlns:owl", xmlnsOwl);
 
             doc.AppendChild(root);
             return root;
