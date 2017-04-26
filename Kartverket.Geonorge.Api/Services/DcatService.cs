@@ -47,10 +47,12 @@ namespace Kartverket.Geonorge.Api.Services
 
         Dictionary<string, string> OrganizationsLink;
         Dictionary<string, string> ConceptObjects = new Dictionary<string, string>();
+        Dictionary<string, DistributionType> DistributionTypes;
 
         public XmlDocument GenerateDcat()
         {
             OrganizationsLink = GetOrganizationsLink();
+            DistributionTypes = GetDistributionTypes();
             metadataSets = GetDatasets();
 
             XmlElement root = Setup();
@@ -315,12 +317,12 @@ namespace Kartverket.Geonorge.Api.Services
                                 XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
                                 distributionTitle.SetAttribute("xml:lang", "no");
                                 if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                    distributionTitle.InnerText = data.DistributionDetails.Protocol;
+                                    distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
                                 distribution.AppendChild(distributionTitle);
 
                                 XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Name))
-                                    distributionDescription.InnerText = data.DistributionDetails.Name;
+                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                                    distributionDescription.InnerText = GetDistributionDescription( data.DistributionDetails.Protocol);
                                 distribution.AppendChild(distributionDescription);
 
                                 XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
@@ -384,7 +386,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                                     XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
                                     distributionTitle.SetAttribute("xml:lang", "no");
-                                    distributionTitle.InnerText = protocol;
+                                    distributionTitle.InnerText = GetDistributionTitle(protocol);
                                     distribution.AppendChild(distributionTitle);
 
                                     distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
@@ -394,7 +396,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                                     XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
                                     distributionDescription.SetAttribute("xml:lang", "no");
-                                    distributionDescription.InnerText = "Visningstjeneste ("+ protocolName + ")";
+                                    distributionDescription.InnerText = GetDistributionDescription(protocol);
                                     distribution.AppendChild(distributionDescription);
 
                                     distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
@@ -687,6 +689,56 @@ namespace Kartverket.Geonorge.Api.Services
             }
 
             return Organizations;
+        }
+
+        public Dictionary<string, DistributionType> GetDistributionTypes()
+        {
+            Dictionary<string, DistributionType> DistributionTypes = new Dictionary<string, DistributionType>();
+
+            System.Net.WebClient c = new System.Net.WebClient();
+            c.Encoding = System.Text.Encoding.UTF8;
+            var data = c.DownloadString(System.Web.Configuration.WebConfigurationManager.AppSettings["RegistryUrl"] + "api/subregister/metadata-kodelister/kartverket/distribusjonstyper");
+            var response = Newtonsoft.Json.Linq.JObject.Parse(data);
+
+            var types = response["containeditems"];
+
+            foreach (var type in types)
+            {
+                if (!DistributionTypes.ContainsKey(type["codevalue"].ToString()))
+                {
+                    DistributionType distroType = new DistributionType();
+                    distroType.Title = type["label"].ToString();
+                    distroType.Description = type["description"].ToString();
+
+                    DistributionTypes.Add(type["codevalue"].ToString(), distroType);
+                }
+            }
+
+            return DistributionTypes;
+        }
+
+        private string GetDistributionTitle(string protocol)
+        {
+            string title = protocol;
+            if (DistributionTypes.ContainsKey(protocol))
+                title = DistributionTypes[protocol].Title;
+
+            return title;
+        }
+
+        private string GetDistributionDescription(string protocol)
+        {
+            string description = protocol;
+            if (DistributionTypes.ContainsKey(protocol))
+                description = DistributionTypes[protocol].Description;
+
+            return description;
+        }
+
+        public class DistributionType
+        {
+            public string Title;
+            public string Description;
         }
 
     }
