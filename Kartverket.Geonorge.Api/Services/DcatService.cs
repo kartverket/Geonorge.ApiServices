@@ -292,6 +292,22 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
                     dataset.AppendChild(datasetLicense);
 
+                    var accessConstraint = "PUBLIC";
+                    XmlElement datasetAccess = doc.CreateElement("dct", "accessRights", xmlnsDct);
+                    if (data.Constraints != null 
+                        && !string.IsNullOrEmpty(data.Constraints.AccessConstraints))
+                    {
+                        if (data.Constraints.AccessConstraints.ToLower() == "restricted")
+                            accessConstraint = "NON_PUBLIC";
+                        else if (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
+                            && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted")
+                        { 
+                                accessConstraint = "RESTRICTED";
+                        }
+                    }
+                    datasetAccess.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/access-right/" + accessConstraint);
+                    dataset.AppendChild(datasetAccess);
+
 
                     XmlElement datasetDataQuality = doc.CreateElement("dcat", "dataQuality", xmlnsDcat);
                     if (!string.IsNullOrEmpty(data.ProcessHistory))
