@@ -124,11 +124,11 @@ namespace Kartverket.Geonorge.Api.Services
             System.Net.WebClient c = new System.Net.WebClient();
             c.Encoding = System.Text.Encoding.UTF8;
 
-            var data1 = c.DownloadString(kartkatalogenUrl + "api/search?limit=1000&facets[0]name=type&facets[0]value=service&facets[1]name=DistributionProtocols&facets[1]value=WMS-tjeneste");
+            var data1 = c.DownloadString(kartkatalogenUrl + "api/servicedirectory?limit=1000&facets[0]name=type&facets[0]value=service&facets[1]name=DistributionProtocols&facets[1]value=WMS-tjeneste");
             var response1 = Newtonsoft.Json.Linq.JObject.Parse(data1);
             var result1 = response1.SelectToken("Results").ToList();
 
-            var data2 = c.DownloadString(kartkatalogenUrl + "api/search?limit=1000&facets[0]name=type&facets[0]value=service&facets[1]name=DistributionProtocols&facets[1]value=WFS-tjeneste");
+            var data2 = c.DownloadString(kartkatalogenUrl + "api/servicedirectory?limit=1000&facets[0]name=type&facets[0]value=service&facets[1]name=DistributionProtocols&facets[1]value=WFS-tjeneste");
             var response2 = Newtonsoft.Json.Linq.JObject.Parse(data2);
             var result2 = response2.SelectToken("Results").ToList();
 
