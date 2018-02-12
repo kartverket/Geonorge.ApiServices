@@ -2,17 +2,29 @@
 using Kartverket.Geonorge.Utilities.Organization;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Configuration;
 using System.Xml;
 using www.opengis.net;
 using Kartverket.Geonorge.Api.Models;
+using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
 
 namespace Kartverket.Geonorge.Api.Services
 {
-    public class DcatService
+    public interface IDcatService
     {
+        XmlDocument GenerateDcat();
+        SearchResultsType GetDatasets();
+        Dictionary<string, string> GetOrganizationsLink();
+        Dictionary<string, DcatService.DistributionType> GetDistributionTypes();
+    }
+
+    public class DcatService : IDcatService
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
         const string xmlnsRdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
         const string xmlnsFoaf = "http://xmlns.com/foaf/0.1/";
         const string xmlnsGco = "http://www.isotc211.org/2005/gco";
@@ -48,6 +60,11 @@ namespace Kartverket.Geonorge.Api.Services
         Dictionary<string, string> OrganizationsLink;
         Dictionary<string, string> ConceptObjects = new Dictionary<string, string>();
         Dictionary<string, DistributionType> DistributionTypes;
+
+        public DcatService(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
 
         public XmlDocument GenerateDcat()
         {
@@ -122,6 +139,7 @@ namespace Kartverket.Geonorge.Api.Services
                     && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
                     data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol) )
                 {
+                    Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
                     //Map dataset to catalog
                     XmlElement catalogDataset = doc.CreateElement("dcat", "dataset", xmlnsDcat);
@@ -247,6 +265,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     if (data.ContactOwner != null)
                     {
+                        Log.Info("Looking up organization: " + data.ContactOwner.Organization);
                         Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
                         organization = getOrganizationTask.Result;
                     }
@@ -365,83 +384,7 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
                     // Dataset distributions
-                    // Get distribution from index in kartkatalog 
-                    string metadataUrl = System.Web.Configuration.WebConfigurationManager.AppSettings["KartkatalogenUrl"] + "api/getdata/" + uuid;
-                    System.Net.WebClient c = new System.Net.WebClient();
-                    c.Encoding = System.Text.Encoding.UTF8;
-
-                    var json = c.DownloadString(metadataUrl);
-
-                    dynamic metadata = Newtonsoft.Json.Linq.JObject.Parse(json);
-
-                    if (metadata != null && metadata.Related != null)
-                    {
-                        foreach (var related in metadata.Related)
-                        {
-                            var uuidService = related.Uuid.Value;
-
-                            if(related.DistributionDetails != null)
-                            {
-
-                                var protocol = related.DistributionDetails.Protocol.Value;
-                                var serviceDistributionUrl = related.DistributionDetails.URL.Value;
-
-                                string protocolName = protocol;
-                                if (protocolName.Contains(":"))
-                                    protocolName = protocolName.Split(':')[1];
-
-                                if(protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
-                                {
-
-                                    XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService);
-                                    dataset.AppendChild(distributionDataset);
-
-                                    XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService);
-
-                                    XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                                    distributionTitle.SetAttribute("xml:lang", "no");
-                                    distributionTitle.InnerText = GetDistributionTitle(protocol);
-                                    distribution.AppendChild(distributionTitle);
-
-                                    distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                                    distributionTitle.SetAttribute("xml:lang", "en");
-                                    distributionTitle.InnerText = protocol;
-                                    distribution.AppendChild(distributionTitle);
-
-                                    XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                    distributionDescription.SetAttribute("xml:lang", "no");
-                                    distributionDescription.InnerText = GetDistributionDescription(protocol);
-                                    distribution.AppendChild(distributionDescription);
-
-                                    distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                    distributionDescription.SetAttribute("xml:lang", "en");
-                                    distributionDescription.InnerText = "View Service ("+ protocolName + ")";
-                                    distribution.AppendChild(distributionDescription);
-
-                                    XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                    distributionFormat.InnerText = protocolName;
-                                    distribution.AppendChild(distributionFormat);
-
-                                    XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
-                                    distribution.AppendChild(distributionAccessURL);
-
-                                    XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                                        distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
-                                    distribution.AppendChild(distributionLicense);
-
-                                    if (!services.ContainsKey(serviceDistributionUrl))
-                                        services.Add(serviceDistributionUrl, distribution);
-
-
-                                }
-                            }
-                        }
-
-                    }
+                    AddDistributions(uuid, dataset, data, services);
 
 
                     //Agent/publisher
@@ -505,27 +448,152 @@ namespace Kartverket.Geonorge.Api.Services
                 root.AppendChild(service.Value);
             }
 
-            foreach (var conceptObject in ConceptObjects)
+            AppendConcepts(root);
+
+        }
+
+        private void AddDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services)
+        {
+// Get distribution from index in kartkatalog 
+            string metadataUrl = WebConfigurationManager.AppSettings["KartkatalogenUrl"] + "api/getdata/" + uuid;
+
+            try
             {
+                Log.Info("Looking up distributions");
+                
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
+                var httpClient = _httpClientFactory.GetHttpClient();
+                var json = httpClient.GetStringAsync(metadataUrl).Result;
+                stopwatch.Stop();
+                Log.Debug($"Distribution lookup for [uuid={uuid}] [timespent={stopwatch.ElapsedMilliseconds}ms]");
 
-                string url = conceptObject.Value;
-                System.Diagnostics.Debug.WriteLine("Url:" + url);
+                dynamic metadata = Newtonsoft.Json.Linq.JObject.Parse(json);
 
-                System.Net.WebClient client = new System.Net.WebClient();
-                client.Encoding = System.Text.Encoding.UTF8;
-                client.Headers["Accept"] = "application/rdf+xml";
-                string data = client.DownloadString(url);
-
-                var conceptObjectDoc = new XmlDocument();
-                conceptObjectDoc.LoadXml(data);
-                var concepts = conceptObjectDoc.SelectNodes("//skos:Concept", nsmgr);
-                foreach (XmlNode concept in concepts)
+                if (metadata != null && metadata.Related != null)
                 {
-                    XmlNode import = doc.ImportNode(concept, true);
-                    root.AppendChild(import);
+                    foreach (var related in metadata.Related)
+                    {
+                        var uuidService = related.Uuid.Value;
+
+                        if (related.DistributionDetails != null)
+                        {
+                            var protocol = related.DistributionDetails.Protocol.Value;
+                            var serviceDistributionUrl = related.DistributionDetails.URL.Value;
+
+                            if (services.ContainsKey(serviceDistributionUrl))
+                                continue;
+
+                            string protocolName = protocol;
+                            if (protocolName.Contains(":"))
+                                protocolName = protocolName.Split(':')[1];
+
+                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
+                            {
+                                var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
+                                    protocolName, serviceDistributionUrl);
+
+                                services.Add(serviceDistributionUrl, distribution);
+                            }
+                        }
+                    }
                 }
             }
+            catch (Exception e)
+            {
+                Log.Error($"Unable to fetch distributions from: [url={metadataUrl}], [message={e.Message}]", e);
+            }
+        }
 
+        private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
+            dynamic protocol, string protocolName, dynamic serviceDistributionUrl)
+        {
+            XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+            distributionDataset.SetAttribute("resource", xmlnsRdf,
+                kartkatalogenUrl + "Metadata/uuid/" + uuidService);
+            dataset.AppendChild(distributionDataset);
+
+            XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
+            distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService);
+
+            XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+            distributionTitle.SetAttribute("xml:lang", "no");
+            distributionTitle.InnerText = GetDistributionTitle(protocol);
+            distribution.AppendChild(distributionTitle);
+
+            distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+            distributionTitle.SetAttribute("xml:lang", "en");
+            distributionTitle.InnerText = protocol;
+            distribution.AppendChild(distributionTitle);
+
+            XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+            distributionDescription.SetAttribute("xml:lang", "no");
+            distributionDescription.InnerText = GetDistributionDescription(protocol);
+            distribution.AppendChild(distributionDescription);
+
+            distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+            distributionDescription.SetAttribute("xml:lang", "en");
+            distributionDescription.InnerText = "View Service (" + protocolName + ")";
+            distribution.AppendChild(distributionDescription);
+
+            XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+            distributionFormat.InnerText = protocolName;
+            distribution.AppendChild(distributionFormat);
+
+            XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
+            distributionAccessURL.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
+            distribution.AppendChild(distributionAccessURL);
+
+            XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
+            if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
+                distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+            distribution.AppendChild(distributionLicense);
+            return distribution;
+        }
+
+        private void AppendConcepts(XmlElement root)
+        {
+            var httpClient = _httpClientFactory.GetHttpClient();
+            
+            foreach (var conceptObject in ConceptObjects)
+            {
+                string url = conceptObject.Value;
+                Log.Info($"Looking up concept from [url={url}]");
+                try
+                {
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.Add("Accept", "application/rdf+xml");
+                    var stopwatch = new Stopwatch();
+                    stopwatch.Start();
+                    HttpResponseMessage response = httpClient.SendAsync(request).Result;
+                    stopwatch.Stop();
+
+                    Log.Debug($"Concept lookup for [url={url}] [timespent={stopwatch.ElapsedMilliseconds}ms]");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string data = response.Content.ReadAsStringAsync().Result;
+
+                        var conceptObjectDoc = new XmlDocument();
+                        conceptObjectDoc.LoadXml(data);
+                        var concepts = conceptObjectDoc.SelectNodes("//skos:Concept", nsmgr);
+                        foreach (XmlNode concept in concepts)
+                        {
+                            XmlNode import = doc.ImportNode(concept, true);
+                            root.AppendChild(import);
+                        }
+                    }
+                    else
+                    {
+                        Log.Error(
+                            $"Unable to fetch concept from [url={url}], [responseStatusCode={response.StatusCode}], [responseContent={response.Content.ReadAsStringAsync().Result}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"Unable to fetch concept from [url={url}], [message={e.Message}]" ,e);
+                }
+            }
         }
 
         private XmlElement CreateCatalog(XmlElement root)
@@ -664,7 +732,11 @@ namespace Kartverket.Geonorge.Api.Services
                         ItemsChoiceType23.PropertyIsLike,
             };
 
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             var result = _geoNorge.SearchWithFilters(filters, filterNames, 1, 1000, false);
+            stopwatch.Stop();
+            Log.Debug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
             return result;
         }
 
@@ -685,49 +757,69 @@ namespace Kartverket.Geonorge.Api.Services
             return url.Replace(" ", "%20").Replace(",", "%2C").Replace("[", "%5B").Replace("]", "%5D");
         }
 
-        public Dictionary<string, string> GetOrganizationsLink()
+        public Dictionary<string, string>  GetOrganizationsLink()
         {
-            Dictionary<string, string> Organizations = new Dictionary<string, string>();
+            Dictionary<string, string> organizations = new Dictionary<string, string>();
 
-            System.Net.WebClient c = new System.Net.WebClient();
-            c.Encoding = System.Text.Encoding.UTF8;
-            var data = c.DownloadString(System.Web.Configuration.WebConfigurationManager.AppSettings["RegistryUrl"] + "api/register/organisasjoner");
-            var response = Newtonsoft.Json.Linq.JObject.Parse(data);
+            var httpClient = _httpClientFactory.GetHttpClient();
+            string url = WebConfigurationManager.AppSettings["RegistryUrl"] + "api/register/organisasjoner";
 
-            var orgs = response["containeditems"];
-
-            foreach (var org in orgs)
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            HttpResponseMessage response = httpClient.GetAsync(url).Result;
+            stopwatch.Stop();
+            Log.Debug($"Looking up organizations [timespent={stopwatch.ElapsedMilliseconds}ms]");
+            if (response.IsSuccessStatusCode)
             {
-                if (!Organizations.ContainsKey(org["label"].ToString()))
+                var parsedItems = Newtonsoft.Json.Linq.JObject.Parse(response.Content.ReadAsStringAsync().Result);
+
+                var parsedOrganizations = parsedItems["containeditems"];
+
+                foreach (var org in parsedOrganizations)
                 {
-                    Organizations.Add(org["label"].ToString(), org["id"].ToString());
+                    if (!organizations.ContainsKey(org["label"].ToString()))
+                    {
+                        organizations.Add(org["label"].ToString(), org["id"].ToString());
+                    }
                 }
             }
+            else
+            {
+                Log.Error($"Unable to fetch organizations from [url={url}], [responseStatusCode={response.StatusCode}] [responseContent={response.Content.ReadAsStringAsync().Result}]");
+            }
 
-            return Organizations;
+            return organizations;
         }
 
         public Dictionary<string, DistributionType> GetDistributionTypes()
         {
             Dictionary<string, DistributionType> DistributionTypes = new Dictionary<string, DistributionType>();
 
-            System.Net.WebClient c = new System.Net.WebClient();
-            c.Encoding = System.Text.Encoding.UTF8;
-            var data = c.DownloadString(System.Web.Configuration.WebConfigurationManager.AppSettings["RegistryUrl"] + "api/subregister/metadata-kodelister/kartverket/distribusjonstyper");
-            var response = Newtonsoft.Json.Linq.JObject.Parse(data);
+            var httpClient = _httpClientFactory.GetHttpClient();
+            string url = WebConfigurationManager.AppSettings["RegistryUrl"] + "api/subregister/metadata-kodelister/kartverket/distribusjonstyper";
+            HttpResponseMessage response = httpClient.GetAsync(url).Result;
 
-            var types = response["containeditems"];
-
-            foreach (var type in types)
+            if (response.IsSuccessStatusCode)
             {
-                if (!DistributionTypes.ContainsKey(type["codevalue"].ToString()))
-                {
-                    DistributionType distroType = new DistributionType();
-                    distroType.Title = type["label"].ToString();
-                    distroType.Description = type["description"].ToString();
+                var parsedResponse = Newtonsoft.Json.Linq.JObject.Parse(response.Content.ReadAsStringAsync().Result);
 
-                    DistributionTypes.Add(type["codevalue"].ToString(), distroType);
+                var types = parsedResponse["containeditems"];
+
+                foreach (var type in types)
+                {
+                    if (!DistributionTypes.ContainsKey(type["codevalue"].ToString()))
+                    {
+                        DistributionType distroType = new DistributionType();
+                        distroType.Title = type["label"].ToString();
+                        distroType.Description = type["description"].ToString();
+
+                        DistributionTypes.Add(type["codevalue"].ToString(), distroType);
+                    }
                 }
+            }
+            else
+            {
+                Log.Error($"Unable to fetch distributiontypes from [url={url}], [responseStatusCode={response.StatusCode}] [responseContent={response.Content.ReadAsStringAsync().Result}]");
             }
 
             return DistributionTypes;

@@ -483,7 +483,7 @@
         </member>
         <member name="M:Kartverket.Geonorge.Api.Controllers.DcatController.GetDcat">
             <summary>
-            Catalogue in dcat format
+                Catalogue in dcat format
             </summary>
         </member>
         <member name="M:Kartverket.Geonorge.Api.Controllers.DownloadController.GetDownloads">

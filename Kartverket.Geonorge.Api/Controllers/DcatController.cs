@@ -1,37 +1,47 @@
-﻿using Kartverket.Geonorge.Api.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net.Http;
+using System.Text;
+using System.Web;
 using System.Web.Http;
 using System.Web.Http.Description;
+using System.Xml;
+using Kartverket.Geonorge.Api.Services;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
     public class DcatController : ApiController
     {
-        /// <summary>
-        /// Catalogue in dcat format
-        /// </summary>
-        [System.Web.Http.Route("metadata/dcat")]
-        [System.Web.Http.HttpGet]
-        public System.Net.Http.HttpResponseMessage GetDcat()
+        private readonly IDcatService _dcatService;
+
+        public DcatController(IDcatService dcatService)
         {
-            System.Xml.XmlDocument doc = new System.Xml.XmlDocument();
-            doc.Load(System.Web.HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
-            return new System.Net.Http.HttpResponseMessage()
-            { Content = new System.Net.Http.StringContent(doc.OuterXml, System.Text.Encoding.UTF8, "application/rdf+xml") };
+            _dcatService = dcatService;
         }
 
-        [System.Web.Http.Route("metadata/updatedcat")]
-        [System.Web.Http.HttpGet]
-        [ApiExplorerSettings(IgnoreApi = true)]
-        public System.Net.Http.HttpResponseMessage UpdateDcat()
+        /// <summary>
+        ///     Catalogue in dcat format
+        /// </summary>
+        [Route("metadata/dcat")]
+        [HttpGet]
+        public HttpResponseMessage GetDcat()
         {
-            var dcat = new DcatService().GenerateDcat();
-            return new System.Net.Http.HttpResponseMessage()
-            { Content = new System.Net.Http.StringContent(dcat.OuterXml, System.Text.Encoding.UTF8, "application/rdf+xml") };
+            var doc = new XmlDocument();
+            doc.Load(HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
+            return new HttpResponseMessage
+            {
+                Content = new StringContent(doc.OuterXml, Encoding.UTF8, "application/rdf+xml")
+            };
+        }
+
+        [Route("metadata/updatedcat")]
+        [HttpGet]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public HttpResponseMessage UpdateDcat()
+        {
+            var dcat = _dcatService.GenerateDcat();
+            return new HttpResponseMessage
+            {
+                Content = new StringContent(dcat.OuterXml, Encoding.UTF8, "application/rdf+xml")
+            };
         }
     }
 }
