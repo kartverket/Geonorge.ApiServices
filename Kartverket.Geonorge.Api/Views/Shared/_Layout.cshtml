@@ -16,6 +16,7 @@
     <div id="loading-animation" class="loading-animation" style="display: none;"></div>
 
     @Html.Raw(File.ReadAllText(Server.MapPath("~/dist/partials/Header.html")))
+    @Styles.Render("~/shared-partials-styles")
     @Styles.Render("~/Content/bower_components/kartverket-felleskomponenter/assets/css/styles")
 
     <div class="body-content">
@@ -36,7 +37,7 @@
 
     </div>
     @RenderPage("~/Content/bower_components/kartverket-felleskomponenter/assets/partials/_Footer.cshtml")
-
+    @Scripts.Render("~/shared-partials-scripts")
     <script>
         searchOption.supportsLogin = false;
         searchOption.supportsCulture = false;
