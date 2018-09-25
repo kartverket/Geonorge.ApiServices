@@ -57,11 +57,14 @@ namespace Kartverket.Geonorge.Api.Services
             {
                 var data = c.DownloadString(uRL+uuid);
                 var response = Newtonsoft.Json.Linq.JObject.Parse(data);
-                var links = response.SelectToken("_links").ToList();
-                foreach (var url in links)
-                {
-                    if (url["rel"].ToString() == "http://rel.geonorge.no/download/area")
-                        checkArea(uuid, title, url["href"].ToString());
+                var supportsPolygonSelection = response.SelectToken("supportsPolygonSelection");
+                if (supportsPolygonSelection != null && !(bool)supportsPolygonSelection) { 
+                    var links = response.SelectToken("_links").ToList();
+                    foreach (var url in links)
+                    {
+                        if (url["rel"].ToString() == "http://rel.geonorge.no/download/area")
+                            checkArea(uuid, title, url["href"].ToString());
+                    }
                 }
             } 
             catch(Exception ex)
