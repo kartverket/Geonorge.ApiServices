@@ -40,6 +40,8 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsGmd = "http://www.isotc211.org/2005/gmd";
         const string xmlnsRdfs = "http://www.w3.org/2000/01/rdf-schema#";
         const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
+        const string xmlnsLocn = "http://www.w3.org/ns/locn#";
+        const string xmlnsGml = "http://www.opengis.net/gml";
 
         string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -189,6 +191,22 @@ namespace Kartverket.Geonorge.Api.Services
                             datasetLocation.InnerText = aboutPlace;
                             dataset.AppendChild(datasetLocation);
                         }
+                    }
+
+                    if(data.BoundingBox != null)
+                    {
+                        XmlElement datasetSpatial = doc.CreateElement("dct", "spatial", xmlnsDct);
+                        datasetSpatial.SetAttribute("rdf:parseType", "Resource");
+
+                        XmlElement spatialLocn = doc.CreateElement("locn", "geometry", xmlnsLocn);
+                        spatialLocn.SetAttribute("rdf:datatype", "http://www.opengis.net/ont/geosparql#gmlLiteral");
+
+                        var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
+                        spatialLocn.AppendChild(cdata);
+
+                        datasetSpatial.AppendChild(spatialLocn);
+
+                        dataset.AppendChild(datasetSpatial);
                     }
 
                     List<string> themes = new List<string>();
@@ -708,6 +726,8 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:gmd", xmlnsGmd);
             root.SetAttribute("xmlns:rdfs", xmlnsRdfs);
             root.SetAttribute("xmlns:owl", xmlnsOwl);
+            root.SetAttribute("xmlns:locn", xmlnsLocn);
+            root.SetAttribute("xmlns:gml", xmlnsGml);
 
             doc.AppendChild(root);
             return root;
