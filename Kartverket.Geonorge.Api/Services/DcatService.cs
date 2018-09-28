@@ -179,6 +179,7 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
                     //Place
+                    // URI for the geographic identifier
                     var places = SimpleKeyword.Filter(data.Keywords, SimpleKeyword.TYPE_PLACE, null);
 
                     foreach (var place in places)
@@ -187,13 +188,14 @@ namespace Kartverket.Geonorge.Api.Services
 
                         if (!string.IsNullOrEmpty(aboutPlace))
                         {
-                            XmlElement datasetLocation = doc.CreateElement("dct", "location", xmlnsDct);
+                            XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
                             datasetLocation.InnerText = aboutPlace;
                             dataset.AppendChild(datasetLocation);
                         }
                     }
 
-                    if(data.BoundingBox != null)
+                    //Resource metadata in GeoDCAT - AP using a geographic bounding box
+                    if (data.BoundingBox != null)
                     {
                         XmlElement datasetSpatial = doc.CreateElement("dct", "spatial", xmlnsDct);
                         datasetSpatial.SetAttribute("rdf:parseType", "Resource");
