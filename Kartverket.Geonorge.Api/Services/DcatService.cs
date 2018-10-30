@@ -180,7 +180,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     //Place
                     // URI for the geographic identifier
-                    var places = SimpleKeyword.Filter(data.Keywords, SimpleKeyword.TYPE_PLACE, null);
+                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
 
                     foreach (var place in places)
                     {
