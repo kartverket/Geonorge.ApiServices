@@ -40,6 +40,8 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsGmd = "http://www.isotc211.org/2005/gmd";
         const string xmlnsRdfs = "http://www.w3.org/2000/01/rdf-schema#";
         const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
+        const string xmlnsLocn = "http://www.w3.org/ns/locn#";
+        const string xmlnsGml = "http://www.opengis.net/gml";
 
         string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -176,6 +178,39 @@ namespace Kartverket.Geonorge.Api.Services
 
                     }
 
+                    //Place
+                    // URI for the geographic identifier
+                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+
+                    foreach (var place in places)
+                    {
+                        var aboutPlace = place.KeywordLink;
+
+                        if (!string.IsNullOrEmpty(aboutPlace))
+                        {
+                            XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
+                            datasetLocation.InnerText = aboutPlace;
+                            dataset.AppendChild(datasetLocation);
+                        }
+                    }
+
+                    //Resource metadata in GeoDCAT - AP using a geographic bounding box
+                    if (data.BoundingBox != null)
+                    {
+                        XmlElement datasetSpatial = doc.CreateElement("dct", "spatial", xmlnsDct);
+                        datasetSpatial.SetAttribute("rdf:parseType", "Resource");
+
+                        XmlElement spatialLocn = doc.CreateElement("locn", "geometry", xmlnsLocn);
+                        spatialLocn.SetAttribute("rdf:datatype", "http://www.opengis.net/ont/geosparql#gmlLiteral");
+
+                        var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
+                        spatialLocn.AppendChild(cdata);
+
+                        datasetSpatial.AppendChild(spatialLocn);
+
+                        dataset.AppendChild(datasetSpatial);
+                    }
+
                     List<string> themes = new List<string>();
 
                     string euLink = "http://publications.europa.eu/resource/authority/data-theme/";
@@ -256,7 +291,7 @@ namespace Kartverket.Geonorge.Api.Services
 
 
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
 
                     dataset.AppendChild(datasetPublisher);
@@ -271,12 +306,12 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
                     XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
                     dataset.AppendChild(datasetContactPoint);
 
                     XmlElement datasetKind = doc.CreateElement("vcard", "Kind", xmlnsVcard);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
 
                     XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-name", xmlnsVcard);
@@ -291,7 +326,7 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
                         datasetKind.AppendChild(datasetHasEmail);
                     }
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         if (!vcardKinds.ContainsKey(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/")))
                             vcardKinds.Add(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"), datasetKind);
 
@@ -390,7 +425,7 @@ namespace Kartverket.Geonorge.Api.Services
                     //Agent/publisher
 
                     XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         agent.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
 
                     XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
@@ -424,7 +459,7 @@ namespace Kartverket.Geonorge.Api.Services
                         agent.AppendChild(agentSameAs);
                     }
 
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                     {
                         if (!foafAgents.ContainsKey(OrganizationsLink[data.ContactOwner.Organization]))
                             foafAgents.Add(OrganizationsLink[data.ContactOwner.Organization], agent);
@@ -693,6 +728,8 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:gmd", xmlnsGmd);
             root.SetAttribute("xmlns:rdfs", xmlnsRdfs);
             root.SetAttribute("xmlns:owl", xmlnsOwl);
+            root.SetAttribute("xmlns:locn", xmlnsLocn);
+            root.SetAttribute("xmlns:gml", xmlnsGml);
 
             doc.AppendChild(root);
             return root;
