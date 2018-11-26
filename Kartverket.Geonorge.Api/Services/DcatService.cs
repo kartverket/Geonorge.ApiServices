@@ -100,11 +100,14 @@ namespace Kartverket.Geonorge.Api.Services
         private string GetConcept(string prefLabel)
         {
             var concept = conceptsDoc.SelectSingleNode("//skos:Concept[skos:prefLabel='"+ prefLabel + "']", nsmgr);
+            if(concept != null)
+            { 
             var about = concept.Attributes.GetNamedItem("rdf:about");
             if (about != null)
                 return about.Value;
+            }
 
-           return null;
+            return null;
         }
 
         private void AddConcepts(XmlElement root)
