@@ -678,7 +678,7 @@ namespace Kartverket.Geonorge.Api.Services
             if(WebConfigurationManager.AppSettings["EnvironmentName"] == "dev" )
                 catalogPublisher.SetAttribute("resource", xmlnsRdf, "http://register.dev.geonorge.no/register/organisasjoner/kartverket/kartverket");
             else
-                catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/register/organisasjoner/kartverket/kartverket");
+                catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/geonorge/f5fb2fdf-76b6-4e15-9fd1-603849e41e09");
 
             catalog.AppendChild(catalogPublisher);
 
