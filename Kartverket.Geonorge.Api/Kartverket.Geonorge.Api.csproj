@@ -370,8 +370,6 @@
     <Content Include="fonts\iconFont.dev.svg" />
     <Content Include="fonts\iconFont.svg" />
     <Content Include="Global.asax" />
-    <Content Include=".bowerrc" />
-    <Content Include="bower.json" />
     <Content Include="gulpfile.js" />
     <Content Include="Web.config" />
     <Content Include="Web.Debug.config">
