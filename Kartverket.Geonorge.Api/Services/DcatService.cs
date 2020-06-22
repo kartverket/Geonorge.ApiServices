@@ -1,4 +1,4 @@
-﻿using GeoNorgeAPI;
+using GeoNorgeAPI;
 using Kartverket.Geonorge.Utilities.Organization;
 using System;
 using System.Collections.Generic;
@@ -355,9 +355,9 @@ namespace Kartverket.Geonorge.Api.Services
                         && !string.IsNullOrEmpty(data.Constraints.AccessConstraints))
                     {
                         if (data.Constraints.AccessConstraints.ToLower() == "restricted")
-                            accessConstraint = "NON_PUBLIC";
-                        else if (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
-                            && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted")
+                            accessConstraint = "NON-PUBLIC";
+                        else if (data.Constraints.AccessConstraints == "norway digital restricted" || (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
+                            && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted"))
                         { 
                                 accessConstraint = "RESTRICTED";
                         }
