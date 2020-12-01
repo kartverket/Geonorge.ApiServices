@@ -290,7 +290,11 @@ namespace Kartverket.Geonorge.Api.Services
 
                     foreach (var theme in themes)
                     {
-                        XmlElement datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                        XmlElement datasetTheme;
+                        if(theme.Contains("objektkatalog.geonorge.no"))
+                            datasetTheme = doc.CreateElement("dct", "subject", xmlnsDct);
+                        else
+                            datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
                         datasetTheme.SetAttribute("resource", xmlnsRdf, theme);
                         dataset.AppendChild(datasetTheme);
                     }
