@@ -61,6 +61,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         Dictionary<string, string> OrganizationsLink;
         Dictionary<string, string> ConceptObjects = new Dictionary<string, string>();
+        Dictionary<string, string> MediaTypes;
         Dictionary<string, DistributionType> DistributionTypes;
 
         public DcatService(IHttpClientFactory httpClientFactory)
@@ -70,6 +71,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         public XmlDocument GenerateDcat()
         {
+            MediaTypes = GetMediaTypes();
             OrganizationsLink = GetOrganizationsLink();
             DistributionTypes = GetDistributionTypes();
             metadataSets = GetDatasets();
@@ -89,6 +91,26 @@ namespace Kartverket.Geonorge.Api.Services
             doc.Save(System.Web.HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
 
             return doc;
+        }
+
+        private Dictionary<string, string> GetMediaTypes()
+        {
+            return new Dictionary<string, string>()
+            {
+               { "Shape", "https://www.iana.org/assignments/media-types/application/vnd.shp" },
+               { "SOSI", "https://www.iana.org/assignments/media-types/text/vnd.sosi" },
+               { "GML", "https://www.iana.org/assignments/media-types/application/gml+xml" },
+               { "CSV", "https://www.iana.org/assignments/media-types/text/csv" },
+               { "GeoJSON", "https://www.iana.org/assignments/media-types/application/geo+json" },
+               { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
+               { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
+               { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
+               { "FGDB", "https://www.iana.org/assignments/media-types/application/x-filegdb" },
+               { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
+               { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
+               { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" }
+
+            };
         }
 
         private void GetConcepts()
@@ -401,6 +423,13 @@ namespace Kartverket.Geonorge.Api.Services
                                 XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
                                 distributionFormat.InnerText = distro.Name;
                                 distribution.AppendChild(distributionFormat);
+
+                                if(MediaTypes.ContainsKey(distro.Name))
+                                {
+                                    XmlElement mediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
+                                    mediaType.InnerText = MediaTypes[distro.Name];
+                                    distribution.AppendChild(mediaType);
+                                }
 
                                 XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
                                 distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
