@@ -431,7 +431,7 @@ namespace Kartverket.Geonorge.Api.Services
                                 if(MediaTypes.ContainsKey(distro.Name))
                                 {
                                     XmlElement mediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                    mediaType.InnerText = MediaTypes[distro.Name];
+                                    mediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
                                     distribution.AppendChild(mediaType);
                                 }
 
