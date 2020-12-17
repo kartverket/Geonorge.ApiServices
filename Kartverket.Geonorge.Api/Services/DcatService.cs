@@ -425,15 +425,14 @@ namespace Kartverket.Geonorge.Api.Services
                                 distribution.AppendChild(distributionDescription);
 
                                 XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                distributionFormat.InnerText = distro.Name;
-                                distribution.AppendChild(distributionFormat);
-
-                                if(MediaTypes.ContainsKey(distro.Name))
+                                if (MediaTypes.ContainsKey(distro.Name))
                                 {
-                                    XmlElement mediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                    mediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
-                                    distribution.AppendChild(mediaType);
+                                    distributionFormat.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
                                 }
+                                else { 
+                                distributionFormat.InnerText = distro.Name;
+                                }
+                                distribution.AppendChild(distributionFormat);
 
                                 XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
                                 distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
