@@ -429,7 +429,9 @@ namespace Kartverket.Geonorge.Api.Services
                                 {
                                     distributionFormat.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
                                 }
+                                else { 
                                 distributionFormat.InnerText = distro.Name;
+                                }
                                 distribution.AppendChild(distributionFormat);
 
                                 XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
