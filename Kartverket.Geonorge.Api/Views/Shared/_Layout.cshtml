@@ -15,7 +15,9 @@
 <body class="geonorge-container prototype geonorge">
     <div id="loading-animation" class="loading-animation" style="display: none;"></div>
 
-    @Html.Raw(File.ReadAllText(Server.MapPath("~/dist/partials/Header.html")))
+    <main-navigation environment="@Html.EnvironmentName()">
+
+    </main-navigation>
     @Styles.Render("~/shared-partials-styles")
     @Styles.Render("~/Content/bower_components/kartverket-felleskomponenter/assets/css/styles")
 
@@ -51,5 +53,6 @@
 
     @Scripts.Render("~/Content/bower_components/kartverket-felleskomponenter/assets/js/scripts")
     @RenderSection("scripts", required: false)
+    <script src="https://cdn.jsdelivr.net/npm/@("@kartverket/geonorge-web-components@0.1.33/MainNavigation.js")"></script>
 </body>
 </html>
