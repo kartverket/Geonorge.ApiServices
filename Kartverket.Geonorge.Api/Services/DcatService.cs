@@ -105,10 +105,14 @@ namespace Kartverket.Geonorge.Api.Services
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
-               { "FGDB", "https://www.iana.org/assignments/media-types/application/x-filegdb" },
+               { "FGDB", "https://publications.europa.eu/resource/authority/file-type/GDB" },
                { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
                { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
-               { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" }
+               { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" },
+               { "JPEG", "https://publications.europa.eu/resource/authority/file-type/JPEG" },
+               { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
+               { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
+               { "PPTX", "https://publications.europa.eu/resource/authority/file-type/PPTX" }
 
             };
         }
