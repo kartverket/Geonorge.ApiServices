@@ -343,11 +343,11 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
                     dataset.AppendChild(datasetContactPoint);
 
-                    XmlElement datasetKind = doc.CreateElement("vcard", "Kind", xmlnsVcard);
+                    XmlElement datasetKind = doc.CreateElement("vcard", "Organization", xmlnsVcard);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
 
-                    XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-name", xmlnsVcard);
+                    XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-unit", xmlnsVcard);
                     datasetOrganizationName.SetAttribute("xml:lang", "");
                     if (organization != null)
                         datasetOrganizationName.InnerText = organization.Name;
