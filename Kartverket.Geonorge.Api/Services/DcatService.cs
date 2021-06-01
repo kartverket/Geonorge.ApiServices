@@ -735,7 +735,7 @@ namespace Kartverket.Geonorge.Api.Services
             catalog.AppendChild(catalogThemeTaxonomy);
 
             catalogThemeTaxonomy = doc.CreateElement("dcat", "themeTaxonomy", xmlnsDcat);
-            catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling");
+            catalogThemeTaxonomy.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling");
             catalog.AppendChild(catalogThemeTaxonomy);
 
             return catalog;
@@ -872,7 +872,7 @@ namespace Kartverket.Geonorge.Api.Services
             Dictionary<string, DistributionType> DistributionTypes = new Dictionary<string, DistributionType>();
 
             var httpClient = _httpClientFactory.GetHttpClient();
-            string url = WebConfigurationManager.AppSettings["RegistryUrl"] + "api/subregister/metadata-kodelister/kartverket/distribusjonstyper";
+            string url = WebConfigurationManager.AppSettings["RegistryUrl"] + "api/metadata-kodelister/distribusjonstyper";
             HttpResponseMessage response = httpClient.GetAsync(url).Result;
 
             if (response.IsSuccessStatusCode)
