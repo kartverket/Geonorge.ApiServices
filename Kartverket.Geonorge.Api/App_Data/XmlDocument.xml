@@ -29,5 +29,25 @@
             Check for AccessConstraint mismatch between kartkatalog and download
             </summary>
         </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.Dataset.Uuid">
+            <summary>
+            Dataset uuid
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.Dataset.Url">
+            <summary>
+            Url to dataset in feed
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.Dataset.LastUpdated">
+            <summary>
+            Date when dataset was updated
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.Dataset.Organization">
+            <summary>
+            Owner of dataset
+            </summary>
+        </member>
     </members>
 </doc>

@@ -183,6 +183,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\DcatController.cs" />
     <Compile Include="Controllers\DownloadController.cs" />
+    <Compile Include="Controllers\FeedController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -190,7 +191,9 @@
     <Compile Include="Helpers\HtmlHelperExtension.cs" />
     <Compile Include="Models\Mappings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\AtomFeedParser.cs" />
     <Compile Include="Services\ConstraintChecker.cs" />
+    <Compile Include="Services\FeedService.cs" />
     <Compile Include="Services\DcatService.cs" />
     <Compile Include="Services\DownloadService.cs" />
     <Compile Include="Services\ServiceChecker.cs" />
