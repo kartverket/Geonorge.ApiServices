@@ -75,9 +75,6 @@ namespace Kartverket.Geonorge.Api.Services
                             if (!string.IsNullOrEmpty(uuid))
                                 dataset.Uuid = uuid;
                         }
-
-                        //todo handle group by uuid since same in geonorge feed for different formats
-                        //Dictionary<string, List<Dataset>> ds = new Dictionary<string, List<Dataset>>();
                     }
 
                     datasets.Add(dataset);
@@ -110,6 +107,9 @@ namespace Kartverket.Geonorge.Api.Services
                 organization = "Norges geologiske undersøkelse";
             else if (dataset != null && string.IsNullOrEmpty(dataset.Organization) && dataset.Url.Contains("nibio.no"))
                 organization = "Norsk institutt for bioøkonomi";
+
+            if (organization == "Geonorge")
+                organization = "Kartverket";
 
             return organization;
         }

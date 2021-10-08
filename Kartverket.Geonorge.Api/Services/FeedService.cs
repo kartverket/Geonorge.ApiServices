@@ -27,10 +27,34 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task UpdateMetadata()
         {
-            var datasets = GetDatasets();
+            var datasetList = GetDatasets();
 
+            var datasets = datasetList.OrderBy(x => x.Uuid)
+               .GroupBy(x => x.Uuid)
+               .Select(g => new {
+                   Uuid = g.Key,
+                   Datasets = g.Select(dataset => new {
+                       dataset.Url,
+                       dataset.Organization
+                   })
+               }).ToList();
 
-            throw new NotImplementedException();
+            foreach(var dataset in datasets)
+            {
+                var uuid = dataset.Uuid;
+                foreach (var item in dataset.Datasets)
+                {
+                    var url = item.Url;
+                    var organization = item.Organization;
+
+                    //Distribusjonstype=W3C:AtomFeed
+                    //Format: gml 3.2.1?
+                }
+
+                //todo save to geonetwork
+            }
+
+            return Task.CompletedTask;
         }
         public List<Dataset> GetDatasets()
         {
