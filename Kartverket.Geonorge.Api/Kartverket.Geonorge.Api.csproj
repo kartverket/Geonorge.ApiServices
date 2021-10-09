@@ -434,6 +434,8 @@
     <Content Include="fonts\MetaComp-Book.ttf" />
     <Content Include="fonts\MetaWeb-Book.eot" />
     <Content Include="fonts\MetaWeb-Book.woff" />
+    <Content Include="settings.config" />
+    <Content Include="settings.default.config" />
     <None Include="Web.Dev.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
