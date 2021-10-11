@@ -36,7 +36,9 @@ namespace Kartverket.Geonorge.Api.Services
                    Datasets = g.Select(dataset => new {
                        dataset.Url,
                        dataset.Organization,
-                       dataset.LastUpdated
+                       dataset.LastUpdated,
+                       dataset.DistributionsFormats,
+                       dataset.ReferenceSystems
                    })
                }).ToList();
 
@@ -47,20 +49,36 @@ namespace Kartverket.Geonorge.Api.Services
                 var metadataInfo = new UpdateMetadataInformation();
                 metadataInfo.Uuid = dataset.Uuid;
                 metadataInfo.Distributions = new List<SimpleDistribution>();
-                foreach (var item in dataset.Datasets)
-                {
-                    try
-                    { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
-                    catch (Exception d) { }
-                    SimpleDistribution simpleDistribution = new SimpleDistribution();
-                    simpleDistribution.Organization = item.Organization;
-                    simpleDistribution.Protocol = "W3C:AtomFeed";
-                    simpleDistribution.URL = item.Url;
-                    simpleDistribution.FormatName = "GML";
-                    simpleDistribution.FormatVersion = "3.2.1";
 
-                    metadataInfo.Distributions.Add(simpleDistribution);
-                }
+
+                foreach (var item in dataset.Datasets)
+                    {
+                        try
+                        { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
+                        catch (Exception d) { }
+
+                    foreach (var distribution in item.DistributionsFormats)
+                    { 
+                        SimpleDistribution simpleDistribution = new SimpleDistribution();
+                        simpleDistribution.Organization = distribution.Organization;
+                        simpleDistribution.Protocol = "W3C:AtomFeed";
+                        simpleDistribution.URL = item.Url;
+                        simpleDistribution.FormatName = distribution.FormatName;
+
+                        metadataInfo.Distributions.Add(simpleDistribution);
+                    }
+
+                        metadataInfo.Projections = new List<SimpleReferenceSystem>();
+
+                        foreach (var projection in item.ReferenceSystems)
+                        {
+                            SimpleReferenceSystem simpleReferenceSystem = new SimpleReferenceSystem();
+                            simpleReferenceSystem.CoordinateSystem = projection.CoordinateSystem;
+                           
+
+                            metadataInfo.Projections.Add(simpleReferenceSystem);
+                        }
+                    }
 
                 System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
                 string server = settings["GeoNetworkUrl"];
@@ -108,13 +126,21 @@ namespace Kartverket.Geonorge.Api.Services
                     UnitsOfDistribution = distributionFormatsUpdated[0].UnitsOfDistribution
                 };
 
+                    List<SimpleReferenceSystem> simpleReferenceSystems = new List<SimpleReferenceSystem>();
+                    foreach (var projection in metadataInfo.Projections)
+                    {
+                        SimpleReferenceSystem refsys = new SimpleReferenceSystem();
+                        refsys.CoordinateSystem = projection.CoordinateSystem;
+                        simpleReferenceSystems.Add(refsys);
+                    }
+                    simpleMetadata.ReferenceSystems = simpleReferenceSystems;
 
                 simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
                     if (metadataInfo.DatasetDateUpdated.HasValue)
                         simpleMetadata.DateUpdated = metadataInfo.DatasetDateUpdated;
 
-                    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
                 Log.Info($"Metadata updated for uuid: {metadataInfo.Uuid}");
                 }
                 catch(Exception ex)
@@ -195,6 +221,7 @@ namespace Kartverket.Geonorge.Api.Services
     {
         public string Uuid { get; set; }
         public List<SimpleDistribution> Distributions { get; set; }
+        public List<SimpleReferenceSystem> Projections { get; set; }
         public DateTime? DatasetDateUpdated { get; set; }
 
     }
@@ -220,5 +247,11 @@ namespace Kartverket.Geonorge.Api.Services
         /// Owner of dataset
         /// </summary>
         public string Organization { get; set; }
+
+        public List<DatasetFile> DatasetFiles { get; set; }
+
+        public List<SimpleDistribution> DistributionsFormats { get; set; }
+
+        public List<SimpleReferenceSystem> ReferenceSystems { get; set; }
     }
 }

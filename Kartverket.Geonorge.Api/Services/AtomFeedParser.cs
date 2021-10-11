@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Xml;
 using System.Linq;
+using Kartverket.Geonorge.Api.Models;
+using GeoNorgeAPI;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -77,9 +79,57 @@ namespace Kartverket.Geonorge.Api.Services
                         }
                     }
 
+                    dataset.DatasetFiles = GetDatasetFiles(dataset.Url, dataset);
+
+                    var formats = dataset.DatasetFiles.Select(f => f.Format).Distinct();
+
+                    List<SimpleDistribution> distributions = new List<SimpleDistribution>();
+                    foreach(var format in formats)
+                    {
+                        distributions.Add(
+                            new SimpleDistribution
+                            {
+                                Organization = dataset.Organization,
+                                FormatName = format.Replace("Format:", ""),
+                            });
+                    }
+
+                    dataset.DistributionsFormats = distributions;
+
+                    var projections = dataset.DatasetFiles.Select(f => f.Projection).Distinct();
+
+                    List<SimpleReferenceSystem> referenceSystems = new List<SimpleReferenceSystem>();
+                    foreach (var projection in projections)
+                    {
+                        referenceSystems.Add(
+                            new SimpleReferenceSystem
+                            {
+                                CoordinateSystem = "http://www.opengis.net/def/crs/EPSG/0/" + projection.Replace("EPSG:", "")
+                            });
+                    }
+
+                    dataset.ReferenceSystems = referenceSystems;
+
                     datasets.Add(dataset);
                 }
             return datasets;
+        }
+
+        public List<DatasetFile> GetDatasetFiles(string url, Dataset dataset)
+        {
+            try
+            {
+                var getFeedTask = HttpClient.GetStringAsync(url);
+                Log.Debug("Fetch dataset files from " + url);
+                List<DatasetFile> datasetFiles = new AtomFeedParser().ParseDatasetFiles(getFeedTask.Result, dataset).OrderBy(d => d.Title).ToList();
+
+                return datasetFiles;
+            }
+            catch (Exception e)
+            {
+                Log.Error("Could not get dataset files", e);
+                return new List<DatasetFile>();
+            }
         }
 
 
@@ -145,5 +195,166 @@ namespace Kartverket.Geonorge.Api.Services
             return url;
 
         }
+
+        public List<DatasetFile> ParseDatasetFiles(string xml, Dataset dataset)
+        {
+            var datasetFiles = new List<DatasetFile>();
+
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(xml);
+
+            string xpath = "//a:feed/a:entry";
+
+            XmlNamespaceManager nsmgr = new XmlNamespaceManager(xmlDoc.NameTable);
+            nsmgr.AddNamespace("a", "http://www.w3.org/2005/Atom");
+            nsmgr.AddNamespace("inspire_dls", "http://inspire.ec.europa.eu/schemas/inspire_dls/1.0");
+            nsmgr.AddNamespace("gn", "http://geonorge.no/Atom");
+
+            var nodes = xmlDoc.SelectNodes(xpath, nsmgr);
+
+            foreach (XmlNode childrenNode in nodes)
+            {
+                var datasetFile = new DatasetFile();
+                datasetFile.Title = childrenNode.SelectSingleNode("a:title", nsmgr).InnerXml;
+                datasetFile.Description = GetDescription(childrenNode, nsmgr);
+                datasetFile.Url = GetUrl(childrenNode, nsmgr);
+                datasetFile.LastUpdated = GetLastUpdated(childrenNode, nsmgr);
+                datasetFile.Projection = GetProjection(childrenNode.SelectNodes("a:category", nsmgr));
+                datasetFile.Format = GetFormat(childrenNode.SelectSingleNode("a:title", nsmgr), childrenNode.SelectNodes("a:category", nsmgr));
+                datasetFile.AreaCode = GetAreaCode(childrenNode.SelectNodes("a:category", nsmgr));
+                datasetFile.AreaLabel = GetAreaLabel(childrenNode.SelectNodes("a:category", nsmgr));
+                datasetFile.Organization = GetOrganization(childrenNode, nsmgr, dataset);
+
+                datasetFiles.Add(datasetFile);
+            }
+            return datasetFiles;
+        }
+
+        private string GetAreaCode(XmlNodeList xmlNodeList)
+        {
+            string areaCode = "";
+            foreach (XmlNode node in xmlNodeList)
+            {
+                if (node.Attributes["scheme"] != null && node.Attributes["scheme"].Value.Contains("geografisk-distribusjonsinndeling"))
+                {
+                    areaCode = areaCode + node.Attributes["term"].Value + " ";
+                }
+            }
+
+            return areaCode.Trim();
+        }
+
+        private string GetAreaLabel(XmlNodeList xmlNodeList)
+        {
+            string areaLabel = "";
+
+            foreach (XmlNode node in xmlNodeList)
+            {
+                if (node.Attributes["scheme"] != null && node.Attributes["scheme"].Value.Contains("geografisk-distribusjonsinndeling"))
+                {
+                    areaLabel = areaLabel + node.Attributes["label"].Value + " ";
+                }
+            }
+
+            return areaLabel.Trim();
+        }
+        private string GetProjection(XmlNodeList xmlNodeList)
+        {
+            foreach (XmlNode node in xmlNodeList)
+            {
+                var scheme = node.Attributes["scheme"]?.Value;
+                bool hasProjection = false;
+                if (scheme != null)
+                {
+                    if (scheme.StartsWith("http://www.opengis.net/def/crs/"))
+                    {
+                        hasProjection = true;
+                    }
+                    else if (scheme.StartsWith("https://register.geonorge.no/api/epsg-koder"))
+                    {
+                        hasProjection = true;
+                    }
+                }
+
+
+                if (hasProjection)
+                {
+                    if (!string.IsNullOrEmpty(node.Attributes["term"]?.Value))
+                    {
+                        var term = node.Attributes["term"]?.Value;
+                        if (!string.IsNullOrEmpty(term) && term.StartsWith("EPSG:"))
+                            return node.Attributes["term"].Value;
+                    }
+                    if (!string.IsNullOrEmpty(node.Attributes["label"]?.Value))
+                    {
+                        var label = node.Attributes["label"]?.Value;
+                        if (!string.IsNullOrEmpty(label) && !label.StartsWith("EPSG/"))
+                            return node.Attributes["label"].Value;
+                    }
+                    return node.Attributes["term"].Value;
+                }
+            }
+            return null;
+        }
+        private string GetFormat(XmlNode xmlNode, XmlNodeList xmlNodeList)
+        {
+            foreach (XmlNode node in xmlNodeList)
+            {
+                if (node.Attributes["scheme"] != null && (node.Attributes["scheme"].Value.Contains("vektorformater") || node.Attributes["scheme"].Value.Contains("rasterformater")))
+                {
+                    return node.Attributes["term"].Value;
+                }
+            }
+
+            foreach (XmlNode node in xmlNodeList)
+            {
+                if (node.Attributes["term"] != null && node.Attributes["term"].Value.Contains("vektorformater")
+                    || node.Attributes["term"].Value.Contains("rasterformater"))
+                {
+                    return node.Attributes["label"].Value;
+                }
+            }
+
+            if (xmlNode != null)
+            {
+                var format = xmlNode.InnerText;
+                if (format.Contains(","))
+                    return format.Split(',')[0];
+            }
+
+            return "";
+        }
+
+        private string GetLastUpdated(XmlNode xmlNode, XmlNamespaceManager nsmgr)
+        {
+            var lastUpdated = xmlNode.SelectSingleNode("a:updated", nsmgr)?.InnerXml;
+
+            if (string.IsNullOrEmpty(lastUpdated))
+            {
+                var updated = xmlNode.SelectSingleNode("a:link[@rel='alternate']", nsmgr).Attributes.GetNamedItem("updated");
+                if (updated != null)
+                    lastUpdated = updated.InnerText;
+            }
+
+            if (lastUpdated == null)
+                lastUpdated = "";
+
+            return lastUpdated;
+        }
+
+        private string GetDescription(XmlNode xmlNode, XmlNamespaceManager nsmgr)
+        {
+            var description = xmlNode.SelectSingleNode("a:category", nsmgr)?.InnerXml;
+            if (string.IsNullOrEmpty(description))
+            {
+                description = xmlNode.SelectSingleNode("a:content", nsmgr)?.InnerText;
+            }
+
+            if (description == null)
+                description = "";
+
+            return description;
+        }
+
     }
 }
