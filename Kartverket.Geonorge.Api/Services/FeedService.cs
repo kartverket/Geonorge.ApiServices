@@ -49,12 +49,15 @@ namespace Kartverket.Geonorge.Api.Services
                 metadataInfo.Distributions = new List<SimpleDistribution>();
                 foreach (var item in dataset.Datasets)
                 {
-                    //metadataInfo.DatasetDateUpdated = Convert.ToDateTime(item.LastUpdated);
-
+                    try
+                    { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
+                    catch (Exception d) { }
                     SimpleDistribution simpleDistribution = new SimpleDistribution();
                     simpleDistribution.Organization = item.Organization;
                     simpleDistribution.Protocol = "W3C:AtomFeed";
                     simpleDistribution.URL = item.Url;
+                    simpleDistribution.FormatName = "GML";
+                    simpleDistribution.FormatVersion = "3.2.1";
 
                     metadataInfo.Distributions.Add(simpleDistribution);
                 }
@@ -95,7 +98,7 @@ namespace Kartverket.Geonorge.Api.Services
                     distributionFormatsUpdated = distributionFormats;
                 }
 
-                distributionFormatsUpdated.InsertRange(0, metadataInfo.Distributions);
+                distributionFormatsUpdated.AddRange(metadataInfo.Distributions);
 
                 simpleMetadata.DistributionsFormats = distributionFormatsUpdated;
                 simpleMetadata.DistributionDetails = new SimpleDistributionDetails
@@ -108,10 +111,10 @@ namespace Kartverket.Geonorge.Api.Services
 
                 simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
-                if (metadataInfo.DatasetDateUpdated.HasValue)
-                    simpleMetadata.DateUpdated = metadataInfo.DatasetDateUpdated;
+                    if (metadataInfo.DatasetDateUpdated.HasValue)
+                        simpleMetadata.DateUpdated = metadataInfo.DatasetDateUpdated;
 
-                api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
                 Log.Info($"Metadata updated for uuid: {metadataInfo.Uuid}");
                 }
                 catch(Exception ex)
