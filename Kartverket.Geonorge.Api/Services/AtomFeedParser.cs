@@ -101,10 +101,13 @@ namespace Kartverket.Geonorge.Api.Services
                     List<SimpleReferenceSystem> referenceSystems = new List<SimpleReferenceSystem>();
                     foreach (var projection in projections)
                     {
+                        var system = projection;
+                        if (!system.StartsWith("http"))
+                            system = "http://www.opengis.net/def/crs/EPSG/0/" + projection.Replace("EPSG:", "");
                         referenceSystems.Add(
                             new SimpleReferenceSystem
                             {
-                                CoordinateSystem = "http://www.opengis.net/def/crs/EPSG/0/" + projection.Replace("EPSG:", "")
+                                CoordinateSystem = system
                             });
                     }
 
@@ -285,7 +288,7 @@ namespace Kartverket.Geonorge.Api.Services
                         if (!string.IsNullOrEmpty(term) && term.StartsWith("EPSG:"))
                             return node.Attributes["term"].Value;
                     }
-                    if (!string.IsNullOrEmpty(node.Attributes["label"]?.Value))
+                    else if (!string.IsNullOrEmpty(node.Attributes["label"]?.Value))
                     {
                         var label = node.Attributes["label"]?.Value;
                         if (!string.IsNullOrEmpty(label) && !label.StartsWith("EPSG/"))
