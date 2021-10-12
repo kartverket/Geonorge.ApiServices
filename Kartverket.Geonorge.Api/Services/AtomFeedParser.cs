@@ -90,7 +90,7 @@ namespace Kartverket.Geonorge.Api.Services
                             new SimpleDistribution
                             {
                                 Organization = dataset.Organization,
-                                FormatName = format.Replace("Format:", ""),
+                                FormatName = FixFormat(format)
                             });
                     }
 
@@ -116,6 +116,38 @@ namespace Kartverket.Geonorge.Api.Services
                     datasets.Add(dataset);
                 }
             return datasets;
+        }
+
+        private string FixFormat(string format)
+        {
+            if (!string.IsNullOrEmpty(format))
+            { 
+                format = format.Replace("Format:", "");
+
+                if (format.ToUpper() == "GEODATABASE_FILE")
+                    format = "FGDB";
+                else if (format.ToUpper() == "SHAPE")
+                    format = "Shape";
+                else if (format.ToLower() == "gdb")
+                    format = "GDB";
+                else if (format.ToLower() == "shp")
+                    format = "Shape";
+                else if (format.ToLower() == "sosi")
+                    format = "SOSI";
+                else if (format.ToUpper() == "GEOJSON")
+                    format = "GeoJSON";
+                else if (format== "FGDB-format")
+                    format = "FGDB";
+                else if (format == "GML-format" || format == "gml")
+                    format = "GML";
+                else if (format == "PostGIS-format")
+                    format = "PostGIS";
+                else if (format == "SOSI-format")
+                    format = "SOSI";
+
+            }
+
+            return format;
         }
 
         public List<DatasetFile> GetDatasetFiles(string url, Dataset dataset)
