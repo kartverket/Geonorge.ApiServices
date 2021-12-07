@@ -145,7 +145,7 @@ namespace Kartverket.Geonorge.Api.Services
                 }
                 catch(Exception ex)
                 {
-                    Log.Error("Error updating metadata" + ex);
+                    Log.Error("Error updating metadata uuid: " + dataset.Uuid + ", error: " + ex);
                 }
             }
 
