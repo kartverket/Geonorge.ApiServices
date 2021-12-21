@@ -144,6 +144,10 @@ namespace Kartverket.Geonorge.Api.Services
                     format = "PostGIS";
                 else if (format == "SOSI-format")
                     format = "SOSI";
+                else if (format == "GEOJSON-format")
+                    format = "GeoJSON";
+                else if (format == "POSTGIS-format")
+                    format = "PostGIS";
 
             }
 
