@@ -47,7 +47,7 @@ namespace Kartverket.Geonorge.Api.Services
                 try
                 { 
                 var metadataInfo = new UpdateMetadataInformation();
-                metadataInfo.Uuid = dataset.Uuid;
+                metadataInfo.Uuid = dataset.Uuid.Trim();
                 metadataInfo.Distributions = new List<SimpleDistribution>();
 
 
@@ -55,7 +55,10 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         try
                         { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
-                        catch (Exception d) { }
+                        catch (Exception e)
+                        {
+                            Log.Error("Error with LastUpdated: " + item.LastUpdated, e);
+                        }
 
                     foreach (var distribution in item.DistributionsFormats)
                     { 
