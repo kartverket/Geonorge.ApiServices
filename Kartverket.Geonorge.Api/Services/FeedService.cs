@@ -136,7 +136,9 @@ namespace Kartverket.Geonorge.Api.Services
                         refsys.CoordinateSystem = projection.CoordinateSystem;
                         simpleReferenceSystems.Add(refsys);
                     }
-                    simpleMetadata.ReferenceSystems = simpleReferenceSystems;
+                    if(simpleMetadata.ReferenceSystems == null 
+                        || (simpleMetadata.ReferenceSystems != null && simpleMetadata.ReferenceSystems.Count == 0))
+                        simpleMetadata.ReferenceSystems = simpleReferenceSystems;
 
                 simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
