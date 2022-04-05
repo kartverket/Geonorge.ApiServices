@@ -62,7 +62,19 @@ namespace Kartverket.Geonorge.Api.Services
 
                     dataset.Organization = GetOrganization(childrenNode, nsmgr, dataset);
 
-                    dataset.Uuid = childrenNode.SelectSingleNode("inspire_dls:spatial_dataset_identifier_code", nsmgr)?.InnerXml;
+                    //dataset.Uuid = childrenNode.SelectSingleNode("inspire_dls:spatial_dataset_identifier_code", nsmgr)?.InnerXml; // data is not metadata uuid but datasetId
+
+                    XmlNode uriDescribedby = null;
+                    var describedby = childrenNode.SelectSingleNode("a:link[@rel='describedby']", nsmgr);
+                    if (describedby != null)
+                        uriDescribedby = describedby.Attributes.GetNamedItem("href");
+
+                    if(uriDescribedby != null) 
+                    { 
+                        var uuid = uriDescribedby.Value.Split('=')?.Last();
+                        if (uriDescribedby.Value.IndexOf('=') > 0 && !string.IsNullOrEmpty(uuid))
+                            dataset.Uuid = uuid;
+                    }
 
                     if (string.IsNullOrEmpty(dataset.Uuid))
                     {
