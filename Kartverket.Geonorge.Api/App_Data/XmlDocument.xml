@@ -99,6 +99,31 @@
             When was the file downloaded
             </summary>
         </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.Uuid">
+            <summary>
+            Dataset uuid
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.Title">
+            <summary>
+            Dataset title
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.Abstract">
+            <summary>
+            Dataset abstract
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.LastUpdated">
+            <summary>
+            Date when dataset was updated
+            </summary>
+        </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.Organization">
+            <summary>
+            Owner of dataset
+            </summary>
+        </member>
         <member name="P:Kartverket.Geonorge.Api.Services.Dataset.Uuid">
             <summary>
             Dataset uuid

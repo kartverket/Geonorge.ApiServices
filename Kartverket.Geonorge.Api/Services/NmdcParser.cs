@@ -13,9 +13,9 @@ namespace Kartverket.Geonorge.Api.Services
         private static readonly HttpClient HttpClient = new HttpClient();
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public List<Dataset> ParseDatasets(string xml)
+        public List<DatasetNMDC> ParseDatasets(string xml)
         {
-            var datasets = new List<Dataset>();
+            var datasets = new List<DatasetNMDC>();
 
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(xml);
@@ -31,12 +31,14 @@ namespace Kartverket.Geonorge.Api.Services
             if (nodes != null)
                 foreach (XmlNode childrenNode in nodes)
                 {
-                    var dataset = new Dataset();
+                    var dataset = new DatasetNMDC();
                     var id = childrenNode.SelectSingleNode("n:header/n:identifier", nsmgr);
                     var title = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Entry_Title", nsmgr);
-                    var titleText = title.InnerXml;
-                    System.Diagnostics.Debug.WriteLine(id.InnerXml + ": " + titleText);
+                    var summary = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Summary/ns2:Abstract", nsmgr);
+                    System.Diagnostics.Debug.WriteLine(id.InnerXml + ": " + title.InnerXml);
                     dataset.Uuid = id.InnerXml;
+                    dataset.Title = title.InnerXml;
+                    dataset.Abstract = summary?.InnerXml;
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();
                     datasets.Add(dataset);
