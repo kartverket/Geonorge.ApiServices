@@ -177,6 +177,13 @@ namespace Kartverket.Geonorge.Api.Services
         /// </summary>
         public string LastUpdated { get; set; }
 
+
+        /// <summary>
+        /// Date when metadata was updated
+        /// </summary>
+        public DateTime DateMetadataUpdated { get; set; }
+        
+
         /// <summary>
         /// Owner of dataset
         /// </summary>

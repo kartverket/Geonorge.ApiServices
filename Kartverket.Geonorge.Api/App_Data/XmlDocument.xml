@@ -119,6 +119,11 @@
             Date when dataset was updated
             </summary>
         </member>
+        <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.DateMetadataUpdated">
+            <summary>
+            Date when metadata was updated
+            </summary>
+        </member>
         <member name="P:Kartverket.Geonorge.Api.Services.DatasetNMDC.Organization">
             <summary>
             Owner of dataset
