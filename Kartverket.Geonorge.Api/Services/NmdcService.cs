@@ -60,6 +60,12 @@ namespace Kartverket.Geonorge.Api.Services
                         insertMetadata = true;
                     }
 
+                    if (dataset.DateMetadataUpdated.HasValue)
+                        simpleMetadata.DateMetadataUpdated = dataset.DateMetadataUpdated.Value;
+
+                    if (dataset.LastUpdated.HasValue)
+                        simpleMetadata.DateUpdated = dataset.LastUpdated.Value;
+
                     simpleMetadata.Title = dataset.Title;
                     simpleMetadata.Abstract = dataset.Abstract;
                     //simpleMetadata.ContactOwner = //todo?
@@ -196,13 +202,13 @@ namespace Kartverket.Geonorge.Api.Services
         /// <summary>
         /// Date when dataset was updated
         /// </summary>
-        public string LastUpdated { get; set; }
+        public DateTime? LastUpdated { get; set; }
 
 
         /// <summary>
         /// Date when metadata was updated
         /// </summary>
-        public DateTime DateMetadataUpdated { get; set; }
+        public DateTime? DateMetadataUpdated { get; set; }
         
 
         /// <summary>

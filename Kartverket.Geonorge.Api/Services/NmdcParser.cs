@@ -33,7 +33,8 @@ namespace Kartverket.Geonorge.Api.Services
                 {
                     var dataset = new DatasetNMDC();
                     var id = childrenNode.SelectSingleNode("n:header/n:identifier", nsmgr);
-                    var dateMetadataUpdated = childrenNode.SelectSingleNode("n:header/n:datestamp", nsmgr);
+                    var dateDatasetUpdated = childrenNode.SelectSingleNode("n:header/n:datestamp", nsmgr);
+                    var dateMetadataUpdated = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Last_DIF_Revision_Date", nsmgr);
                     var title = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Citation/ns2:Dataset_Title", nsmgr);
                     var titleEntry = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Entry_Title", nsmgr);
                     var summary = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Summary/ns2:Abstract", nsmgr);
@@ -51,11 +52,13 @@ namespace Kartverket.Geonorge.Api.Services
                     try
                     { 
                         if(!string.IsNullOrEmpty(dateMetadataUpdated?.InnerXml))
-                            dataset.DateMetadataUpdated = DateTime.Parse(dateMetadataUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture); 
+                            dataset.DateMetadataUpdated = DateTime.Parse(dateMetadataUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
+                        if (!string.IsNullOrEmpty(dateDatasetUpdated?.InnerXml))
+                            dataset.LastUpdated = DateTime.Parse(dateDatasetUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
                     }
                     catch (Exception e)
                     {
-                        Log.Error("Error with LastUpdated: " + id, e);
+                        Log.Error("Error with date parsing: " + id, e);
                     }
 
                     if(!string.IsNullOrEmpty(title?.InnerXml))
