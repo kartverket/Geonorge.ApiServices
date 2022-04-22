@@ -65,7 +65,12 @@ namespace Kartverket.Geonorge.Api.Services
                     //simpleMetadata.ContactOwner = //todo?
                     if (!string.IsNullOrWhiteSpace(dataset.BBoxEastBoundLongitude))
                     {
-                        // todo handle only north and east.
+                        if (dataset.BBoxWestBoundLongitude == null)
+                            dataset.BBoxWestBoundLongitude = dataset.BBoxEastBoundLongitude;
+
+                        if (dataset.BBoxSouthBoundLatitude == null)
+                            dataset.BBoxSouthBoundLatitude = dataset.BBoxNorthBoundLatitude;
+
                         simpleMetadata.BoundingBox = new SimpleBoundingBox
                         {
                             EastBoundLongitude = dataset.BBoxEastBoundLongitude,
