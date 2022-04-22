@@ -61,6 +61,22 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
                     simpleMetadata.Title = dataset.Title;
+                    simpleMetadata.Abstract = dataset.Abstract;
+                    //simpleMetadata.ContactOwner = //todo?
+                    if (!string.IsNullOrWhiteSpace(dataset.BBoxEastBoundLongitude))
+                    {
+                        // todo handle only north and east.
+                        simpleMetadata.BoundingBox = new SimpleBoundingBox
+                        {
+                            EastBoundLongitude = dataset.BBoxEastBoundLongitude,
+                            WestBoundLongitude = dataset.BBoxWestBoundLongitude,
+                            NorthBoundLatitude = dataset.BBoxNorthBoundLatitude,
+                            SouthBoundLatitude = dataset.BBoxSouthBoundLatitude
+                        };
+                    }
+
+                    if(!string.IsNullOrEmpty(dataset.ProcessHistory))
+                        simpleMetadata.ProcessHistory = dataset.ProcessHistory;
 
                     //List<SimpleDistribution> distributionFormats = simpleMetadata.DistributionsFormats;
 
@@ -92,10 +108,10 @@ namespace Kartverket.Geonorge.Api.Services
                     simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
 
-                    if(insertMetadata)
-                        api.MetadataInsert(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
-                    else
-                        api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    //if (insertMetadata)
+                    //    api.MetadataInsert(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    //else
+                    //    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
                     
                     Log.Info($"Metadata updated for uuid: {dataset.Uuid}");
                 }
@@ -188,6 +204,13 @@ namespace Kartverket.Geonorge.Api.Services
         /// Owner of dataset
         /// </summary>
         public string Organization { get; set; }
+
+        public string BBoxEastBoundLongitude { get; set; }
+        public string BBoxNorthBoundLatitude { get; set; }
+        public string BBoxSouthBoundLatitude { get; set; }
+        public string BBoxWestBoundLongitude { get; set; }
+
+        public string ProcessHistory { get; set; }
 
         public List<SimpleDistribution> DistributionsFormats { get; set; }
 

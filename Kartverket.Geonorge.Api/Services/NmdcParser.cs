@@ -38,6 +38,14 @@ namespace Kartverket.Geonorge.Api.Services
                     var titleEntry = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Entry_Title", nsmgr);
                     var summary = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Summary/ns2:Abstract", nsmgr);
                     var organization = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Citation/ns2:Dataset_Publisher", nsmgr);
+                    var originatingCenter = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Originating_Center", nsmgr);
+                    
+                    var southernmostLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Southernmost_Latitude", nsmgr);
+                    var northernBoundLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Northernmost_Latitude", nsmgr);
+                    var westernBoundLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Westernmost_Longitude", nsmgr);
+                    var easternBoundLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Easternmost_Longitude", nsmgr);
+
+                    var processHistory = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Quality", nsmgr);
 
                     dataset.Uuid = id.InnerXml;
                     try
@@ -58,10 +66,25 @@ namespace Kartverket.Geonorge.Api.Services
                     if (!string.IsNullOrEmpty(summary?.InnerXml))
                         dataset.Abstract = summary?.InnerXml;
 
-                    if (!string.IsNullOrEmpty(organization?.InnerXml))
+                    if (!string.IsNullOrEmpty(originatingCenter?.InnerXml))
+                        dataset.Organization = originatingCenter.InnerXml;
+                    else if (!string.IsNullOrEmpty(organization?.InnerXml))
                         dataset.Organization = organization.InnerXml;
-                    else
-                        System.Diagnostics.Debug.WriteLine("organization missing for " + dataset.Title);
+
+                    if (!string.IsNullOrEmpty(southernmostLatitude?.InnerXml))
+                        dataset.BBoxSouthBoundLatitude = southernmostLatitude.InnerXml;
+
+                    if (!string.IsNullOrEmpty(northernBoundLatitude?.InnerXml))
+                        dataset.BBoxNorthBoundLatitude = northernBoundLatitude.InnerXml;
+
+                    if (!string.IsNullOrEmpty(westernBoundLatitude?.InnerXml))
+                        dataset.BBoxWestBoundLongitude = westernBoundLatitude.InnerXml;
+
+                    if (!string.IsNullOrEmpty(easternBoundLatitude?.InnerXml))
+                        dataset.BBoxEastBoundLongitude = easternBoundLatitude.InnerXml;
+
+                    if (!string.IsNullOrEmpty(processHistory?.InnerXml))
+                        dataset.ProcessHistory = processHistory.InnerXml;
 
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();
