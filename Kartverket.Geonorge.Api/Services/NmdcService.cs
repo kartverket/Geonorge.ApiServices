@@ -66,6 +66,16 @@ namespace Kartverket.Geonorge.Api.Services
                     if (dataset.LastUpdated.HasValue)
                         simpleMetadata.DateUpdated = dataset.LastUpdated.Value;
 
+                    if (!string.IsNullOrEmpty(dataset.StartDate) && !string.IsNullOrEmpty(dataset.StopDate)) 
+                    { 
+                        simpleMetadata.ValidTimePeriod = new SimpleValidTimePeriod 
+                        { 
+                            ValidFrom = dataset.StartDate ,
+                            ValidTo = dataset.StopDate
+                        } ;
+                    }
+
+
                     simpleMetadata.Title = dataset.Title;
                     simpleMetadata.Abstract = dataset.Abstract;
                     //simpleMetadata.ContactOwner = //todo?
@@ -209,7 +219,9 @@ namespace Kartverket.Geonorge.Api.Services
         /// Date when metadata was updated
         /// </summary>
         public DateTime? DateMetadataUpdated { get; set; }
-        
+
+        public string StartDate { get; set; }
+        public string StopDate { get; set; }
 
         /// <summary>
         /// Owner of dataset

@@ -35,6 +35,8 @@ namespace Kartverket.Geonorge.Api.Services
                     var id = childrenNode.SelectSingleNode("n:header/n:identifier", nsmgr);
                     var dateDatasetUpdated = childrenNode.SelectSingleNode("n:header/n:datestamp", nsmgr);
                     var dateMetadataUpdated = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Last_DIF_Revision_Date", nsmgr);
+                    var dateStart = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Temporal_Coverage/ns2:Start_Date", nsmgr);
+                    var dateStop = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Temporal_Coverage/ns2:Stop_Date", nsmgr);
                     var title = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Citation/ns2:Dataset_Title", nsmgr);
                     var titleEntry = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Entry_Title", nsmgr);
                     var summary = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Summary/ns2:Abstract", nsmgr);
@@ -55,6 +57,11 @@ namespace Kartverket.Geonorge.Api.Services
                             dataset.DateMetadataUpdated = DateTime.Parse(dateMetadataUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
                         if (!string.IsNullOrEmpty(dateDatasetUpdated?.InnerXml))
                             dataset.LastUpdated = DateTime.Parse(dateDatasetUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
+
+                        if (!string.IsNullOrEmpty(dateStart?.InnerXml))
+                            dataset.StartDate = dateStart.InnerXml;
+                        if (!string.IsNullOrEmpty(dateStop?.InnerXml))
+                            dataset.StopDate = dateStop.InnerXml;
                     }
                     catch (Exception e)
                     {
