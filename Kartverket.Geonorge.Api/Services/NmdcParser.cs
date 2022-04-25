@@ -52,6 +52,9 @@ namespace Kartverket.Geonorge.Api.Services
 
                     var status = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Progress", nsmgr);
 
+                    var metadataName = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Metadata_Name", nsmgr);
+                    var metadataVersion = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Metadata_Version", nsmgr);
+
                     dataset.Uuid = id.InnerXml;
                     try
                     { 
@@ -107,6 +110,12 @@ namespace Kartverket.Geonorge.Api.Services
                         else if (dataset.Status.ToLower() == "planned")
                             dataset.Status = "planned";
                     }
+
+                    if (!string.IsNullOrEmpty(metadataName?.InnerXml))
+                        dataset.MetadataName = metadataName.InnerXml;
+
+                    if (!string.IsNullOrEmpty(metadataVersion?.InnerXml))
+                        dataset.MetadataVersion = metadataVersion.InnerXml;
 
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();

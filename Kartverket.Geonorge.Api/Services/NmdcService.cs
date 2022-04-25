@@ -102,6 +102,12 @@ namespace Kartverket.Geonorge.Api.Services
                     if (!string.IsNullOrEmpty(dataset.Status))
                         simpleMetadata.Status = dataset.Status;
 
+                    if (!string.IsNullOrEmpty(dataset.MetadataName))
+                        simpleMetadata.MetadataStandard = dataset.MetadataName;
+
+                    if (!string.IsNullOrEmpty(dataset.MetadataVersion))
+                        simpleMetadata.MetadataStandardVersion = dataset.MetadataVersion;
+
                     //List<SimpleDistribution> distributionFormats = simpleMetadata.DistributionsFormats;
 
                     //List<SimpleDistribution> distributionFormatsUpdated = new List<SimpleDistribution>();
@@ -243,6 +249,8 @@ namespace Kartverket.Geonorge.Api.Services
         public List<SimpleDistribution> DistributionsFormats { get; set; }
 
         public List<SimpleReferenceSystem> ReferenceSystems { get; set; }
+        public string MetadataName { get; internal set; }
+        public string MetadataVersion { get; internal set; }
     }
 
 }
