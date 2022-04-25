@@ -99,6 +99,9 @@ namespace Kartverket.Geonorge.Api.Services
                     if(!string.IsNullOrEmpty(dataset.ProcessHistory))
                         simpleMetadata.ProcessHistory = dataset.ProcessHistory;
 
+                    if (!string.IsNullOrEmpty(dataset.Status))
+                        simpleMetadata.Status = dataset.Status;
+
                     //List<SimpleDistribution> distributionFormats = simpleMetadata.DistributionsFormats;
 
                     //List<SimpleDistribution> distributionFormatsUpdated = new List<SimpleDistribution>();
@@ -234,6 +237,8 @@ namespace Kartverket.Geonorge.Api.Services
         public string BBoxWestBoundLongitude { get; set; }
 
         public string ProcessHistory { get; set; }
+
+        public string Status { get; set; }
 
         public List<SimpleDistribution> DistributionsFormats { get; set; }
 

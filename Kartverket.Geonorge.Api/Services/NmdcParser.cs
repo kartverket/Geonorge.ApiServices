@@ -50,6 +50,8 @@ namespace Kartverket.Geonorge.Api.Services
 
                     var processHistory = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Quality", nsmgr);
 
+                    var status = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Progress", nsmgr);
+
                     dataset.Uuid = id.InnerXml;
                     try
                     { 
@@ -95,6 +97,16 @@ namespace Kartverket.Geonorge.Api.Services
 
                     if (!string.IsNullOrEmpty(processHistory?.InnerXml))
                         dataset.ProcessHistory = processHistory.InnerXml;
+
+                    if (!string.IsNullOrEmpty(status?.InnerXml)) { 
+                        dataset.Status = status.InnerXml;
+                        if (dataset.Status.ToLower() == "in work")
+                            dataset.Status = "onGoing";
+                        else if (dataset.Status.ToLower() == "complete")
+                            dataset.Status = "completed";
+                        else if (dataset.Status.ToLower() == "planned")
+                            dataset.Status = "planned";
+                    }
 
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();
