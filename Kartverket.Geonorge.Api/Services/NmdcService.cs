@@ -78,7 +78,15 @@ namespace Kartverket.Geonorge.Api.Services
 
                     simpleMetadata.Title = dataset.Title;
                     simpleMetadata.Abstract = dataset.Abstract;
-                    //simpleMetadata.ContactOwner = //todo?
+                    simpleMetadata.ContactPublisher = new SimpleContact
+                    {
+                        Name = dataset.OrganizationPersonnelName,
+                        Email = dataset.OrganizationPersonnelEmail,
+                        Organization = dataset.Organization,
+                        Role = "publisher"
+                    };
+
+
                     if (!string.IsNullOrWhiteSpace(dataset.BBoxEastBoundLongitude))
                     {
                         if (dataset.BBoxWestBoundLongitude == null)
@@ -236,6 +244,8 @@ namespace Kartverket.Geonorge.Api.Services
         /// Owner of dataset
         /// </summary>
         public string Organization { get; set; }
+        public string OrganizationPersonnelName { get; set; }
+        public string OrganizationPersonnelEmail { get; set; }
 
         public string BBoxEastBoundLongitude { get; set; }
         public string BBoxNorthBoundLatitude { get; set; }

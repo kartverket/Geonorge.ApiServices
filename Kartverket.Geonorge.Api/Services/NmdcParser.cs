@@ -42,7 +42,9 @@ namespace Kartverket.Geonorge.Api.Services
                     var summary = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Summary/ns2:Abstract", nsmgr);
                     var organization = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Citation/ns2:Dataset_Publisher", nsmgr);
                     var originatingCenter = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Originating_Center", nsmgr);
-                    
+
+                    var dataCenters = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Data_Center", nsmgr);
+
                     var southernmostLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Southernmost_Latitude", nsmgr);
                     var northernBoundLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Northernmost_Latitude", nsmgr);
                     var westernBoundLatitude = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Spatial_Coverage/ns2:Westernmost_Longitude", nsmgr);
@@ -85,6 +87,47 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.Organization = originatingCenter.InnerXml;
                     else if (!string.IsNullOrEmpty(organization?.InnerXml))
                         dataset.Organization = organization.InnerXml;
+
+                    foreach(XmlNode dataCenter in dataCenters) 
+                    {
+                        var longNameNode = dataCenter.SelectSingleNode("ns2:Data_Center_Name/ns2:Long_Name", nsmgr);
+                        if (!string.IsNullOrEmpty(longNameNode?.InnerXml))
+                        {
+                            var dataCenterName = longNameNode.InnerXml;
+                            if(dataCenterName == dataset.Organization) 
+                            {
+                                var personnelNode = dataCenter.SelectSingleNode("ns2:Personnel", nsmgr);
+                                if(personnelNode != null) 
+                                { 
+                                    var firstName = personnelNode.SelectSingleNode("ns2:First_Name", nsmgr);
+                                    var middleName = personnelNode.SelectSingleNode("ns2:Middle_Name", nsmgr);
+                                    var lastName = personnelNode.SelectSingleNode("ns2:Last_Name", nsmgr);
+                                    var email = personnelNode.SelectSingleNode("ns2:Email", nsmgr);
+
+                                    string name = "";
+
+                                    if (!string.IsNullOrEmpty(firstName?.InnerXml))
+                                        name = firstName.InnerXml;
+
+                                    if (!string.IsNullOrEmpty(middleName?.InnerXml))
+                                        name = name + " " + middleName.InnerXml;
+
+                                    if (!string.IsNullOrEmpty(lastName?.InnerXml))
+                                        name = name + " " + lastName.InnerXml;
+
+                                    string emailPersonnel = "";
+                                    if (!string.IsNullOrEmpty(email?.InnerXml))
+                                        emailPersonnel = email.InnerXml;
+
+                                    if (!string.IsNullOrEmpty(name))
+                                        dataset.OrganizationPersonnelName = name;
+
+                                    if (!string.IsNullOrEmpty(name))
+                                        dataset.OrganizationPersonnelEmail = emailPersonnel;
+                                }
+                            }
+                        }
+                    }
 
                     if (!string.IsNullOrEmpty(southernmostLatitude?.InnerXml))
                         dataset.BBoxSouthBoundLatitude = southernmostLatitude.InnerXml;
