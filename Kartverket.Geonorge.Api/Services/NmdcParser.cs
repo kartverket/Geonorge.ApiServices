@@ -5,6 +5,7 @@ using System.Xml;
 using System.Linq;
 using Kartverket.Geonorge.Api.Models;
 using GeoNorgeAPI;
+using Newtonsoft.Json.Linq;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -15,6 +16,8 @@ namespace Kartverket.Geonorge.Api.Services
 
         public List<DatasetNMDC> ParseDatasets(string xml)
         {
+            GetCodeValueForTopic();
+
             var datasets = new List<DatasetNMDC>();
 
             XmlDocument xmlDoc = new XmlDocument();
@@ -56,6 +59,8 @@ namespace Kartverket.Geonorge.Api.Services
 
                     var metadataName = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Metadata_Name", nsmgr);
                     var metadataVersion = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Metadata_Version", nsmgr);
+
+                    var topicCategoriesNodes = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:ISO_Topic_Category", nsmgr);
 
                     dataset.Uuid = id.InnerXml;
                     try
@@ -160,6 +165,24 @@ namespace Kartverket.Geonorge.Api.Services
                     if (!string.IsNullOrEmpty(metadataVersion?.InnerXml))
                         dataset.MetadataVersion = metadataVersion.InnerXml;
 
+                    if (topicCategoriesNodes != null && topicCategoriesNodes.Count > 0) 
+                    {
+                        dataset.TopicCategories = new List<string>();
+                        foreach (XmlNode topic in topicCategoriesNodes)
+                        {
+                            var topicCategoryKey = topic.InnerXml;
+                            topicCategoryKey = topicCategoryKey.Replace(" ", "");
+                            topicCategoryKey = topicCategoryKey.ToLower();
+                            if (Topics.ContainsKey(topicCategoryKey)) 
+                            { 
+                                var topicCategory = Topics[topicCategoryKey];
+                                if(topicCategory != null)
+                                    dataset.TopicCategories.Add(topicCategory);
+                            }
+                        }
+                    }
+
+
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();
                     datasets.Add(dataset);
@@ -167,5 +190,42 @@ namespace Kartverket.Geonorge.Api.Services
             return datasets;
         }
 
+
+        public static Dictionary<string, string> Topics = new Dictionary<string, string>();
+
+        private static void GetCodeValueForTopic()
+        {
+            if(Topics.Count == 0) 
+            { 
+                Dictionary<string, string> TopicsList = new Dictionary<string, string>();
+
+                string url = "https://register.geonorge.no/metadata-kodelister/tematisk-hovedkategori.json?lang=en";
+                System.Net.WebClient c = new System.Net.WebClient();
+                c.Encoding = System.Text.Encoding.UTF8;
+                var data = c.DownloadString(url);
+                var response = Newtonsoft.Json.Linq.JObject.Parse(data);
+
+                var codeList = response["containeditems"];
+
+                foreach (var code in codeList)
+                {
+                    JToken labelToken = code["label"];
+
+                    JToken codeToken = code["codevalue"];
+
+                    if (labelToken != null && codeToken != null)
+                    {
+                        string label = labelToken?.ToString().Replace(" ","").ToLower();
+                        string codevalue = codeToken?.ToString();
+
+                        if (!TopicsList.ContainsKey(label))
+                        TopicsList.Add(label, codevalue);
+                    }
+
+                }
+
+                Topics = TopicsList;
+            }
+        }
     }
 }
