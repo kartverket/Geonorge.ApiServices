@@ -155,7 +155,7 @@ namespace Kartverket.Geonorge.Api.Services
                     //    api.MetadataInsert(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
                     //else
                     //    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
-                    
+
                     Log.Info($"Metadata updated for uuid: {dataset.Uuid}");
                 }
                 catch (Exception ex)
@@ -269,13 +269,14 @@ namespace Kartverket.Geonorge.Api.Services
         public List<string> TopicCategories { get; internal set; }
 
         public List<String> KeywordsTheme { get; set; }
-
+        public List<String> KeywordsNationalTheme { get; set; }
 
         internal List<SimpleKeyword> GetAllKeywords()
         {
             List<SimpleKeyword> allKeywords = new List<SimpleKeyword>();
 
             allKeywords.AddRange(CreateKeywords(KeywordsTheme, "Theme", SimpleKeyword.TYPE_THEME, null));
+            allKeywords.AddRange(CreateKeywords(KeywordsNationalTheme, "NationalTheme", null, SimpleKeyword.THESAURUS_NATIONAL_THEME));
 
             return allKeywords;
         }

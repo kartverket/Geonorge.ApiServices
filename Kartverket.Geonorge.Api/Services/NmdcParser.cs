@@ -62,6 +62,8 @@ namespace Kartverket.Geonorge.Api.Services
 
                     var topicCategoriesNodes = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:ISO_Topic_Category", nsmgr);
 
+                    var parametersNodes = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Parameters", nsmgr);
+
                     dataset.Uuid = id.InnerXml;
                     try
                     { 
@@ -193,6 +195,31 @@ namespace Kartverket.Geonorge.Api.Services
                                     dataset.TopicCategories.Add(topicCategory);
                             }
                         }
+                    }
+
+                    string categoryParameter = "";
+                    string topicParameter = "";
+
+                    if (parametersNodes != null && parametersNodes.Count > 0)
+                    {
+                        foreach (XmlNode parameter in parametersNodes)
+                        {
+
+                            var categoryNode = parameter.SelectSingleNode("ns2:Category", nsmgr);
+                            if (!string.IsNullOrEmpty(categoryNode?.InnerXml))
+                                categoryParameter = categoryNode.InnerXml;
+
+                            var topicNode = parameter.SelectSingleNode("ns2:Topic", nsmgr);
+                            if (!string.IsNullOrEmpty(topicNode?.InnerXml))
+                                topicParameter = topicNode.InnerXml;
+
+                        }
+                    }
+
+                    if(categoryParameter == "EARTH SCIENCE" && topicParameter == "OCEANS") 
+                    {
+                        dataset.KeywordsNationalTheme = new List<string>();
+                        dataset.KeywordsNationalTheme.Add("Kyst og fiskeri");
                     }
 
 
