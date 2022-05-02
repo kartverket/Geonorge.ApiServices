@@ -146,6 +146,8 @@ namespace Kartverket.Geonorge.Api.Services
                     //    || (simpleMetadata.ReferenceSystems != null && simpleMetadata.ReferenceSystems.Count == 0))
                     //    simpleMetadata.ReferenceSystems = simpleReferenceSystems;
 
+                    simpleMetadata.Keywords = dataset.GetAllKeywords();
+
                     simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
 
@@ -265,6 +267,49 @@ namespace Kartverket.Geonorge.Api.Services
         public string MetadataName { get; internal set; }
         public string MetadataVersion { get; internal set; }
         public List<string> TopicCategories { get; internal set; }
+
+        public List<String> KeywordsTheme { get; set; }
+
+
+        internal List<SimpleKeyword> GetAllKeywords()
+        {
+            List<SimpleKeyword> allKeywords = new List<SimpleKeyword>();
+
+            allKeywords.AddRange(CreateKeywords(KeywordsTheme, "Theme", SimpleKeyword.TYPE_THEME, null));
+
+            return allKeywords;
+        }
+
+        internal List<SimpleKeyword> CreateKeywords(List<string> inputList, string prefix, string type = null, string thesaurus = null)
+        {
+            List<SimpleKeyword> output = new List<SimpleKeyword>();
+
+            if (inputList != null)
+            {
+                inputList = inputList.Distinct().ToList();
+
+                foreach (var keyword in inputList)
+                {
+                    string keywordString = keyword;
+                    string keywordLink = null;
+                    if (keyword.Contains("|"))
+                    {
+                        keywordString = keyword.Split('|')[0];
+                        keywordLink = keyword.Split('|')[1];
+                    }
+
+                    output.Add(new SimpleKeyword
+                    {
+                        Keyword = keywordString,
+                        KeywordLink = keywordLink,
+                        Thesaurus = thesaurus,
+                        Type = type,
+                        EnglishKeyword = keywordString
+                    });
+                }
+            }
+            return output;
+        }
     }
 
 }

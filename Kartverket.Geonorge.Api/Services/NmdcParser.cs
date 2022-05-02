@@ -165,6 +165,19 @@ namespace Kartverket.Geonorge.Api.Services
                     if (!string.IsNullOrEmpty(metadataVersion?.InnerXml))
                         dataset.MetadataVersion = metadataVersion.InnerXml;
 
+
+                    var keywordsThemeNode = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Keyword", nsmgr);
+
+                    List<string> keywordTheme = new List<string>();
+
+                    foreach (XmlNode theme in keywordsThemeNode)
+                    {
+                        if (!string.IsNullOrEmpty(theme?.InnerXml))
+                            keywordTheme.Add(theme.InnerXml);
+                    }
+
+                    dataset.KeywordsTheme = keywordTheme;
+
                     if (topicCategoriesNodes != null && topicCategoriesNodes.Count > 0) 
                     {
                         dataset.TopicCategories = new List<string>();
