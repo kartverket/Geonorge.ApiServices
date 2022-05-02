@@ -270,6 +270,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         public List<String> KeywordsTheme { get; set; }
         public List<String> KeywordsNationalTheme { get; set; }
+        public List<string> KeywordsGlobalChangeMasterDirectory { get; set; }
 
         internal List<SimpleKeyword> GetAllKeywords()
         {
@@ -277,6 +278,7 @@ namespace Kartverket.Geonorge.Api.Services
 
             allKeywords.AddRange(CreateKeywords(KeywordsTheme, "Theme", SimpleKeyword.TYPE_THEME, null));
             allKeywords.AddRange(CreateKeywords(KeywordsNationalTheme, "NationalTheme", null, SimpleKeyword.THESAURUS_NATIONAL_THEME));
+            allKeywords.AddRange(CreateKeywords(KeywordsGlobalChangeMasterDirectory, "GlobalChangeMasterDirectory", null, SimpleKeyword.THESAURUS_GLOBAL_CHANGE_MASTER_DIRECTORY));
 
             return allKeywords;
         }
@@ -297,6 +299,11 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         keywordString = keyword.Split('|')[0];
                         keywordLink = keyword.Split('|')[1];
+                        if (!keywordLink.StartsWith("http")) 
+                        {
+                            keywordString = keyword;
+                            keywordLink = null;
+                        }
                     }
 
                     output.Add(new SimpleKeyword

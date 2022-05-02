@@ -213,6 +213,52 @@ namespace Kartverket.Geonorge.Api.Services
                             if (!string.IsNullOrEmpty(topicNode?.InnerXml))
                                 topicParameter = topicNode.InnerXml;
 
+                            var termNode = parameter.SelectSingleNode("ns2:Term", nsmgr);
+                            string term = "";
+                            if (!string.IsNullOrEmpty(termNode?.InnerXml))
+                                term = termNode.InnerXml;
+
+                            var level1Node = parameter.SelectSingleNode("ns2:Variable_Level_1", nsmgr);
+                            string variableLevel1 = "";
+                            if (!string.IsNullOrEmpty(level1Node?.InnerXml))
+                                variableLevel1 = level1Node.InnerXml;
+
+                            var level2Node = parameter.SelectSingleNode("ns2:Variable_Level_2", nsmgr);
+                            string variableLevel2 = "";
+                            if (!string.IsNullOrEmpty(level2Node?.InnerXml))
+                                variableLevel2 = level2Node.InnerXml;
+
+                            var level3Node = parameter.SelectSingleNode("ns2:Variable_Level_3", nsmgr);
+                            string variableLevel3 = "";
+                            if (!string.IsNullOrEmpty(level3Node?.InnerXml))
+                                variableLevel3 = level3Node.InnerXml;
+
+                            string GCMDKeyword = "";
+
+                            if (!string.IsNullOrEmpty(topicParameter))
+                                GCMDKeyword = topicParameter;
+
+                            if (!string.IsNullOrEmpty(term))
+                                GCMDKeyword = GCMDKeyword + " | " + term;
+
+                            if (!string.IsNullOrEmpty(variableLevel1))
+                                GCMDKeyword = GCMDKeyword + " | " + variableLevel1;
+
+                            if (!string.IsNullOrEmpty(variableLevel2))
+                                GCMDKeyword = GCMDKeyword + " | " + variableLevel2;
+
+                            if (!string.IsNullOrEmpty(variableLevel3))
+                                GCMDKeyword = GCMDKeyword + " | " + variableLevel3;
+
+                            if (!string.IsNullOrEmpty(GCMDKeyword)) 
+                            {
+                                if(dataset.KeywordsGlobalChangeMasterDirectory == null)
+                                    dataset.KeywordsGlobalChangeMasterDirectory = new List<string>();
+                                dataset.KeywordsGlobalChangeMasterDirectory.Add(GCMDKeyword);
+
+                            }
+
+
                         }
                     }
 
