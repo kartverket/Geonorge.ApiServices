@@ -269,8 +269,34 @@ namespace Kartverket.Geonorge.Api.Services
                     }
 
 
+
                     dataset.DistributionsFormats = new List<SimpleDistribution>();
                     dataset.ReferenceSystems = new List<SimpleReferenceSystem>();
+
+                    var distributionNodes = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Related_URL", nsmgr); 
+                    foreach(XmlNode distributionNode in distributionNodes) 
+                    {
+                        var url = "";
+                        var urlNode = distributionNode.SelectSingleNode("ns2:URL", nsmgr);
+                        if (!string.IsNullOrEmpty(urlNode?.InnerText))
+                            url = urlNode.InnerText;
+
+
+                        var protocol = "";
+                        var protocolNode = distributionNode.SelectSingleNode("ns2:URL_Content_Type/ns2:Type", nsmgr);
+                        if (!string.IsNullOrEmpty(protocolNode?.InnerXml))
+                            protocol = protocolNode.InnerXml;
+
+                        if (protocol == "GET DATA" || protocol == "GET SERVICE")
+                            protocol = "WWW:DOWNLOAD-1.0-http--download";
+                        else if (protocol == "VIEW EXTENDED METADATA" || protocol == "VIEW PROJECT HOME PAGE")
+                            protocol = "WWW:LINK-1.0-http--link";
+
+                        if (!string.IsNullOrEmpty(protocol) && !string.IsNullOrEmpty(url))
+                            dataset.DistributionsFormats.Add(new SimpleDistribution { URL = url, Protocol = protocol });
+
+                    }
+
                     datasets.Add(dataset);
                 }
             return datasets;

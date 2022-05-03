@@ -127,7 +127,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     //distributionFormatsUpdated.AddRange(metadataInfo.Distributions);
 
-                    //simpleMetadata.DistributionsFormats = distributionFormatsUpdated;
+                    simpleMetadata.DistributionsFormats = dataset.DistributionsFormats;
                     //simpleMetadata.DistributionDetails = new SimpleDistributionDetails
                     //{
                     //    URL = distributionFormatsUpdated[0].URL,
@@ -151,10 +151,10 @@ namespace Kartverket.Geonorge.Api.Services
                     simpleMetadata.DateMetadataUpdated = DateTime.Now;
 
 
-                    //if (insertMetadata)
-                    //    api.MetadataInsert(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
-                    //else
-                    //    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    if (insertMetadata)
+                        api.MetadataInsert(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    else
+                        api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
 
                     Log.Info($"Metadata updated for uuid: {dataset.Uuid}");
                 }
