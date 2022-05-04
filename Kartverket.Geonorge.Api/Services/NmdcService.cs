@@ -127,13 +127,15 @@ namespace Kartverket.Geonorge.Api.Services
 
                     //distributionFormatsUpdated.AddRange(metadataInfo.Distributions);
 
-                    simpleMetadata.DistributionsFormats = dataset.DistributionsFormats;
-                    //simpleMetadata.DistributionDetails = new SimpleDistributionDetails
-                    //{
-                    //    URL = distributionFormatsUpdated[0].URL,
-                    //    Protocol = distributionFormatsUpdated[0].Protocol,
-                    //    UnitsOfDistribution = distributionFormatsUpdated[0].UnitsOfDistribution
-                    //};
+                    if(simpleMetadata.DistributionsFormats != null && simpleMetadata.DistributionsFormats.Count > 0) 
+                    { 
+                        simpleMetadata.DistributionsFormats = dataset.DistributionsFormats;
+                        simpleMetadata.DistributionDetails = new SimpleDistributionDetails
+                        {
+                            URL = dataset.DistributionsFormats[0].URL,
+                            Protocol = dataset.DistributionsFormats[0].Protocol
+                        };
+                    }
 
                     //List<SimpleReferenceSystem> simpleReferenceSystems = new List<SimpleReferenceSystem>();
                     //foreach (var projection in metadataInfo.Projections)
