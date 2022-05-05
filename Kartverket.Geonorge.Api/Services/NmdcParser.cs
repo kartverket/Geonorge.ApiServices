@@ -292,8 +292,16 @@ namespace Kartverket.Geonorge.Api.Services
                         else if (protocol == "VIEW EXTENDED METADATA" || protocol == "VIEW PROJECT HOME PAGE")
                             protocol = "WWW:LINK-1.0-http--link";
 
+
+                        var description = "";
+                        var descriptionNode = distributionNode.SelectSingleNode("ns2:Description", nsmgr);
+                        if (!string.IsNullOrEmpty(descriptionNode?.InnerXml))
+                            description = descriptionNode.InnerText;
+
+                        var formatName = GetFormatName(url, description);
+
                         if (!string.IsNullOrEmpty(protocol) && !string.IsNullOrEmpty(url))
-                            dataset.DistributionsFormats.Add(new SimpleDistribution { URL = url, Protocol = protocol });
+                            dataset.DistributionsFormats.Add(new SimpleDistribution { URL = url, Protocol = protocol, FormatName = formatName });
 
                     }
 
@@ -302,6 +310,27 @@ namespace Kartverket.Geonorge.Api.Services
             return datasets;
         }
 
+        private string GetFormatName(string url, string description)
+        {
+
+            if (!string.IsNullOrEmpty(description))
+                return description;
+
+            if (!string.IsNullOrEmpty(url)) 
+            {
+                var urlPaths = url.Split('/').Last();
+                if(!string.IsNullOrEmpty(urlPaths) && urlPaths.Contains(".")) 
+                {
+                    var fileExt = urlPaths.Split('.').Last();
+                    if (fileExt == "nc")
+                        return "NetCDF";
+                    else
+                        return fileExt;
+                }
+            }
+
+            return null;
+        }
 
         public static Dictionary<string, string> Topics = new Dictionary<string, string>();
 
