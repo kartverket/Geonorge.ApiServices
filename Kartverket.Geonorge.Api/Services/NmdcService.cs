@@ -127,7 +127,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     //distributionFormatsUpdated.AddRange(metadataInfo.Distributions);
 
-                    if(simpleMetadata.DistributionsFormats != null && simpleMetadata.DistributionsFormats.Count > 0) 
+                    if(dataset.DistributionsFormats != null && dataset.DistributionsFormats.Count > 0) 
                     { 
                         simpleMetadata.DistributionsFormats = dataset.DistributionsFormats;
                         simpleMetadata.DistributionDetails = new SimpleDistributionDetails
