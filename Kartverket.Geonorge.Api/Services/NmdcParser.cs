@@ -64,43 +64,43 @@ namespace Kartverket.Geonorge.Api.Services
 
                     var parametersNodes = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Parameters", nsmgr);
 
-                    dataset.Uuid = id.InnerXml;
+                    dataset.Uuid = id.InnerText;
                     try
                     { 
-                        if(!string.IsNullOrEmpty(dateMetadataUpdated?.InnerXml))
-                            dataset.DateMetadataUpdated = DateTime.Parse(dateMetadataUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
-                        if (!string.IsNullOrEmpty(dateDatasetUpdated?.InnerXml))
-                            dataset.LastUpdated = DateTime.Parse(dateDatasetUpdated.InnerXml, System.Globalization.CultureInfo.InvariantCulture);
+                        if(!string.IsNullOrEmpty(dateMetadataUpdated?.InnerText))
+                            dataset.DateMetadataUpdated = DateTime.Parse(dateMetadataUpdated.InnerText, System.Globalization.CultureInfo.InvariantCulture);
+                        if (!string.IsNullOrEmpty(dateDatasetUpdated?.InnerText))
+                            dataset.LastUpdated = DateTime.Parse(dateDatasetUpdated.InnerText, System.Globalization.CultureInfo.InvariantCulture);
 
-                        if (!string.IsNullOrEmpty(dateStart?.InnerXml))
-                            dataset.StartDate = dateStart.InnerXml;
-                        if (!string.IsNullOrEmpty(dateStop?.InnerXml))
-                            dataset.StopDate = dateStop.InnerXml;
+                        if (!string.IsNullOrEmpty(dateStart?.InnerText))
+                            dataset.StartDate = dateStart.InnerText;
+                        if (!string.IsNullOrEmpty(dateStop?.InnerText))
+                            dataset.StopDate = dateStop.InnerText;
                     }
                     catch (Exception e)
                     {
                         Log.Error("Error with date parsing: " + id, e);
                     }
 
-                    if(!string.IsNullOrEmpty(title?.InnerXml))
-                        dataset.Title = title.InnerXml;
-                    else if(!string.IsNullOrEmpty(titleEntry?.InnerXml))
-                        dataset.Title = titleEntry.InnerXml;
+                    if(!string.IsNullOrEmpty(title?.InnerText))
+                        dataset.Title = title.InnerText;
+                    else if(!string.IsNullOrEmpty(titleEntry?.InnerText))
+                        dataset.Title = titleEntry.InnerText;
 
-                    if (!string.IsNullOrEmpty(summary?.InnerXml))
-                        dataset.Abstract = summary?.InnerXml;
+                    if (!string.IsNullOrEmpty(summary?.InnerText))
+                        dataset.Abstract = summary?.InnerText;
 
-                    if (!string.IsNullOrEmpty(originatingCenter?.InnerXml))
-                        dataset.Organization = originatingCenter.InnerXml;
-                    else if (!string.IsNullOrEmpty(organization?.InnerXml))
-                        dataset.Organization = organization.InnerXml;
+                    if (!string.IsNullOrEmpty(originatingCenter?.InnerText))
+                        dataset.Organization = originatingCenter.InnerText;
+                    else if (!string.IsNullOrEmpty(organization?.InnerText))
+                        dataset.Organization = organization.InnerText;
 
                     foreach(XmlNode dataCenter in dataCenters) 
                     {
                         var longNameNode = dataCenter.SelectSingleNode("ns2:Data_Center_Name/ns2:Long_Name", nsmgr);
-                        if (!string.IsNullOrEmpty(longNameNode?.InnerXml))
+                        if (!string.IsNullOrEmpty(longNameNode?.InnerText))
                         {
-                            var dataCenterName = longNameNode.InnerXml;
+                            var dataCenterName = longNameNode.InnerText;
                             if(dataCenterName == dataset.Organization) 
                             {
                                 var personnelNode = dataCenter.SelectSingleNode("ns2:Personnel", nsmgr);
@@ -113,18 +113,18 @@ namespace Kartverket.Geonorge.Api.Services
 
                                     string name = "";
 
-                                    if (!string.IsNullOrEmpty(firstName?.InnerXml))
-                                        name = firstName.InnerXml;
+                                    if (!string.IsNullOrEmpty(firstName?.InnerText))
+                                        name = firstName.InnerText;
 
-                                    if (!string.IsNullOrEmpty(middleName?.InnerXml))
-                                        name = name + " " + middleName.InnerXml;
+                                    if (!string.IsNullOrEmpty(middleName?.InnerText))
+                                        name = name + " " + middleName.InnerText;
 
-                                    if (!string.IsNullOrEmpty(lastName?.InnerXml))
-                                        name = name + " " + lastName.InnerXml;
+                                    if (!string.IsNullOrEmpty(lastName?.InnerText))
+                                        name = name + " " + lastName.InnerText;
 
                                     string emailPersonnel = "";
-                                    if (!string.IsNullOrEmpty(email?.InnerXml))
-                                        emailPersonnel = email.InnerXml;
+                                    if (!string.IsNullOrEmpty(email?.InnerText))
+                                        emailPersonnel = email.InnerText;
 
                                     if (!string.IsNullOrEmpty(name))
                                         dataset.OrganizationPersonnelName = name;
@@ -136,23 +136,23 @@ namespace Kartverket.Geonorge.Api.Services
                         }
                     }
 
-                    if (!string.IsNullOrEmpty(southernmostLatitude?.InnerXml))
-                        dataset.BBoxSouthBoundLatitude = southernmostLatitude.InnerXml;
+                    if (!string.IsNullOrEmpty(southernmostLatitude?.InnerText))
+                        dataset.BBoxSouthBoundLatitude = southernmostLatitude.InnerText;
 
-                    if (!string.IsNullOrEmpty(northernBoundLatitude?.InnerXml))
-                        dataset.BBoxNorthBoundLatitude = northernBoundLatitude.InnerXml;
+                    if (!string.IsNullOrEmpty(northernBoundLatitude?.InnerText))
+                        dataset.BBoxNorthBoundLatitude = northernBoundLatitude.InnerText;
 
-                    if (!string.IsNullOrEmpty(westernBoundLatitude?.InnerXml))
-                        dataset.BBoxWestBoundLongitude = westernBoundLatitude.InnerXml;
+                    if (!string.IsNullOrEmpty(westernBoundLatitude?.InnerText))
+                        dataset.BBoxWestBoundLongitude = westernBoundLatitude.InnerText;
 
-                    if (!string.IsNullOrEmpty(easternBoundLatitude?.InnerXml))
-                        dataset.BBoxEastBoundLongitude = easternBoundLatitude.InnerXml;
+                    if (!string.IsNullOrEmpty(easternBoundLatitude?.InnerText))
+                        dataset.BBoxEastBoundLongitude = easternBoundLatitude.InnerText;
 
-                    if (!string.IsNullOrEmpty(processHistory?.InnerXml))
-                        dataset.ProcessHistory = processHistory.InnerXml;
+                    if (!string.IsNullOrEmpty(processHistory?.InnerText))
+                        dataset.ProcessHistory = processHistory.InnerText;
 
-                    if (!string.IsNullOrEmpty(status?.InnerXml)) { 
-                        dataset.Status = status.InnerXml;
+                    if (!string.IsNullOrEmpty(status?.InnerText)) { 
+                        dataset.Status = status.InnerText;
                         if (dataset.Status.ToLower() == "in work")
                             dataset.Status = "onGoing";
                         else if (dataset.Status.ToLower() == "complete")
@@ -161,11 +161,11 @@ namespace Kartverket.Geonorge.Api.Services
                             dataset.Status = "planned";
                     }
 
-                    if (!string.IsNullOrEmpty(metadataName?.InnerXml))
-                        dataset.MetadataName = metadataName.InnerXml;
+                    if (!string.IsNullOrEmpty(metadataName?.InnerText))
+                        dataset.MetadataName = metadataName.InnerText;
 
-                    if (!string.IsNullOrEmpty(metadataVersion?.InnerXml))
-                        dataset.MetadataVersion = metadataVersion.InnerXml;
+                    if (!string.IsNullOrEmpty(metadataVersion?.InnerText))
+                        dataset.MetadataVersion = metadataVersion.InnerText;
 
 
                     var keywordsThemeNode = childrenNode.SelectNodes("n:metadata/ns2:DIF/ns2:Keyword", nsmgr);
@@ -174,8 +174,8 @@ namespace Kartverket.Geonorge.Api.Services
 
                     foreach (XmlNode theme in keywordsThemeNode)
                     {
-                        if (!string.IsNullOrEmpty(theme?.InnerXml))
-                            keywordTheme.Add(theme.InnerXml);
+                        if (!string.IsNullOrEmpty(theme?.InnerText))
+                            keywordTheme.Add(theme.InnerText);
                     }
 
                     dataset.KeywordsTheme = keywordTheme;
@@ -185,7 +185,7 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.TopicCategories = new List<string>();
                         foreach (XmlNode topic in topicCategoriesNodes)
                         {
-                            var topicCategoryKey = topic.InnerXml;
+                            var topicCategoryKey = topic.InnerText;
                             topicCategoryKey = topicCategoryKey.Replace(" ", "");
                             topicCategoryKey = topicCategoryKey.ToLower();
                             if (Topics.ContainsKey(topicCategoryKey)) 
@@ -206,32 +206,32 @@ namespace Kartverket.Geonorge.Api.Services
                         {
 
                             var categoryNode = parameter.SelectSingleNode("ns2:Category", nsmgr);
-                            if (!string.IsNullOrEmpty(categoryNode?.InnerXml))
-                                categoryParameter = categoryNode.InnerXml;
+                            if (!string.IsNullOrEmpty(categoryNode?.InnerText))
+                                categoryParameter = categoryNode.InnerText;
 
                             var topicNode = parameter.SelectSingleNode("ns2:Topic", nsmgr);
-                            if (!string.IsNullOrEmpty(topicNode?.InnerXml))
-                                topicParameter = topicNode.InnerXml;
+                            if (!string.IsNullOrEmpty(topicNode?.InnerText))
+                                topicParameter = topicNode.InnerText;
 
                             var termNode = parameter.SelectSingleNode("ns2:Term", nsmgr);
                             string term = "";
-                            if (!string.IsNullOrEmpty(termNode?.InnerXml))
-                                term = termNode.InnerXml;
+                            if (!string.IsNullOrEmpty(termNode?.InnerText))
+                                term = termNode.InnerText;
 
                             var level1Node = parameter.SelectSingleNode("ns2:Variable_Level_1", nsmgr);
                             string variableLevel1 = "";
-                            if (!string.IsNullOrEmpty(level1Node?.InnerXml))
-                                variableLevel1 = level1Node.InnerXml;
+                            if (!string.IsNullOrEmpty(level1Node?.InnerText))
+                                variableLevel1 = level1Node.InnerText;
 
                             var level2Node = parameter.SelectSingleNode("ns2:Variable_Level_2", nsmgr);
                             string variableLevel2 = "";
-                            if (!string.IsNullOrEmpty(level2Node?.InnerXml))
-                                variableLevel2 = level2Node.InnerXml;
+                            if (!string.IsNullOrEmpty(level2Node?.InnerText))
+                                variableLevel2 = level2Node.InnerText;
 
                             var level3Node = parameter.SelectSingleNode("ns2:Variable_Level_3", nsmgr);
                             string variableLevel3 = "";
-                            if (!string.IsNullOrEmpty(level3Node?.InnerXml))
-                                variableLevel3 = level3Node.InnerXml;
+                            if (!string.IsNullOrEmpty(level3Node?.InnerText))
+                                variableLevel3 = level3Node.InnerText;
 
                             string GCMDKeyword = "";
 
@@ -284,8 +284,8 @@ namespace Kartverket.Geonorge.Api.Services
 
                         var protocol = "";
                         var protocolNode = distributionNode.SelectSingleNode("ns2:URL_Content_Type/ns2:Type", nsmgr);
-                        if (!string.IsNullOrEmpty(protocolNode?.InnerXml))
-                            protocol = protocolNode.InnerXml;
+                        if (!string.IsNullOrEmpty(protocolNode?.InnerText))
+                            protocol = protocolNode.InnerText;
 
                         if (protocol == "GET DATA" || protocol == "GET SERVICE")
                             protocol = "WWW:DOWNLOAD-1.0-http--download";
@@ -295,7 +295,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                         var description = "";
                         var descriptionNode = distributionNode.SelectSingleNode("ns2:Description", nsmgr);
-                        if (!string.IsNullOrEmpty(descriptionNode?.InnerXml))
+                        if (!string.IsNullOrEmpty(descriptionNode?.InnerText))
                             description = descriptionNode.InnerText;
 
                         var formatName = GetFormatName(url, description);
