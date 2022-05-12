@@ -281,6 +281,9 @@ namespace Kartverket.Geonorge.Api.Services
                         if (!string.IsNullOrEmpty(urlNode?.InnerText))
                             url = urlNode.InnerText;
 
+                        if(url == "URL")
+                            url = "";
+
 
                         var protocol = "";
                         var protocolNode = distributionNode.SelectSingleNode("ns2:URL_Content_Type/ns2:Type", nsmgr);
