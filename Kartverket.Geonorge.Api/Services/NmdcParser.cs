@@ -91,9 +91,9 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.Abstract = summary?.InnerText;
 
                     if (!string.IsNullOrEmpty(originatingCenter?.InnerText))
-                        dataset.Organization = originatingCenter.InnerText;
+                        dataset.Organization = originatingCenter.InnerText.Trim();
                     else if (!string.IsNullOrEmpty(organization?.InnerText))
-                        dataset.Organization = organization.InnerText;
+                        dataset.Organization = organization.InnerText.Trim();
 
                     foreach(XmlNode dataCenter in dataCenters) 
                     {
