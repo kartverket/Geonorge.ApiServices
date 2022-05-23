@@ -36,6 +36,7 @@ namespace Kartverket.Geonorge.Api.Services
                 {
                     var dataset = new DatasetNMDC();
                     var id = childrenNode.SelectSingleNode("n:header/n:identifier", nsmgr);
+                    var credits = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Data_Set_Citation/ns2:Dataset_Creator", nsmgr);
                     var dateDatasetUpdated = childrenNode.SelectSingleNode("n:header/n:datestamp", nsmgr);
                     var dateMetadataUpdated = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Last_DIF_Revision_Date", nsmgr);
                     var dateStart = childrenNode.SelectSingleNode("n:metadata/ns2:DIF/ns2:Temporal_Coverage/ns2:Start_Date", nsmgr);
@@ -82,7 +83,19 @@ namespace Kartverket.Geonorge.Api.Services
                         Log.Error("Error with date parsing: " + id, e);
                     }
 
-                    if(!string.IsNullOrEmpty(title?.InnerText))
+
+                    if (!string.IsNullOrEmpty(credits?.InnerText)) {
+                        dataset.Credits = new List<string>();
+
+                        var creditList = credits.InnerText.Split(',');
+
+                        foreach (var credit in creditList) 
+                        {
+                            dataset.Credits.Add(credit.Trim());
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(title?.InnerText))
                         dataset.Title = title.InnerText;
                     else if(!string.IsNullOrEmpty(titleEntry?.InnerText))
                         dataset.Title = titleEntry.InnerText;

@@ -77,7 +77,7 @@ namespace Kartverket.Geonorge.Api.Services
                         } ;
                     }
 
-
+                    simpleMetadata.Credits = dataset.Credits;
                     simpleMetadata.Title = dataset.Title;
                     simpleMetadata.Abstract = dataset.Abstract;
                     simpleMetadata.ContactPublisher = new SimpleContact
@@ -224,6 +224,8 @@ namespace Kartverket.Geonorge.Api.Services
         /// Dataset uuid
         /// </summary>
         public string Uuid { get; set; }
+
+        public List<string> Credits { get; set; }
 
         /// <summary>
         /// Dataset title
