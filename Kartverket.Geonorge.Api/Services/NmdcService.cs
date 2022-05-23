@@ -76,8 +76,8 @@ namespace Kartverket.Geonorge.Api.Services
                             ValidTo = dataset.StopDate
                         } ;
                     }
-
-                    simpleMetadata.Credits = dataset.Credits;
+                    if(dataset.Credits != null)
+                        simpleMetadata.Credits = dataset.Credits;
                     simpleMetadata.Title = dataset.Title;
                     simpleMetadata.Abstract = dataset.Abstract;
                     simpleMetadata.ContactPublisher = new SimpleContact
