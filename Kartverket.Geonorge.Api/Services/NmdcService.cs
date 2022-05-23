@@ -60,6 +60,8 @@ namespace Kartverket.Geonorge.Api.Services
                         insertMetadata = true;
                     }
 
+                    simpleMetadata.MetadataLanguage = "eng";
+
                     if (dataset.DateMetadataUpdated.HasValue)
                         simpleMetadata.DateMetadataUpdated = dataset.DateMetadataUpdated.Value;
 
