@@ -97,7 +97,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     if (!string.IsNullOrEmpty(title?.InnerText))
                         dataset.Title = title.InnerText;
-                    else if(!string.IsNullOrEmpty(titleEntry?.InnerText))
+                    if(!string.IsNullOrEmpty(titleEntry?.InnerText))
                         dataset.Title = titleEntry.InnerText;
 
                     if (!string.IsNullOrEmpty(summary?.InnerText))
