@@ -719,7 +719,7 @@ namespace Kartverket.Geonorge.Api.Services
             catalog.AppendChild(catalogPublisher);
 
             XmlElement catalogLicense = doc.CreateElement("dct", "license", xmlnsDct);
-            catalogLicense.SetAttribute("resource", xmlnsRdf, "http://creativecommons.org/licenses/by/4.0/");
+            catalogLicense.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/licence/CC_BY_4_0");
             catalog.AppendChild(catalogLicense);
 
             XmlElement catalogLanguage = doc.CreateElement("dct", "language", xmlnsDct);
