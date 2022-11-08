@@ -40,21 +40,7 @@
 
     </div>
     <geonorge-footer language="no" version="@Html.ApplicationVersionNumber()" environment="@Html.EnvironmentName()" />
-    @Scripts.Render("~/shared-partials-scripts")
-    <script>
-        searchOption.supportsLogin = false;
-        searchOption.supportsCulture = false;
-        searchOption.epiBaseUrl = '@Html.GeonorgeUrl()';
-        var orderItems = Cookies.get('orderitems');
-        if (orderItems && orderItems > 0) {
-            $('.downloads__count').show();
-            $('.downloads__count').text(orderItems);
-        }
-    </script>
-
-    @Scripts.Render("~/Content/bower_components/kartverket-felleskomponenter/assets/js/scripts")
+    @Scripts.Render("~/node-modules/scripts")
     @RenderSection("scripts", required: false)
-    <script src="https://cdn.jsdelivr.net/npm/@("@kartverket/geonorge-web-components@0.1.53/MainNavigation.js")"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@("@kartverket/geonorge-web-components@0.1.53/GeonorgeFooter.js")"></script>
 </body>
 </html>
