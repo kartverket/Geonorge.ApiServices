@@ -135,6 +135,7 @@ namespace Kartverket.Geonorge.Api.Services
             if (!string.IsNullOrEmpty(format))
             { 
                 format = format.Replace("Format:", "");
+                format = format.Replace("-format", "");
 
                 if (format.ToUpper() == "GEODATABASE_FILE")
                     format = "FGDB";
@@ -150,15 +151,11 @@ namespace Kartverket.Geonorge.Api.Services
                     format = "GeoJSON";
                 else if (format== "FGDB-format")
                     format = "FGDB";
-                else if (format == "GML-format" || format == "gml")
+                else if (format == "gml")
                     format = "GML";
-                else if (format == "PostGIS-format")
-                    format = "PostGIS";
-                else if (format == "SOSI-format")
-                    format = "SOSI";
-                else if (format == "GEOJSON-format")
+                else if (format.ToUpper() == "GEOJSON")
                     format = "GeoJSON";
-                else if (format == "POSTGIS-format")
+                else if (format == "POSTGIS")
                     format = "PostGIS";
 
             }
