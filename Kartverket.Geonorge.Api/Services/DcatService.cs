@@ -417,7 +417,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                     XmlElement datasetLicense = doc.CreateElement("dct", "license", xmlnsDct);
                     if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                        datasetLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+                        datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.OtherConstraintsLink));
                     dataset.AppendChild(datasetLicense);
 
                     var accessConstraint = "PUBLIC";
@@ -497,7 +497,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                                 XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
                                 if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                                    distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.OtherConstraintsLink));
                                 distribution.AppendChild(distributionLicense);
 
                                 XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
@@ -577,6 +577,24 @@ namespace Kartverket.Geonorge.Api.Services
 
             AppendConcepts(root);
 
+        }
+
+        private string MapLicense(string link)
+        {
+            if (link == "http://creativecommons.org/licenses/by/1.0/no/")
+                link = "https://publications.europa.eu/resource/authority/licence/NLOD_1_0";
+            else if(link == "http://creativecommons.org/licenses/by/2.0/no/")
+                link = "https://publications.europa.eu/resource/authority/licence/NLOD_2_0";
+            else if (link == "https://creativecommons.org/publicdomain/zero/1.0/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC0";
+            else if (link == "http://creativecommons.org/licenses/by/3.0/no/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
+            else if (link == "http://creativecommons.org/licenses/by/4.0/no/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
+            else if (link == "https://creativecommons.org/licenses/by-nc/4.0/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
+
+            return link;
         }
 
         private void AddDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services)
