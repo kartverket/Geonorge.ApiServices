@@ -353,6 +353,17 @@ namespace Kartverket.Geonorge.Api.Services
                     dataset.AppendChild(datasetUpdated);
                     dataset.AppendChild(datasetModified);
 
+                    XmlElement datasetIssued = doc.CreateElement("dct", "issued", xmlnsDct);
+                    datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                    if (data.DateCreated.HasValue || data.DatePublished.HasValue)
+                    {
+                        if(data.DateCreated.HasValue)
+                            datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
+                        else if(data.DatePublished.HasValue)
+                            datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
+                    }
+                    dataset.AppendChild(datasetIssued);
+
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                         datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
