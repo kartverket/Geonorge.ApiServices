@@ -340,14 +340,18 @@ namespace Kartverket.Geonorge.Api.Services
 
                     XmlElement datasetUpdated = doc.CreateElement("dct", "updated", xmlnsDct);
                     datasetUpdated.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                    XmlElement datasetModified = doc.CreateElement("dct", "modified", xmlnsDct);
+                    datasetModified.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+
                     if (data.DateUpdated.HasValue)
                     {
                         datasetUpdated.InnerText = data.DateUpdated.Value.ToString("yyyy-MM-dd");
+                        datasetModified.InnerText = datasetUpdated.InnerText;
                         if (!catalogLastModified.HasValue || data.DateUpdated > catalogLastModified)
                             catalogLastModified = data.DateUpdated;
                     }
                     dataset.AppendChild(datasetUpdated);
-
+                    dataset.AppendChild(datasetModified);
 
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
