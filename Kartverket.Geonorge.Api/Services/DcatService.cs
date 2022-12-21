@@ -223,6 +223,10 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetDescription.InnerText = data.Abstract;
                     dataset.AppendChild(datasetDescription);
 
+                    XmlElement landingPage = doc.CreateElement("dcat", "landingPage", xmlnsDcat);
+                    landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                    dataset.AppendChild(landingPage);
+
                     foreach (var keyword in data.Keywords)
                     {
 
