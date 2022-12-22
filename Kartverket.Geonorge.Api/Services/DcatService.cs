@@ -420,8 +420,8 @@ namespace Kartverket.Geonorge.Api.Services
                     dataset.AppendChild(datasetGranularity);
 
                     XmlElement datasetLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                        datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.OtherConstraintsLink));
+                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                        datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                     dataset.AppendChild(datasetLicense);
 
                     var accessConstraint = "PUBLIC";
@@ -500,8 +500,8 @@ namespace Kartverket.Geonorge.Api.Services
                                 distribution.AppendChild(distributionAccessURL);
 
                                 XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.OtherConstraintsLink));
+                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                 distribution.AppendChild(distributionLicense);
 
                                 XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
@@ -593,7 +593,7 @@ namespace Kartverket.Geonorge.Api.Services
                 link = "https://publications.europa.eu/resource/authority/licence/CC0";
             else if (link == "http://creativecommons.org/licenses/by/3.0/no/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
-            else if (link == "http://creativecommons.org/licenses/by/4.0/no/")
+            else if (link == "https://creativecommons.org/licenses/by/4.0/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
             else if (link == "https://creativecommons.org/licenses/by-nc/4.0/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
