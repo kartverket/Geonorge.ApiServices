@@ -620,31 +620,30 @@ namespace Kartverket.Geonorge.Api.Services
 
                 dynamic metadata = Newtonsoft.Json.Linq.JObject.Parse(json);
 
-                if (metadata != null && metadata.Related != null)
+                if (metadata != null && metadata != null && metadata.Distributions.RelatedViewServices != null)
                 {
-                    foreach (var related in metadata.Related)
+                    foreach (var related in metadata.Distributions.RelatedViewServices)
                     {
                         var uuidService = related.Uuid.Value;
 
-                        if (related.DistributionDetails != null)
+                        var protocol = related.Protocol.Value;
+                        var serviceDistributionUrl = related.DistributionUrl.Value;
+
+                        if (services.ContainsKey(serviceDistributionUrl))
+                            continue;
+
+                        string protocolName = protocol;
+                        if (protocolName.Contains("-"))
+                            protocolName = protocolName.Split('-')[0];
+
+                        protocol = "OGC:" + protocolName;
+
+                        if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
                         {
-                            var protocol = related.DistributionDetails.Protocol.Value;
-                            var serviceDistributionUrl = related.DistributionDetails.URL.Value;
+                            var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
+                                protocolName, serviceDistributionUrl);
 
-                            if (services.ContainsKey(serviceDistributionUrl))
-                                continue;
-
-                            string protocolName = protocol;
-                            if (protocolName.Contains(":"))
-                                protocolName = protocolName.Split(':')[1];
-
-                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
-                            {
-                                var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
-                                    protocolName, serviceDistributionUrl);
-
-                                services.Add(serviceDistributionUrl, distribution);
-                            }
+                            services.Add(serviceDistributionUrl, distribution);
                         }
                     }
                 }
