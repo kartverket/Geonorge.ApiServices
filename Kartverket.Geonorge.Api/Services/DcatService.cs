@@ -593,7 +593,7 @@ namespace Kartverket.Geonorge.Api.Services
                 link = "https://publications.europa.eu/resource/authority/licence/CC0";
             else if (link == "http://creativecommons.org/licenses/by/3.0/no/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
-            else if (link == "https://creativecommons.org/licenses/by/4.0/")
+            else if (link == "https://creativecommons.org/licenses/by/4.0/" || link == "https://creativecommons.org/licenses/by/4.0/deed.no")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
             else if (link == "https://creativecommons.org/licenses/by-nc/4.0/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
