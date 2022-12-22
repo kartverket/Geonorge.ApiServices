@@ -585,9 +585,9 @@ namespace Kartverket.Geonorge.Api.Services
 
         private string MapLicense(string link)
         {
-            if (link == "http://creativecommons.org/licenses/by/1.0/no/")
+            if (link == "http://data.norge.no/nlod/no/1.0")
                 link = "https://publications.europa.eu/resource/authority/licence/NLOD_1_0";
-            else if(link == "http://creativecommons.org/licenses/by/2.0/no/")
+            else if(link == "https://data.norge.no/nlod/no/2.0")
                 link = "https://publications.europa.eu/resource/authority/licence/NLOD_2_0";
             else if (link == "https://creativecommons.org/publicdomain/zero/1.0/")
                 link = "https://publications.europa.eu/resource/authority/licence/CC0";
