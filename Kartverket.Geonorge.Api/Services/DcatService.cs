@@ -11,13 +11,14 @@ using System.Xml;
 using www.opengis.net;
 using Kartverket.Geonorge.Api.Models;
 using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
+using System.Linq;
 
 namespace Kartverket.Geonorge.Api.Services
 {
     public interface IDcatService
     {
         XmlDocument GenerateDcat();
-        SearchResultsType GetDatasets();
+        List<RecordType> GetDatasets();
         Dictionary<string, string> GetOrganizationsLink();
         Dictionary<string, DcatService.DistributionType> GetDistributionTypes();
     }
@@ -51,7 +52,7 @@ namespace Kartverket.Geonorge.Api.Services
         XmlDocument conceptsDoc;
         XmlNamespaceManager nsmgr;
 
-        SearchResultsType metadataSets;
+        List<RecordType> metadataSets;
 
         GeoNorge geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
 
@@ -186,9 +187,9 @@ namespace Kartverket.Geonorge.Api.Services
             Dictionary<string, XmlNode> vcardKinds = new Dictionary<string, XmlNode>();
             Dictionary<string, XmlNode> services = new Dictionary<string, XmlNode>();
 
-            for (int d = 0; d < metadataSets.Items.Length; d++)
+            foreach(var metadata in metadataSets)
             {
-                string uuid = ((www.opengis.net.DCMIRecordType)(metadataSets.Items[d])).Items[0].Text[0];
+                string uuid = metadata.Items[0].Text[0];
                 MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                 var data = new SimpleMetadata(md);
 
@@ -222,6 +223,10 @@ namespace Kartverket.Geonorge.Api.Services
                     if (!string.IsNullOrEmpty(data.Abstract))
                         datasetDescription.InnerText = data.Abstract;
                     dataset.AppendChild(datasetDescription);
+
+                    XmlElement landingPage = doc.CreateElement("dcat", "landingPage", xmlnsDcat);
+                    landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                    dataset.AppendChild(landingPage);
 
                     foreach (var keyword in data.Keywords)
                     {
@@ -340,14 +345,29 @@ namespace Kartverket.Geonorge.Api.Services
 
                     XmlElement datasetUpdated = doc.CreateElement("dct", "updated", xmlnsDct);
                     datasetUpdated.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                    XmlElement datasetModified = doc.CreateElement("dct", "modified", xmlnsDct);
+                    datasetModified.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+
                     if (data.DateUpdated.HasValue)
                     {
                         datasetUpdated.InnerText = data.DateUpdated.Value.ToString("yyyy-MM-dd");
+                        datasetModified.InnerText = datasetUpdated.InnerText;
                         if (!catalogLastModified.HasValue || data.DateUpdated > catalogLastModified)
                             catalogLastModified = data.DateUpdated;
                     }
                     dataset.AppendChild(datasetUpdated);
+                    dataset.AppendChild(datasetModified);
 
+                    XmlElement datasetIssued = doc.CreateElement("dct", "issued", xmlnsDct);
+                    datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                    if (data.DateCreated.HasValue || data.DatePublished.HasValue)
+                    {
+                        if(data.DateCreated.HasValue)
+                            datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
+                        else if(data.DatePublished.HasValue)
+                            datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
+                    }
+                    dataset.AppendChild(datasetIssued);
 
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
@@ -401,8 +421,8 @@ namespace Kartverket.Geonorge.Api.Services
                     dataset.AppendChild(datasetGranularity);
 
                     XmlElement datasetLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                        datasetLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                        datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                     dataset.AppendChild(datasetLicense);
 
                     var accessConstraint = "PUBLIC";
@@ -481,8 +501,8 @@ namespace Kartverket.Geonorge.Api.Services
                                 distribution.AppendChild(distributionAccessURL);
 
                                 XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                                    distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                 distribution.AppendChild(distributionLicense);
 
                                 XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
@@ -564,6 +584,24 @@ namespace Kartverket.Geonorge.Api.Services
 
         }
 
+        private string MapLicense(string link)
+        {
+            if (link == "http://data.norge.no/nlod/no/1.0")
+                link = "https://publications.europa.eu/resource/authority/licence/NLOD_1_0";
+            else if(link == "https://data.norge.no/nlod/no/2.0")
+                link = "https://publications.europa.eu/resource/authority/licence/NLOD_2_0";
+            else if (link == "https://creativecommons.org/publicdomain/zero/1.0/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC0";
+            else if (link == "http://creativecommons.org/licenses/by/3.0/no/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
+            else if (link == "https://creativecommons.org/licenses/by/4.0/" || link == "https://creativecommons.org/licenses/by/4.0/deed.no")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
+            else if (link == "https://creativecommons.org/licenses/by-nc/4.0/")
+                link = "https://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
+
+            return link;
+        }
+
         private void AddDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services)
         {
 // Get distribution from index in kartkatalog 
@@ -582,31 +620,30 @@ namespace Kartverket.Geonorge.Api.Services
 
                 dynamic metadata = Newtonsoft.Json.Linq.JObject.Parse(json);
 
-                if (metadata != null && metadata.Related != null)
+                if (metadata != null && metadata != null && metadata.Distributions.RelatedViewServices != null)
                 {
-                    foreach (var related in metadata.Related)
+                    foreach (var related in metadata.Distributions.RelatedViewServices)
                     {
                         var uuidService = related.Uuid.Value;
 
-                        if (related.DistributionDetails != null)
+                        var protocol = related.Protocol.Value;
+                        var serviceDistributionUrl = related.DistributionUrl.Value;
+
+                        if (services.ContainsKey(serviceDistributionUrl))
+                            continue;
+
+                        string protocolName = protocol;
+                        if (protocolName.Contains("-"))
+                            protocolName = protocolName.Split('-')[0];
+
+                        protocol = "OGC:" + protocolName;
+
+                        if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
                         {
-                            var protocol = related.DistributionDetails.Protocol.Value;
-                            var serviceDistributionUrl = related.DistributionDetails.URL.Value;
+                            var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
+                                protocolName, serviceDistributionUrl);
 
-                            if (services.ContainsKey(serviceDistributionUrl))
-                                continue;
-
-                            string protocolName = protocol;
-                            if (protocolName.Contains(":"))
-                                protocolName = protocolName.Split(':')[1];
-
-                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
-                            {
-                                var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
-                                    protocolName, serviceDistributionUrl);
-
-                                services.Add(serviceDistributionUrl, distribution);
-                            }
+                            services.Add(serviceDistributionUrl, distribution);
                         }
                     }
                 }
@@ -824,7 +861,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public SearchResultsType GetDatasets()
+        public List<RecordType> GetDatasets()
         {
             GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"] + geoNetworkendPoint);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
@@ -847,11 +884,30 @@ namespace Kartverket.Geonorge.Api.Services
             };
 
             var stopwatch = new Stopwatch();
+            var datasets = new List<RecordType>();
             stopwatch.Start();
-            var result = _geoNorge.SearchWithFilters(filters, filterNames, 1, 1000, false);
+            int startPosition = 1;
+            int limit = 100;
+            var result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+            var resultItems = result.Items.Cast<RecordType>().ToList();
+            datasets.AddRange(resultItems);
+            var nextRecord = int.Parse(result.nextRecord);
+            startPosition = nextRecord;
+            var numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            while (nextRecord < numberOfRecordsMatched && nextRecord > 0)
+            {
+                result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+                resultItems = result.Items.Cast<RecordType>().ToList();
+                datasets.AddRange(resultItems);
+
+                nextRecord = int.Parse(result.nextRecord);
+                startPosition = nextRecord;
+                numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            }
+
             stopwatch.Stop();
             Log.Debug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
-            return result;
+            return datasets;
         }
 
         private void LogEventsDebug(string log)
