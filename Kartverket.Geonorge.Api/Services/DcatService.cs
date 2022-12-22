@@ -11,13 +11,14 @@ using System.Xml;
 using www.opengis.net;
 using Kartverket.Geonorge.Api.Models;
 using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
+using System.Linq;
 
 namespace Kartverket.Geonorge.Api.Services
 {
     public interface IDcatService
     {
         XmlDocument GenerateDcat();
-        SearchResultsType GetDatasets();
+        List<RecordType> GetDatasets();
         Dictionary<string, string> GetOrganizationsLink();
         Dictionary<string, DcatService.DistributionType> GetDistributionTypes();
     }
@@ -51,7 +52,7 @@ namespace Kartverket.Geonorge.Api.Services
         XmlDocument conceptsDoc;
         XmlNamespaceManager nsmgr;
 
-        SearchResultsType metadataSets;
+        List<RecordType> metadataSets;
 
         GeoNorge geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
 
@@ -186,9 +187,9 @@ namespace Kartverket.Geonorge.Api.Services
             Dictionary<string, XmlNode> vcardKinds = new Dictionary<string, XmlNode>();
             Dictionary<string, XmlNode> services = new Dictionary<string, XmlNode>();
 
-            for (int d = 0; d < metadataSets.Items.Length; d++)
+            foreach(var metadata in metadataSets)
             {
-                string uuid = ((www.opengis.net.DCMIRecordType)(metadataSets.Items[d])).Items[0].Text[0];
+                string uuid = metadata.Items[0].Text[0];
                 MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                 var data = new SimpleMetadata(md);
 
@@ -861,7 +862,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public SearchResultsType GetDatasets()
+        public List<RecordType> GetDatasets()
         {
             GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"] + geoNetworkendPoint);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
@@ -884,11 +885,30 @@ namespace Kartverket.Geonorge.Api.Services
             };
 
             var stopwatch = new Stopwatch();
+            var datasets = new List<RecordType>();
             stopwatch.Start();
-            var result = _geoNorge.SearchWithFilters(filters, filterNames, 1, 1000, false);
+            int startPosition = 1;
+            int limit = 100;
+            var result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+            var resultItems = result.Items.Cast<RecordType>().ToList();
+            datasets.AddRange(resultItems);
+            var nextRecord = int.Parse(result.nextRecord);
+            startPosition = nextRecord;
+            var numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            while (nextRecord < numberOfRecordsMatched && nextRecord > 0)
+            {
+                result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+                resultItems = result.Items.Cast<RecordType>().ToList();
+                datasets.AddRange(resultItems);
+
+                nextRecord = int.Parse(result.nextRecord);
+                startPosition = nextRecord;
+                numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            }
+
             stopwatch.Stop();
             Log.Debug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
-            return result;
+            return datasets;
         }
 
         private void LogEventsDebug(string log)
