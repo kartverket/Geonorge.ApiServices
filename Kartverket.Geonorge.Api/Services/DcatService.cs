@@ -352,11 +352,13 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         datasetUpdated.InnerText = data.DateUpdated.Value.ToString("yyyy-MM-dd");
                         datasetModified.InnerText = datasetUpdated.InnerText;
+
+                        dataset.AppendChild(datasetUpdated);
+                        dataset.AppendChild(datasetModified);
+
                         if (!catalogLastModified.HasValue || data.DateUpdated > catalogLastModified)
                             catalogLastModified = data.DateUpdated;
                     }
-                    dataset.AppendChild(datasetUpdated);
-                    dataset.AppendChild(datasetModified);
 
                     XmlElement datasetIssued = doc.CreateElement("dct", "issued", xmlnsDct);
                     datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
@@ -366,8 +368,9 @@ namespace Kartverket.Geonorge.Api.Services
                             datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
                         else if(data.DatePublished.HasValue)
                             datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
+
+                        dataset.AppendChild(datasetIssued);
                     }
-                    dataset.AppendChild(datasetIssued);
 
                     XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
@@ -534,6 +537,13 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
                         agentIdentifier.InnerText = organization.Number;
+                        agent.AppendChild(agentIdentifier);
+                    }
+                    else
+                    {
+                        //Use number for Norwegian Mapping Authority, mostly for Geovekst
+                        XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                        agentIdentifier.InnerText = "971040238";
                         agent.AppendChild(agentIdentifier);
                     }
 
