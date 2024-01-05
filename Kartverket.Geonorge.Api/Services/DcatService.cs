@@ -108,14 +108,14 @@ namespace Kartverket.Geonorge.Api.Services
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
-               { "FGDB", "https://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
+               { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
                { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
                { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
                { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" },
-               { "JPEG", "https://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
+               { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
-               { "PPTX", "https://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
+               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
         }
