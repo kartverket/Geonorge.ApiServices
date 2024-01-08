@@ -108,14 +108,14 @@ namespace Kartverket.Geonorge.Api.Services
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
-               { "FGDB", "https://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
+               { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
                { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
                { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
                { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" },
-               { "JPEG", "https://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
+               { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
-               { "PPTX", "https://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
+               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
         }
@@ -124,22 +124,22 @@ namespace Kartverket.Geonorge.Api.Services
         {
             return new Dictionary<string, string>()
             {
-               { "Shape", "https://publications.europa.eu/resource/authority/file-type/SHP" },
-               { "SOSI", "https://www.iana.org/assignments/media-types/text/vnd.sosi" },  //not found EU list
-               { "GML", "https://publications.europa.eu/resource/authority/file-type/GML" },
-               { "CSV", "https://publications.europa.eu/resource/authority/file-type/CSV" },
-               { "GeoJSON", "https://publications.europa.eu/resource/authority/file-type/GEOJSON" },
-               { "GeoPackage", "https://publications.europa.eu/resource/authority/file-type/GPKG" },
-               { "TIFF", "https://publications.europa.eu/resource/authority/file-type/TIFF" },
-               { "PDF", "https://publications.europa.eu/resource/authority/file-type/PDF" },
-               { "FGDB", "https://publications.europa.eu/resource/authority/file-type/GDB" },
-               { "PostGIS", "https://publications.europa.eu/resource/authority/file-type/SQL" },
-               { "LAS", "https://publications.europa.eu/resource/authority/file-type/LAS" },
-               { "LAZ", "https://publications.europa.eu/resource/authority/file-type/LAZ" },
-               { "JPEG", "https://publications.europa.eu/resource/authority/file-type/JPEG" },
-               { "KML", "https://publications.europa.eu/resource/authority/file-type/KML" },
-               { "KMZ", "https://publications.europa.eu/resource/authority/file-type/KMZ" },
-               { "PPTX", "https://publications.europa.eu/resource/authority/file-type/PPTX" }
+               { "Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
+               { "SOSI", "http://www.iana.org/assignments/media-types/text/vnd.sosi" },  //not found EU list
+               { "GML", "http://publications.europa.eu/resource/authority/file-type/GML" },
+               { "CSV", "http://publications.europa.eu/resource/authority/file-type/CSV" },
+               { "GeoJSON", "http://publications.europa.eu/resource/authority/file-type/GEOJSON" },
+               { "GeoPackage", "http://publications.europa.eu/resource/authority/file-type/GPKG" },
+               { "TIFF", "http://publications.europa.eu/resource/authority/file-type/TIFF" },
+               { "PDF", "http://publications.europa.eu/resource/authority/file-type/PDF" },
+               { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" },
+               { "PostGIS", "http://publications.europa.eu/resource/authority/file-type/SQL" },
+               { "LAS", "http://publications.europa.eu/resource/authority/file-type/LAS" },
+               { "LAZ", "http://publications.europa.eu/resource/authority/file-type/LAZ" },
+               { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" },
+               { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
+               { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
+               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" }
 
             };
         }
@@ -597,17 +597,17 @@ namespace Kartverket.Geonorge.Api.Services
         private string MapLicense(string link)
         {
             if (link == "http://data.norge.no/nlod/no/1.0")
-                link = "https://publications.europa.eu/resource/authority/licence/NLOD_1_0";
+                link = "http://publications.europa.eu/resource/authority/licence/NLOD_1_0";
             else if(link == "https://data.norge.no/nlod/no/2.0")
-                link = "https://publications.europa.eu/resource/authority/licence/NLOD_2_0";
+                link = "http://publications.europa.eu/resource/authority/licence/NLOD_2_0";
             else if (link == "https://creativecommons.org/publicdomain/zero/1.0/")
-                link = "https://publications.europa.eu/resource/authority/licence/CC0";
+                link = "http://publications.europa.eu/resource/authority/licence/CC0";
             else if (link == "http://creativecommons.org/licenses/by/3.0/no/")
-                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
+                link = "http://publications.europa.eu/resource/authority/licence/CC_BY_3_0";
             else if (link == "https://creativecommons.org/licenses/by/4.0/" || link == "https://creativecommons.org/licenses/by/4.0/deed.no")
-                link = "https://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
+                link = "http://publications.europa.eu/resource/authority/licence/CC_BY_4_0";
             else if (link == "https://creativecommons.org/licenses/by-nc/4.0/")
-                link = "https://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
+                link = "http://publications.europa.eu/resource/authority/licence/CC_BYNC_4_0";
 
             return link;
         }
