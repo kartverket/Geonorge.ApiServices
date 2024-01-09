@@ -108,14 +108,14 @@ namespace Kartverket.Geonorge.Api.Services
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
-               { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
+               //{ "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
                { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
                { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
                { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" },
-               { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
+               //{ "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
-               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
+               //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
         }
@@ -125,7 +125,7 @@ namespace Kartverket.Geonorge.Api.Services
             return new Dictionary<string, string>()
             {
                { "Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
-               { "SOSI", "http://www.iana.org/assignments/media-types/text/vnd.sosi" },  //not found EU list
+               { "SOSI", "http://publications.europa.eu/resource/authority/file-type/TXT" },
                { "GML", "http://publications.europa.eu/resource/authority/file-type/GML" },
                { "CSV", "http://publications.europa.eu/resource/authority/file-type/CSV" },
                { "GeoJSON", "http://publications.europa.eu/resource/authority/file-type/GEOJSON" },
@@ -482,8 +482,9 @@ namespace Kartverket.Geonorge.Api.Services
                                 {
                                     distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
                                 }
-                                else { 
-                                distributionFormat.InnerText = distro.Name;
+                                else {
+                                    distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
+                                    distributionFormat.InnerText = distro.Name;
                                 }
                                 distribution.AppendChild(distributionFormat);
 
@@ -494,6 +495,7 @@ namespace Kartverket.Geonorge.Api.Services
                                 }
                                 else
                                 {
+                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
                                     distributionMediaType.InnerText = distro.Name;
                                 }
                                 distribution.AppendChild(distributionMediaType);
