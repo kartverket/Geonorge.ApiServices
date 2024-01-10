@@ -484,7 +484,7 @@ namespace Kartverket.Geonorge.Api.Services
                                 }
                                 else {
                                     distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                    distributionFormat.InnerText = distro.Name;
+                                    //distributionFormat.InnerText = distro.Name;
                                 }
                                 distribution.AppendChild(distributionFormat);
 
@@ -496,7 +496,7 @@ namespace Kartverket.Geonorge.Api.Services
                                 else
                                 {
                                     distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
-                                    distributionMediaType.InnerText = distro.Name;
+                                    //distributionMediaType.InnerText = distro.Name;
                                 }
                                 distribution.AppendChild(distributionMediaType);
 
