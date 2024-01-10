@@ -139,7 +139,8 @@ namespace Kartverket.Geonorge.Api.Services
                { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" },
                { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
                { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
-               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" }
+               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
+               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" }
 
             };
         }
@@ -470,7 +471,6 @@ namespace Kartverket.Geonorge.Api.Services
                                 distributionTitle.SetAttribute("xml:lang", "no");
                                 if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
                                     distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
-                                distribution.AppendChild(distributionTitle);
 
                                 XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
                                 if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
@@ -484,7 +484,7 @@ namespace Kartverket.Geonorge.Api.Services
                                 }
                                 else {
                                     distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                    //distributionFormat.InnerText = distro.Name;
+                                    distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
                                 }
                                 distribution.AppendChild(distributionFormat);
 
@@ -496,10 +496,10 @@ namespace Kartverket.Geonorge.Api.Services
                                 else
                                 {
                                     distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
-                                    //distributionMediaType.InnerText = distro.Name;
                                 }
                                 distribution.AppendChild(distributionMediaType);
 
+                                distribution.AppendChild(distributionTitle);
 
                                 XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
                                 distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
