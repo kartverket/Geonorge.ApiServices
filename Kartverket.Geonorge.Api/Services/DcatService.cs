@@ -698,7 +698,13 @@ namespace Kartverket.Geonorge.Api.Services
             distribution.AppendChild(distributionDescription);
 
             XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-            distributionFormat.InnerText = protocolName;
+
+            if (FormatUrls.ContainsKey(protocolName))
+            {
+                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[protocolName]);
+            }
+            else { distributionFormat.InnerText = protocolName; }
+
             distribution.AppendChild(distributionFormat);
 
             XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
