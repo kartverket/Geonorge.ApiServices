@@ -108,14 +108,14 @@ namespace Kartverket.Geonorge.Api.Services
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
-               { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
+               //{ "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" }, //not found iana
                { "PostGIS", "https://www.iana.org/assignments/media-types/application/sql" },
                { "LAS", "https://www.iana.org/assignments/media-types/application/vnd.las" },
                { "LAZ", "https://www.iana.org/assignments/media-types/application/vnd.laszip" },
-               { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
+               //{ "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
-               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
+               //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
         }
@@ -125,7 +125,7 @@ namespace Kartverket.Geonorge.Api.Services
             return new Dictionary<string, string>()
             {
                { "Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
-               { "SOSI", "http://www.iana.org/assignments/media-types/text/vnd.sosi" },  //not found EU list
+               { "SOSI", "http://publications.europa.eu/resource/authority/file-type/TXT" },
                { "GML", "http://publications.europa.eu/resource/authority/file-type/GML" },
                { "CSV", "http://publications.europa.eu/resource/authority/file-type/CSV" },
                { "GeoJSON", "http://publications.europa.eu/resource/authority/file-type/GEOJSON" },
@@ -139,7 +139,8 @@ namespace Kartverket.Geonorge.Api.Services
                { "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" },
                { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
                { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
-               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" }
+               { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
+               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" }
 
             };
         }
@@ -470,7 +471,6 @@ namespace Kartverket.Geonorge.Api.Services
                                 distributionTitle.SetAttribute("xml:lang", "no");
                                 if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
                                     distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
-                                distribution.AppendChild(distributionTitle);
 
                                 XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
                                 if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
@@ -482,8 +482,9 @@ namespace Kartverket.Geonorge.Api.Services
                                 {
                                     distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
                                 }
-                                else { 
-                                distributionFormat.InnerText = distro.Name;
+                                else {
+                                    distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
+                                    distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
                                 }
                                 distribution.AppendChild(distributionFormat);
 
@@ -494,10 +495,11 @@ namespace Kartverket.Geonorge.Api.Services
                                 }
                                 else
                                 {
-                                    distributionMediaType.InnerText = distro.Name;
+                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
                                 }
                                 distribution.AppendChild(distributionMediaType);
 
+                                distribution.AppendChild(distributionTitle);
 
                                 XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
                                 distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
@@ -696,7 +698,13 @@ namespace Kartverket.Geonorge.Api.Services
             distribution.AppendChild(distributionDescription);
 
             XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-            distributionFormat.InnerText = protocolName;
+
+            if (FormatUrls.ContainsKey(protocolName))
+            {
+                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[protocolName]);
+            }
+            else { distributionFormat.InnerText = protocolName; }
+
             distribution.AppendChild(distributionFormat);
 
             XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
