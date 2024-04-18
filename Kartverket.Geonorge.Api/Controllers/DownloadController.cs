@@ -68,5 +68,24 @@ namespace Kartverket.Geonorge.Api.Controllers
         {
             return new ConstraintChecker().Check();
         }
+
+        /// <summary>
+        /// Check for mismatch between kartkatalog search index and geonetwork
+        /// </summary>
+        [System.Web.Http.Route("metadata/searchindexproblems")]
+        [System.Web.Http.HttpGet]
+        public List<MetadataEntry> SearchIndexProblems()
+        {
+
+            MemoryCache memoryCache = MemoryCache.Default;
+            var cache = memoryCache.Get("MetadataErrors") as List<MetadataEntry>;
+            if (cache != null)
+                return cache;
+            else
+                new MetadataChecker().Check();
+
+            return null;
+        }
+
     }
 }
