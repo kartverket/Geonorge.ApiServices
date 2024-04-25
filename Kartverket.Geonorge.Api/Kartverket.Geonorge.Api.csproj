@@ -194,6 +194,7 @@
     <Compile Include="Models\DatasetFile.cs" />
     <Compile Include="Models\Mappings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\MetadataChecker.cs" />
     <Compile Include="Services\NmdcParser.cs" />
     <Compile Include="Services\AtomFeedParser.cs" />
     <Compile Include="Services\ConstraintChecker.cs" />

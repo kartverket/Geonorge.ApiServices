@@ -29,6 +29,11 @@
             Check for AccessConstraint mismatch between kartkatalog and download
             </summary>
         </member>
+        <member name="M:Kartverket.Geonorge.Api.Controllers.DownloadController.SearchIndexProblems">
+            <summary>
+            Check for mismatch between kartkatalog search index and geonetwork
+            </summary>
+        </member>
         <member name="P:Kartverket.Geonorge.Api.Models.DatasetFile.Title">
             <summary>
             Dataset file title
