@@ -27,10 +27,12 @@ namespace Kartverket.Geonorge.Api.Services
 
         public void Check()
         {
+            Log.Info("Start checking mismatch search index and metadata in geonetwork");
             metadataSets = GetSearchMetadata();
             CheckMetadata();
             MemoryCache memoryCache = MemoryCache.Default;
             memoryCache.Add("MetadataErrors", metadataProblems, new DateTimeOffset(DateTime.Now.AddDays(7)));
+            Log.Info("End checking mismatch search index and metadata in geonetwork");
         }
 
         private void CheckMetadata()
@@ -59,6 +61,7 @@ namespace Kartverket.Geonorge.Api.Services
                 catch (Exception ex)
                 {
                     metadataProblems.Add(new MetadataEntry { Uuid = uuid, Title = title, Problem = "Uuid finnes ikke geonetwork" });
+                    Log.Error("Uuid finnes ikke geonetwork: " + uuid + ", title: " + title, ex);
                     System.Diagnostics.Debug.WriteLine("Uuid finnes ikke geonetwork: " + uuid + "title: " + title);
                 }
             }
