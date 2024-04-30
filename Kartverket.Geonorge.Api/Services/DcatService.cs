@@ -844,7 +844,7 @@ namespace Kartverket.Geonorge.Api.Services
             nsmgr.AddNamespace("skos", xmlnsSkos);
             nsmgr.AddNamespace("dct", xmlnsDct);
 
-            XmlDeclaration dec = doc.CreateXmlDeclaration("1.0", null, null);
+            XmlDeclaration dec = doc.CreateXmlDeclaration("1.0", "UTF-8", null);
             doc.AppendChild(dec);
             XmlElement root = doc.CreateElement("rdf", "RDF", xmlnsRdf);
             root.SetAttribute("xmlns:foaf", xmlnsFoaf);
