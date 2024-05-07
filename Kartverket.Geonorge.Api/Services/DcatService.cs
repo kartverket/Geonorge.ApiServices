@@ -259,10 +259,10 @@ namespace Kartverket.Geonorge.Api.Services
                     if (data.BoundingBox != null)
                     {
                         XmlElement datasetSpatial = doc.CreateElement("dct", "spatial", xmlnsDct);
-                        datasetSpatial.SetAttribute("rdf:parseType", "Resource");
+                        datasetSpatial.SetAttribute("parseType", xmlnsRdf, "Resource");
 
                         XmlElement spatialLocn = doc.CreateElement("locn", "geometry", xmlnsLocn);
-                        spatialLocn.SetAttribute("rdf:datatype", "http://www.opengis.net/ont/geosparql#gmlLiteral");
+                        spatialLocn.SetAttribute("datatype", xmlnsRdf, "http://www.opengis.net/ont/geosparql#gmlLiteral");
 
                         //var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
                         spatialLocn.InnerText ="<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>";
