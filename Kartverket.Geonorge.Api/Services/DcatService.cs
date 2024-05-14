@@ -73,25 +73,36 @@ namespace Kartverket.Geonorge.Api.Services
 
         public XmlDocument GenerateDcat()
         {
-            FormatUrls = GetFormatUrls();
-            MediaTypes = GetMediaTypes();
-            OrganizationsLink = GetOrganizationsLink();
-            DistributionTypes = GetDistributionTypes();
-            metadataSets = GetDatasets();
+            Log.Info("Generating DCAT");
 
-            XmlElement root = Setup();
+            try
+            {
+                FormatUrls = GetFormatUrls();
+                MediaTypes = GetMediaTypes();
+                OrganizationsLink = GetOrganizationsLink();
+                DistributionTypes = GetDistributionTypes();
+                metadataSets = GetDatasets();
 
-            GetConcepts();
+                XmlElement root = Setup();
 
-            XmlElement catalog = CreateCatalog(root);
+                GetConcepts();
 
-            CreateDatasets(root, catalog);
+                XmlElement catalog = CreateCatalog(root);
 
-            AddConcepts(root);
+                CreateDatasets(root, catalog);
 
-            Finalize(root, catalog);
+                AddConcepts(root);
 
-            doc.Save(System.Web.HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
+                Finalize(root, catalog);
+
+                doc.Save(System.Web.HttpContext.Current.Request.MapPath("~\\dcat\\geonorge_dcat.rdf"));
+
+                Log.Info("Finished generating DCAT");
+            }
+            catch (Exception e)
+            {
+                Log.Error("Error generating DCAT", e);
+            }
 
             return doc;
         }
@@ -190,70 +201,73 @@ namespace Kartverket.Geonorge.Api.Services
 
             foreach(var metadata in metadataSets)
             {
-                string uuid = metadata.Items[0].Text[0];
-                MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
-                var data = new SimpleMetadata(md);
+                try 
+                { 
+                    string uuid = metadata.Items[0].Text[0];
+                    Log.Info($"Processing dataset: [uuid={uuid}]");
+                    MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
+                    var data = new SimpleMetadata(md);
 
-                if (data.DistributionFormats != null && data.DistributionFormats.Count > 0 
-                    && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
-                    data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol) )
-                {
-                    Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
-
-                    //Map dataset to catalog
-                    XmlElement catalogDataset = doc.CreateElement("dcat", "dataset", xmlnsDcat);
-                    catalogDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
-                    catalog.AppendChild(catalogDataset);
-
-                    XmlElement dataset = doc.CreateElement("dcat", "Dataset", xmlnsDcat);
-                    dataset.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
-                    root.AppendChild(dataset);
-
-                    XmlElement datasetIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                    datasetIdentifier.InnerText = data.Uuid.ToString();
-                    dataset.AppendChild(datasetIdentifier);
-
-                    XmlElement datasetTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                    datasetTitle.SetAttribute("xml:lang", "no");
-                    datasetTitle.InnerText = data.Title;
-                    dataset.AppendChild(datasetTitle);
-
-
-                    XmlElement datasetDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                    datasetDescription.SetAttribute("xml:lang", "no");
-                    if (!string.IsNullOrEmpty(data.Abstract))
-                        datasetDescription.InnerText = data.Abstract;
-                    dataset.AppendChild(datasetDescription);
-
-                    XmlElement landingPage = doc.CreateElement("dcat", "landingPage", xmlnsDcat);
-                    landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
-                    dataset.AppendChild(landingPage);
-
-                    foreach (var keyword in data.Keywords)
+                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0 
+                        && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
+                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol) )
                     {
+                        Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
-                        XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
-                        datasetKeyword.SetAttribute("xml:lang", "no");
-                        datasetKeyword.InnerText = keyword.Keyword;
-                        dataset.AppendChild(datasetKeyword);
+                        //Map dataset to catalog
+                        XmlElement catalogDataset = doc.CreateElement("dcat", "dataset", xmlnsDcat);
+                        catalogDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                        catalog.AppendChild(catalogDataset);
 
-                    }
+                        XmlElement dataset = doc.CreateElement("dcat", "Dataset", xmlnsDcat);
+                        dataset.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                        root.AppendChild(dataset);
 
-                    //Place
-                    // URI for the geographic identifier
-                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+                        XmlElement datasetIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                        datasetIdentifier.InnerText = data.Uuid.ToString();
+                        dataset.AppendChild(datasetIdentifier);
 
-                    foreach (var place in places)
-                    {
-                        var aboutPlace = place.KeywordLink;
+                        XmlElement datasetTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                        datasetTitle.SetAttribute("xml:lang", "no");
+                        datasetTitle.InnerText = data.Title;
+                        dataset.AppendChild(datasetTitle);
 
-                        if (!string.IsNullOrEmpty(aboutPlace))
+
+                        XmlElement datasetDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                        datasetDescription.SetAttribute("xml:lang", "no");
+                        if (!string.IsNullOrEmpty(data.Abstract))
+                            datasetDescription.InnerText = data.Abstract;
+                        dataset.AppendChild(datasetDescription);
+
+                        XmlElement landingPage = doc.CreateElement("dcat", "landingPage", xmlnsDcat);
+                        landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                        dataset.AppendChild(landingPage);
+
+                        foreach (var keyword in data.Keywords)
                         {
-                            XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
-                            datasetLocation.InnerText = aboutPlace;
-                            dataset.AppendChild(datasetLocation);
+
+                            XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
+                            datasetKeyword.SetAttribute("xml:lang", "no");
+                            datasetKeyword.InnerText = keyword.Keyword;
+                            dataset.AppendChild(datasetKeyword);
+
                         }
-                    }
+
+                        //Place
+                        // URI for the geographic identifier
+                        var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+
+                        foreach (var place in places)
+                        {
+                            var aboutPlace = place.KeywordLink;
+
+                            if (!string.IsNullOrEmpty(aboutPlace))
+                            {
+                                XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
+                                datasetLocation.InnerText = aboutPlace;
+                                dataset.AppendChild(datasetLocation);
+                            }
+                        }
 
                     //Resource metadata in GeoDCAT - AP using a geographic bounding box
                     if (data.BoundingBox != null)
@@ -264,317 +278,321 @@ namespace Kartverket.Geonorge.Api.Services
                         XmlElement spatialLocn = doc.CreateElement("locn", "geometry", xmlnsLocn);
                         spatialLocn.SetAttribute("datatype", xmlnsRdf, "http://www.opengis.net/ont/geosparql#gmlLiteral");
 
-                        //var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
-                        spatialLocn.InnerText ="<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>";
-                        //spatialLocn.AppendChild(cdata);
+                            //var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
+                            spatialLocn.InnerText ="<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>";
+                            //spatialLocn.AppendChild(cdata);
 
-                        datasetSpatial.AppendChild(spatialLocn);
+                            datasetSpatial.AppendChild(spatialLocn);
 
-                        dataset.AppendChild(datasetSpatial);
-                    }
-
-                    List<string> themes = new List<string>();
-
-                    string euLink = "http://publications.europa.eu/resource/authority/data-theme/";
-
-                    //National theme
-                    var nationalThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
-
-                    foreach (var theme in nationalThemes)
-                    {
-                        var aboutConcept = GetConcept(theme.Keyword);
-
-                        if(!string.IsNullOrEmpty(aboutConcept))
-                        {
-                            themes.Add(aboutConcept);
+                            dataset.AppendChild(datasetSpatial);
                         }
 
-                        if (Mappings.ThemeNationalToEU.ContainsKey(theme.Keyword))
+                        List<string> themes = new List<string>();
+
+                        string euLink = "http://publications.europa.eu/resource/authority/data-theme/";
+
+                        //National theme
+                        var nationalThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_NATIONAL_THEME);
+
+                        foreach (var theme in nationalThemes)
                         {
-                            themes.Add(euLink + Mappings.ThemeNationalToEU[theme.Keyword]);
-                        }
-                    }
+                            var aboutConcept = GetConcept(theme.Keyword);
 
-                    //Inspire thene
-                    var themeInspires = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_GEMET_INSPIRE_V1);
-
-                    foreach (var themeInspire in themeInspires)
-                    {
-                        if (Mappings.ThemeInspireToEU.ContainsKey(themeInspire.Keyword))
-                        { 
-                            if(!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
-                                themes.Add(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
-                        }
-                    }
-
-                    //Concepts
-                    var conceptThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_CONCEPT);
-
-                    foreach (var theme in conceptThemes)
-                    {
-                        var aboutConcept = theme.KeywordLink;
-
-                        if (!string.IsNullOrEmpty(aboutConcept))
-                        {
-                            
-                            if (!ConceptObjects.ContainsKey(aboutConcept))
-                            { 
-                                ConceptObjects.Add(aboutConcept, aboutConcept);
+                            if(!string.IsNullOrEmpty(aboutConcept))
+                            {
                                 themes.Add(aboutConcept);
                             }
-                        }
-                    }
 
-                    foreach (var theme in themes)
-                    {
-                        XmlElement datasetTheme;
-                        if(theme.Contains("objektkatalog.geonorge.no"))
-                            datasetTheme = doc.CreateElement("dct", "subject", xmlnsDct);
-                        else
-                            datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
-                        datasetTheme.SetAttribute("resource", xmlnsRdf, theme);
-                        dataset.AppendChild(datasetTheme);
-                    }
-
-
-                    if (data.Thumbnails != null && data.Thumbnails.Count > 0)
-                    {
-                        XmlElement datasetThumbnail = doc.CreateElement("foaf", "thumbnail", xmlnsFoaf);
-                        datasetThumbnail.SetAttribute("resource", xmlnsRdf, EncodeUrl(data.Thumbnails[0].URL));
-                        dataset.AppendChild(datasetThumbnail);
-                    }
-
-
-                    XmlElement datasetUpdated = doc.CreateElement("dct", "updated", xmlnsDct);
-                    datasetUpdated.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
-                    XmlElement datasetModified = doc.CreateElement("dct", "modified", xmlnsDct);
-                    datasetModified.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
-
-                    if (data.DateUpdated.HasValue)
-                    {
-                        datasetUpdated.InnerText = data.DateUpdated.Value.ToString("yyyy-MM-dd");
-                        datasetModified.InnerText = datasetUpdated.InnerText;
-
-                        dataset.AppendChild(datasetUpdated);
-                        dataset.AppendChild(datasetModified);
-
-                        if (!catalogLastModified.HasValue || data.DateUpdated > catalogLastModified)
-                            catalogLastModified = data.DateUpdated;
-                    }
-
-                    XmlElement datasetIssued = doc.CreateElement("dct", "issued", xmlnsDct);
-                    datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
-                    if (data.DateCreated.HasValue || data.DatePublished.HasValue)
-                    {
-                        if(data.DateCreated.HasValue)
-                            datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
-                        else if(data.DatePublished.HasValue)
-                            datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
-
-                        dataset.AppendChild(datasetIssued);
-                    }
-
-                    XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
-
-                    dataset.AppendChild(datasetPublisher);
-
-                    Organization organization = null;
-
-                    if (data.ContactOwner != null)
-                    {
-                        Log.Info("Looking up organization: " + data.ContactOwner.Organization);
-                        Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
-                        organization = getOrganizationTask.Result;
-                    }
-
-                    XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
-                    dataset.AppendChild(datasetContactPoint);
-
-                    XmlElement datasetKind = doc.CreateElement("vcard", "Organization", xmlnsVcard);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
-
-                    XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-unit", xmlnsVcard);
-                    datasetOrganizationName.SetAttribute("xml:lang", "");
-                    if (organization != null)
-                        datasetOrganizationName.InnerText = organization.Name;
-                    datasetKind.AppendChild(datasetOrganizationName);
-
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
-                    {
-                        XmlElement datasetHasEmail = doc.CreateElement("vcard", "hasEmail", xmlnsVcard);
-                        datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
-                        datasetKind.AppendChild(datasetHasEmail);
-                    }
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        if (!vcardKinds.ContainsKey(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/")))
-                            vcardKinds.Add(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"), datasetKind);
-
-
-                    XmlElement datasetAccrualPeriodicity = doc.CreateElement("dct", "accrualPeriodicity", xmlnsDct);
-                    if (!string.IsNullOrEmpty(data.MaintenanceFrequency))
-                        datasetAccrualPeriodicity.InnerText = data.MaintenanceFrequency;
-                    dataset.AppendChild(datasetAccrualPeriodicity);
-
-                    XmlElement datasetGranularity = doc.CreateElement("dcat", "granularity", xmlnsDcat);
-                    if (!string.IsNullOrEmpty(data.ResolutionScale))
-                        datasetGranularity.InnerText = data.ResolutionScale;
-                    dataset.AppendChild(datasetGranularity);
-
-                    XmlElement datasetLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
-                        datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
-                    dataset.AppendChild(datasetLicense);
-
-                    var accessConstraint = "PUBLIC";
-                    XmlElement datasetAccess = doc.CreateElement("dct", "accessRights", xmlnsDct);
-                    if (data.Constraints != null 
-                        && !string.IsNullOrEmpty(data.Constraints.AccessConstraints))
-                    {
-                        if (data.Constraints.AccessConstraints.ToLower() == "restricted")
-                            accessConstraint = "NON-PUBLIC";
-                        else if (data.Constraints.AccessConstraints == "norway digital restricted" || (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
-                            && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted"))
-                        { 
-                                accessConstraint = "RESTRICTED";
-                        }
-                    }
-                    datasetAccess.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/access-right/" + accessConstraint);
-                    dataset.AppendChild(datasetAccess);
-
-
-                    XmlElement datasetDataQuality = doc.CreateElement("dcat", "dataQuality", xmlnsDcat);
-                    if (!string.IsNullOrEmpty(data.ProcessHistory))
-                        datasetDataQuality.InnerText = data.ProcessHistory;
-                    dataset.AppendChild(datasetDataQuality);
-
-                    //Distribution
-                    if (data.DistributionFormats != null)
-                    {
-                        foreach (var distro in data.DistributionFormats)
-                        {
-                            if (!string.IsNullOrEmpty(distro.Name))
+                            if (Mappings.ThemeNationalToEU.ContainsKey(theme.Keyword))
                             {
-                                //Map distribution to dataset
-                                XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                                distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
-                                dataset.AppendChild(distributionDataset);
+                                themes.Add(euLink + Mappings.ThemeNationalToEU[theme.Keyword]);
+                            }
+                        }
 
-                                XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                                distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
-                                root.AppendChild(distribution);
+                        //Inspire thene
+                        var themeInspires = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_GEMET_INSPIRE_V1);
 
-                                XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                                distributionTitle.SetAttribute("xml:lang", "no");
-                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                    distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
+                        foreach (var themeInspire in themeInspires)
+                        {
+                            if (Mappings.ThemeInspireToEU.ContainsKey(themeInspire.Keyword))
+                            { 
+                                if(!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
+                                    themes.Add(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
+                            }
+                        }
 
-                                XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                    distributionDescription.InnerText = GetDistributionDescription( data.DistributionDetails.Protocol);
-                                distribution.AppendChild(distributionDescription);
+                        //Concepts
+                        var conceptThemes = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_CONCEPT);
 
-                                XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                if (FormatUrls.ContainsKey(distro.Name))
+                        foreach (var theme in conceptThemes)
+                        {
+                            var aboutConcept = theme.KeywordLink;
+
+                            if (!string.IsNullOrEmpty(aboutConcept))
+                            {
+                            
+                                if (!ConceptObjects.ContainsKey(aboutConcept))
+                                { 
+                                    ConceptObjects.Add(aboutConcept, aboutConcept);
+                                    themes.Add(aboutConcept);
+                                }
+                            }
+                        }
+
+                        foreach (var theme in themes)
+                        {
+                            XmlElement datasetTheme;
+                            if(theme.Contains("objektkatalog.geonorge.no"))
+                                datasetTheme = doc.CreateElement("dct", "subject", xmlnsDct);
+                            else
+                                datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
+                            datasetTheme.SetAttribute("resource", xmlnsRdf, theme);
+                            dataset.AppendChild(datasetTheme);
+                        }
+
+
+                        if (data.Thumbnails != null && data.Thumbnails.Count > 0)
+                        {
+                            XmlElement datasetThumbnail = doc.CreateElement("foaf", "thumbnail", xmlnsFoaf);
+                            datasetThumbnail.SetAttribute("resource", xmlnsRdf, EncodeUrl(data.Thumbnails[0].URL));
+                            dataset.AppendChild(datasetThumbnail);
+                        }
+
+
+                        XmlElement datasetUpdated = doc.CreateElement("dct", "updated", xmlnsDct);
+                        datasetUpdated.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                        XmlElement datasetModified = doc.CreateElement("dct", "modified", xmlnsDct);
+                        datasetModified.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+
+                        if (data.DateUpdated.HasValue)
+                        {
+                            datasetUpdated.InnerText = data.DateUpdated.Value.ToString("yyyy-MM-dd");
+                            datasetModified.InnerText = datasetUpdated.InnerText;
+
+                            dataset.AppendChild(datasetUpdated);
+                            dataset.AppendChild(datasetModified);
+
+                            if (!catalogLastModified.HasValue || data.DateUpdated > catalogLastModified)
+                                catalogLastModified = data.DateUpdated;
+                        }
+
+                        XmlElement datasetIssued = doc.CreateElement("dct", "issued", xmlnsDct);
+                        datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+                        if (data.DateCreated.HasValue || data.DatePublished.HasValue)
+                        {
+                            if(data.DateCreated.HasValue)
+                                datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
+                            else if(data.DatePublished.HasValue)
+                                datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
+
+                            dataset.AppendChild(datasetIssued);
+                        }
+
+                        XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                            datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
+
+                        dataset.AppendChild(datasetPublisher);
+
+                        Organization organization = null;
+
+                        if (data.ContactOwner != null)
+                        {
+                            Log.Info("Looking up organization: " + data.ContactOwner.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
+                            organization = getOrganizationTask.Result;
+                        }
+
+                        XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                            datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
+                        dataset.AppendChild(datasetContactPoint);
+
+                        XmlElement datasetKind = doc.CreateElement("vcard", "Organization", xmlnsVcard);
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                            datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
+
+                        XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-unit", xmlnsVcard);
+                        datasetOrganizationName.SetAttribute("xml:lang", "");
+                        if (organization != null)
+                            datasetOrganizationName.InnerText = organization.Name;
+                        datasetKind.AppendChild(datasetOrganizationName);
+
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
+                        {
+                            XmlElement datasetHasEmail = doc.CreateElement("vcard", "hasEmail", xmlnsVcard);
+                            datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
+                            datasetKind.AppendChild(datasetHasEmail);
+                        }
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                            if (!vcardKinds.ContainsKey(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/")))
+                                vcardKinds.Add(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"), datasetKind);
+
+
+                        XmlElement datasetAccrualPeriodicity = doc.CreateElement("dct", "accrualPeriodicity", xmlnsDct);
+                        if (!string.IsNullOrEmpty(data.MaintenanceFrequency))
+                            datasetAccrualPeriodicity.InnerText = data.MaintenanceFrequency;
+                        dataset.AppendChild(datasetAccrualPeriodicity);
+
+                        XmlElement datasetGranularity = doc.CreateElement("dcat", "granularity", xmlnsDcat);
+                        if (!string.IsNullOrEmpty(data.ResolutionScale))
+                            datasetGranularity.InnerText = data.ResolutionScale;
+                        dataset.AppendChild(datasetGranularity);
+
+                        XmlElement datasetLicense = doc.CreateElement("dct", "license", xmlnsDct);
+                        if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                            datasetLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+                        dataset.AppendChild(datasetLicense);
+
+                        var accessConstraint = "PUBLIC";
+                        XmlElement datasetAccess = doc.CreateElement("dct", "accessRights", xmlnsDct);
+                        if (data.Constraints != null 
+                            && !string.IsNullOrEmpty(data.Constraints.AccessConstraints))
+                        {
+                            if (data.Constraints.AccessConstraints.ToLower() == "restricted")
+                                accessConstraint = "NON-PUBLIC";
+                            else if (data.Constraints.AccessConstraints == "norway digital restricted" || (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
+                                && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted"))
+                            { 
+                                    accessConstraint = "RESTRICTED";
+                            }
+                        }
+                        datasetAccess.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/access-right/" + accessConstraint);
+                        dataset.AppendChild(datasetAccess);
+
+
+                        XmlElement datasetDataQuality = doc.CreateElement("dcat", "dataQuality", xmlnsDcat);
+                        if (!string.IsNullOrEmpty(data.ProcessHistory))
+                            datasetDataQuality.InnerText = data.ProcessHistory;
+                        dataset.AppendChild(datasetDataQuality);
+
+                        //Distribution
+                        if (data.DistributionFormats != null)
+                        {
+                            foreach (var distro in data.DistributionFormats)
+                            {
+                                if (!string.IsNullOrEmpty(distro.Name))
                                 {
-                                    distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
+                                    //Map distribution to dataset
+                                    XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    dataset.AppendChild(distributionDataset);
+
+                                    XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
+                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    root.AppendChild(distribution);
+
+                                    XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                                    distributionTitle.SetAttribute("xml:lang", "no");
+                                    if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                                        distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
+
+                                    XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                                    if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                                        distributionDescription.InnerText = GetDistributionDescription( data.DistributionDetails.Protocol);
+                                    distribution.AppendChild(distributionDescription);
+
+                                    XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+                                    if (FormatUrls.ContainsKey(distro.Name))
+                                    {
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
+                                    }
+                                    else {
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
+                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
+                                    }
+                                    distribution.AppendChild(distributionFormat);
+
+                                    XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
+                                    if (MediaTypes.ContainsKey(distro.Name))
+                                    {
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
+                                    }
+                                    else
+                                    {
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
+                                    }
+                                    distribution.AppendChild(distributionMediaType);
+
+                                    distribution.AppendChild(distributionTitle);
+
+                                    XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
+                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    distribution.AppendChild(distributionAccessURL);
+
+                                    XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
+                                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                                        distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+                                    distribution.AppendChild(distributionLicense);
+
+                                    XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+                                    if (!string.IsNullOrEmpty(data.Status))
+                                        distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
+                                    distribution.AppendChild(distributionStatus);
                                 }
-                                else {
-                                    distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                    distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
-                                }
-                                distribution.AppendChild(distributionFormat);
 
-                                XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                if (MediaTypes.ContainsKey(distro.Name))
-                                {
-                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
-                                }
-                                else
-                                {
-                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
-                                }
-                                distribution.AppendChild(distributionMediaType);
-
-                                distribution.AppendChild(distributionTitle);
-
-                                XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-                                distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
-                                distribution.AppendChild(distributionAccessURL);
-
-                                XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
-                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
-                                distribution.AppendChild(distributionLicense);
-
-                                XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
-                                if (!string.IsNullOrEmpty(data.Status))
-                                    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
-                                distribution.AppendChild(distributionStatus);
                             }
 
                         }
 
+                        // Dataset distributions
+                        AddDistributions(uuid, dataset, data, services);
+
+
+                        //Agent/publisher
+
+                        XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                            agent.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
+
+                        XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
+                        agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                        agent.AppendChild(agentType);
+
+
+                        if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                        {
+                            XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                            agentIdentifier.InnerText = organization.Number;
+                            agent.AppendChild(agentIdentifier);
+                        }
+                        else
+                        {
+                            //Use number for Norwegian Mapping Authority, mostly for Geovekst
+                            XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                            agentIdentifier.InnerText = "971040238";
+                            agent.AppendChild(agentIdentifier);
+                        }
+
+                        XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
+                        if (organization != null)
+                            agentName.InnerText = organization.Name;
+                        agent.AppendChild(agentName);
+
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
+                        {
+                            XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
+                            agentMbox.InnerText = data.ContactOwner.Email;
+                            agent.AppendChild(agentMbox);
+                        }
+
+                        if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                        {
+                            XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
+                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                            agent.AppendChild(agentSameAs);
+                        }
+
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
+                        {
+                            if (!foafAgents.ContainsKey(OrganizationsLink[data.ContactOwner.Organization]))
+                                foafAgents.Add(OrganizationsLink[data.ContactOwner.Organization], agent);
+                        }
                     }
-
-                    // Dataset distributions
-                    AddDistributions(uuid, dataset, data, services);
-
-
-                    //Agent/publisher
-
-                    XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        agent.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
-
-                    XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
-                    agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
-                    agent.AppendChild(agentType);
-
-
-                    if (organization != null && !string.IsNullOrEmpty(organization.Number))
-                    {
-                        XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                        agentIdentifier.InnerText = organization.Number;
-                        agent.AppendChild(agentIdentifier);
-                    }
-                    else
-                    {
-                        //Use number for Norwegian Mapping Authority, mostly for Geovekst
-                        XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                        agentIdentifier.InnerText = "971040238";
-                        agent.AppendChild(agentIdentifier);
-                    }
-
-                    XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
-                    if (organization != null)
-                        agentName.InnerText = organization.Name;
-                    agent.AppendChild(agentName);
-
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
-                    {
-                        XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                        agentMbox.InnerText = data.ContactOwner.Email;
-                        agent.AppendChild(agentMbox);
-                    }
-
-                    if (organization != null && !string.IsNullOrEmpty(organization.Number))
-                    {
-                        XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                        agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
-                        agent.AppendChild(agentSameAs);
-                    }
-
-                    if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                    {
-                        if (!foafAgents.ContainsKey(OrganizationsLink[data.ContactOwner.Organization]))
-                            foafAgents.Add(OrganizationsLink[data.ContactOwner.Organization], agent);
-                    }
-
+                }
+                catch (Exception e)
+                {
+                    Log.Error("Error processing dataset", e);
                 }
             }
 
