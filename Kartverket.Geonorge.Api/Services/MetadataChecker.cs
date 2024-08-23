@@ -57,6 +57,8 @@ namespace Kartverket.Geonorge.Api.Services
                 try
                 {
                     var metadataGeonetwork = api.GetRecordByUuid(uuid);
+                    if(metadataGeonetwork == null)
+                        throw new Exception("Metadata not found in geonetwork");
                 }
                 catch (Exception ex)
                 {
