@@ -255,19 +255,19 @@ namespace Kartverket.Geonorge.Api.Services
 
                         //Place
                         // URI for the geographic identifier
-                        var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+                        //var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
 
-                        foreach (var place in places)
-                        {
-                            var aboutPlace = place.KeywordLink;
+                        //foreach (var place in places)
+                        //{
+                        //    var aboutPlace = place.KeywordLink;
 
-                            if (!string.IsNullOrEmpty(aboutPlace))
-                            {
-                                XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
-                                datasetLocation.InnerText = aboutPlace;
-                                dataset.AppendChild(datasetLocation);
-                            }
-                        }
+                        //    if (!string.IsNullOrEmpty(aboutPlace))
+                        //    {
+                        //        XmlElement datasetLocation = doc.CreateElement("dct", "spatial", xmlnsDct);
+                        //        datasetLocation.InnerText = aboutPlace;
+                        //        dataset.AppendChild(datasetLocation);
+                        //    }
+                        //}
 
                         //Resource metadata in GeoDCAT - AP using a geographic bounding box
                         if (data.BoundingBox != null)
