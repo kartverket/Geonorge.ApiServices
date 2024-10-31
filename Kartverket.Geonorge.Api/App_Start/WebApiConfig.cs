@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Web.Http;
 using Newtonsoft.Json.Serialization;
 using System.Web.Http.ExceptionHandling;
+using WebApi.BasicAuth;
 
 namespace Kartverket.Geonorge.Api
 {
@@ -15,6 +16,8 @@ namespace Kartverket.Geonorge.Api
             // Web API routes
             config.MapHttpAttributeRoutes();
 
+            config.EnableBasicAuth();
+
             config.Routes.MapHttpRoute(
                 name: "DefaultApi",
                 routeTemplate: "api/{controller}/{id}",
@@ -23,6 +26,7 @@ namespace Kartverket.Geonorge.Api
 
             config.Services.Add(typeof(IExceptionLogger), new TraceExceptionLogger());
 
+            config.EnsureInitialized();
         }
     }
 }
