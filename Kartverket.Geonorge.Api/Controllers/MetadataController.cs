@@ -33,9 +33,19 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         [Route("metadata/{uuid}")]
+        [HttpPut]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<IHttpActionResult> UpdateMetadata(string uuid, MetadataModel model)
+        {
+            await _metadataService.UpdateMetadata(uuid, model);
+            return Content(HttpStatusCode.OK, uuid);
+        }
+
+
+        [Route("metadata/{uuid}")]
         [HttpDelete]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IHttpActionResult> DeeleteMetadata(string uuid)
+        public async Task<IHttpActionResult> DeleteMetadata(string uuid)
         {
             await _metadataService.DeleteMetadata(uuid);
             return Content(HttpStatusCode.Gone, uuid);
