@@ -23,13 +23,22 @@ namespace Kartverket.Geonorge.Api.Controllers
             _metadataService = metadataService;
         }
 
-        [Route("metadata/insert")]
+        [Route("metadata")]
         [HttpPost]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IHttpActionResult> InsertMetadata(MetadataCreate metadata)
         {
             var uuid = await _metadataService.InsertMetadata(metadata);
             return Content(HttpStatusCode.Created, uuid);
+        }
+
+        [Route("metadata/{uuid}")]
+        [HttpDelete]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<IHttpActionResult> DeeleteMetadata(string uuid)
+        {
+            await _metadataService.DeleteMetadata(uuid);
+            return Content(HttpStatusCode.Gone, uuid);
         }
     }
 }

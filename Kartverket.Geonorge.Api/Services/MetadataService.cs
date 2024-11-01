@@ -19,6 +19,7 @@ namespace Kartverket.Geonorge.Api.Services
 {
     public interface IMetadataService
     {
+        Task DeleteMetadata(string uuid);
         Task<string> InsertMetadata(MetadataCreate metadataCreate);
     }
 
@@ -119,6 +120,24 @@ namespace Kartverket.Geonorge.Api.Services
             header.Add("published", published);
 
             return header;
+        }
+
+        public Task DeleteMetadata(string uuid)
+        {
+            System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
+            string server = settings["GeoNetworkUrl"];
+            string usernameGeonetwork = settings["GeoNetworkUsername"];
+            string password = settings["GeoNetworkPassword"];
+            string geonorgeUsername = settings["GeonorgeUsername"];
+
+
+            GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);
+            _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
+            _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
+
+            var respons = _geoNorge.MetadataDelete(uuid, CreateAdditionalHeadersWithUsername(geonorgeUsername));
+
+            return Task.CompletedTask;
         }
     }
 
