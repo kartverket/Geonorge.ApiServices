@@ -15,12 +15,17 @@ using System.Linq;
 using Kartverket.Geonorge.Utilities.LogEntry;
 using Kartverket.Geonorge.Utilities;
 using System.Globalization;
+using System.Web.Http;
+using Newtonsoft.Json;
+using System.IO;
+using Newtonsoft.Json.Linq;
 
 namespace Kartverket.Geonorge.Api.Services
 {
     public interface IMetadataService
     {
         Task DeleteMetadata(string uuid);
+        object GetSchema();
         Task<string> InsertMetadata(MetadataCreate metadataCreate);
         Task UpdateMetadata(string uuid, MetadataModel model);
     }
@@ -897,6 +902,20 @@ namespace Kartverket.Geonorge.Api.Services
             if (!string.IsNullOrEmpty(model.MetadataStandard))
                 metadata.MetadataStandard = model.MetadataStandard;
         }
+
+        public object GetSchema()
+        {
+            var json = "";
+            using (StreamReader r = new StreamReader(System.Web.Hosting.HostingEnvironment.MapPath("~/schema.json")))
+            {
+                json = r.ReadToEnd();
+            }
+
+            var output = JObject.Parse(json);
+
+            return output;
+        }
     }
+
 
 }

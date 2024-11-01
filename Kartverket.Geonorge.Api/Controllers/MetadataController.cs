@@ -6,9 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Description;
+using System.Web.Http.Results;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
@@ -21,6 +25,16 @@ namespace Kartverket.Geonorge.Api.Controllers
         public MetadataController(IMetadataService metadataService)
         {
             _metadataService = metadataService;
+        }
+
+        [Route("metadata-json-schema")]
+        [HttpGet]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public IHttpActionResult GetSchema()
+        {
+            var json = _metadataService.GetSchema();
+            return Content(HttpStatusCode.OK, json, new JsonMediaTypeFormatter(), new MediaTypeHeaderValue("application/json"));
+
         }
 
         [Route("metadata")]

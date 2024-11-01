@@ -453,6 +453,7 @@
     <Content Include="PostDeploy.ps1" />
     <Content Include="authentication.config" />
     <Content Include="authentication.default.config" />
+    <Content Include="schema.json" />
     <None Include="Web.Dev.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
