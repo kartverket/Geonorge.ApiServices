@@ -17,7 +17,6 @@ using System.Web.Http.Results;
 namespace Kartverket.Geonorge.Api.Controllers
 {
     [ApiExplorerSettings(IgnoreApi = true)]
-    [Authorize(Roles = AuthConfig.DatasetProviderRole)]
     public class MetadataController : ApiController
     {
         private readonly IMetadataService _metadataService;
@@ -37,6 +36,7 @@ namespace Kartverket.Geonorge.Api.Controllers
 
         }
 
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata")]
         [HttpPost]
         [ApiExplorerSettings(IgnoreApi = true)]
@@ -46,6 +46,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             return Content(HttpStatusCode.Created, uuid);
         }
 
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata/{uuid}")]
         [HttpPut]
         [ApiExplorerSettings(IgnoreApi = true)]
@@ -55,7 +56,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             return Content(HttpStatusCode.OK, uuid);
         }
 
-
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata/{uuid}")]
         [HttpDelete]
         [ApiExplorerSettings(IgnoreApi = true)]
