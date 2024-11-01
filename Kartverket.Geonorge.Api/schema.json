@@ -1,6 +1,6 @@
 {
-  "title": "Metadata form",
-  "description": "Metadata form",
+  "title": "Metadata skjema",
+  "description": "Skjema for lagring av metadata i geonetwork",
   "type": "object",
   "required": [
     "title",

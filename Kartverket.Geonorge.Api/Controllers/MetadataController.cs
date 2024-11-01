@@ -40,7 +40,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         [Route("metadata")]
         [HttpPost]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public async Task<IHttpActionResult> InsertMetadata(MetadataCreate metadata)
+        public async Task<IHttpActionResult> InsertMetadata(MetadataModel metadata)
         {
             var uuid = await _metadataService.InsertMetadata(metadata);
             return Content(HttpStatusCode.Created, uuid);
