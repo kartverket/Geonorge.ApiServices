@@ -470,9 +470,11 @@ namespace Kartverket.Geonorge.Api.Services
                         //Distribution
                         if (data.DistributionFormats != null)
                         {
+                            List<string> distributionFormats = new List<string>();
+
                             foreach (var distro in data.DistributionFormats)
                             {
-                                if (!string.IsNullOrEmpty(distro.Name))
+                                if (!string.IsNullOrEmpty(distro.Name) && !distributionFormats.Contains(distro.Name))
                                 {
                                     //Map distribution to dataset
                                     XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
@@ -530,6 +532,8 @@ namespace Kartverket.Geonorge.Api.Services
                                     //if (!string.IsNullOrEmpty(data.Status))
                                     //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
                                     //distribution.AppendChild(distributionStatus);
+
+                                    distributionFormats.Add(distro.Name);
                                 }
 
                             }
@@ -1051,7 +1055,7 @@ namespace Kartverket.Geonorge.Api.Services
             //                {
             //                    escapeChar = "\\",
             //                    singleChar = "_",
-            //                    wildCard = "*",
+            //                    wildCard = "%",
             //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
             //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
             //                }
