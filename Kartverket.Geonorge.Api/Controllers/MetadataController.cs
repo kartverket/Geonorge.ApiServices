@@ -37,7 +37,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
-        [Route("metadata")]
+        [Route("metadata-publication")]
         [HttpPost]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IHttpActionResult> InsertMetadata(MetadataModel metadata)
@@ -47,7 +47,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
-        [Route("metadata/{uuid}")]
+        [Route("metadata-publication/{uuid}")]
         [HttpPut]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IHttpActionResult> UpdateMetadata(string uuid, MetadataModel model)
@@ -57,7 +57,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
-        [Route("metadata/{uuid}")]
+        [Route("metadata-publication/{uuid}")]
         [HttpDelete]
         [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IHttpActionResult> DeleteMetadata(string uuid)
