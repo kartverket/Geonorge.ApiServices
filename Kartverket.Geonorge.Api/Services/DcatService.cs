@@ -12,6 +12,7 @@ using www.opengis.net;
 using Kartverket.Geonorge.Api.Models;
 using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -675,7 +676,7 @@ namespace Kartverket.Geonorge.Api.Services
             try
             {
                 Log.Info("Looking up distributions");
-                
+
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
                 var httpClient = _httpClientFactory.GetHttpClient();
@@ -707,8 +708,26 @@ namespace Kartverket.Geonorge.Api.Services
                         {
                             var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
                                 protocolName, serviceDistributionUrl);
+                            if (!services.ContainsKey(serviceDistributionUrl))
+                                services.Add(serviceDistributionUrl, distribution);
+                        }
+                    }
+                }
+                if (metadata != null && metadata != null && metadata.DistributionsFormats != null)
+                {
+                    foreach (var distro in metadata.DistributionsFormats)
+                    {
+                        if (distro.Protocol == "W3C:AtomFeed" && distro.FormatName == "GML")
+                        {
+                            var serviceDistributionUrl = kartkatalogenUrl + "Metadata/uuid/" + metadata.Uuid.Value + "/GML";
 
-                            services.Add(serviceDistributionUrl, distribution);
+                            string urlDownload = distro.URL.Value;
+
+                            var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
+                            if (!services.ContainsKey(serviceDistributionUrl))
+                                services.Add(serviceDistributionUrl, distribution);
+
+                            break;
                         }
                     }
                 }
@@ -717,6 +736,55 @@ namespace Kartverket.Geonorge.Api.Services
             {
                 Log.Error($"Unable to fetch distributions from: [url={metadataUrl}], [message={e.Message}]", e);
             }
+        }
+
+        private XmlNode CreateXmlElementForDistributionAtomFeed(XmlElement dataset, SimpleMetadata data, dynamic serviceDistributionUrl, string urlDownload)
+        {
+            XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+            distributionDataset.SetAttribute("resource", xmlnsRdf,
+                kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+            dataset.AppendChild(distributionDataset);
+
+            XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
+            distribution.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
+
+            XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+            distributionTitle.SetAttribute("xml:lang", "no");
+            distributionTitle.InnerText = "Atom Feed";
+            distribution.AppendChild(distributionTitle);
+
+            XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+            distributionDescription.SetAttribute("xml:lang", "no");
+            distributionDescription.InnerText = "Nedlasting gjennom Atom Feed";
+            distribution.AppendChild(distributionDescription);
+
+            XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+            distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/XML");
+            distribution.AppendChild(distributionFormat);
+
+            XmlElement mediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
+            mediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
+            distribution.AppendChild(mediaType);
+
+            XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
+            distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+            distribution.AppendChild(distributionAccessURL);
+
+            XmlElement downloadURL = doc.CreateElement("dcat", "downloadURL", xmlnsDcat);
+            downloadURL.SetAttribute("resource", xmlnsRdf, urlDownload);
+            distribution.AppendChild(downloadURL);
+
+            XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
+            if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
+                distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
+            distribution.AppendChild(distributionLicense);
+
+            XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+            distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/historicalArchive");
+            distribution.AppendChild(distributionStatus);
+
+
+            return distribution;
         }
 
         private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
@@ -975,6 +1043,26 @@ namespace Kartverket.Geonorge.Api.Services
                     ItemsChoiceType23.Or
                 };
 
+            //test use only 1 dataset todo remove
+            //string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
+            //var filters = new object[]
+            //{
+            //            new PropertyIsLikeType
+            //                {
+            //                    escapeChar = "\\",
+            //                    singleChar = "_",
+            //                    wildCard = "*",
+            //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+            //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
+            //                }
+            //};
+
+            //var filterNames = new ItemsChoiceType23[]
+            //{
+            //            ItemsChoiceType23.PropertyIsLike,
+            //};
+
+
             var stopwatch = new Stopwatch();
             var datasets = new List<RecordType>();
             stopwatch.Start();
@@ -999,7 +1087,7 @@ namespace Kartverket.Geonorge.Api.Services
 
             stopwatch.Stop();
             Log.Debug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
-            return datasets;
+            return datasets; //todo test datasets.Take(1).ToList()
         }
 
         private void LogEventsDebug(string log)
