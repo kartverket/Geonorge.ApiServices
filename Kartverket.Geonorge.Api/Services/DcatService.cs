@@ -431,7 +431,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                         XmlElement datasetAccrualPeriodicity = doc.CreateElement("dct", "accrualPeriodicity", xmlnsDct);
                         if (!string.IsNullOrEmpty(data.MaintenanceFrequency))
-                            datasetAccrualPeriodicity.InnerText = data.MaintenanceFrequency;
+                            datasetAccrualPeriodicity.SetAttribute("resource", xmlnsRdf, MapMaintenanceFrequency(data.MaintenanceFrequency));
                         dataset.AppendChild(datasetAccrualPeriodicity);
 
                         XmlElement datasetGranularity = doc.CreateElement("dcat", "granularity", xmlnsDcat);
@@ -613,6 +613,40 @@ namespace Kartverket.Geonorge.Api.Services
 
             AppendConcepts(root);
 
+        }
+
+        private string MapMaintenanceFrequency(string maintenanceFrequency)
+        {
+            if (maintenanceFrequency == "asNeeded")
+                return "http://publications.europa.eu/resource/authority/frequency/AS_NEEDED";
+            else if (maintenanceFrequency == "weekly")
+                return "http://publications.europa.eu/resource/authority/frequency/WEEKLY";
+            else if (maintenanceFrequency == "notPlanned")
+                return "http://publications.europa.eu/resource/authority/frequency/NOT_PLANNED";
+            else if (maintenanceFrequency == "asNeeded")
+                return "http://publications.europa.eu/resource/authority/frequency/AS_NEEDED";
+            else if (maintenanceFrequency == "biannually")
+                return "http://publications.europa.eu/resource/authority/frequency/DECENNIAL";
+            else if (maintenanceFrequency == "fortnightly")
+                return "http://publications.europa.eu/resource/authority/frequency/WEEKLY_2";
+            else if (maintenanceFrequency == "UNKNOWN")
+                return "http://publications.europa.eu/resource/authority/frequency/UNKNOWN";
+            else if (maintenanceFrequency == "continual")
+                return "http://publications.europa.eu/resource/authority/frequency/UPDATE_CONT";
+            else if (maintenanceFrequency == "quarterly")
+                return "http://publications.europa.eu/resource/authority/frequency/QUARTERLY";
+            else if (maintenanceFrequency == "irregular")
+                return "http://publications.europa.eu/resource/authority/frequency/IRREG";
+            else if (maintenanceFrequency == "monthly")
+                return "http://publications.europa.eu/resource/authority/frequency/MONTHLY";
+            else if (maintenanceFrequency == "daily")
+                return "http://publications.europa.eu/resource/authority/frequency/DAILY";
+            else if (maintenanceFrequency == "annually")
+                return "http://publications.europa.eu/resource/authority/frequency/ANNUAL";
+            else if (maintenanceFrequency == "biannually")
+                return "http://publications.europa.eu/resource/authority/frequency/ANNUAL2";
+            else
+                return "http://publications.europa.eu/resource/authority/frequency/UNKNOWN";
         }
 
         private string MapLicense(string link)
