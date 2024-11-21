@@ -389,6 +389,38 @@ namespace Kartverket.Geonorge.Api.Services
                             dataset.AppendChild(datasetIssued);
                         }
 
+                        XmlElement temporal = doc.CreateElement("dct", "temporal", xmlnsDct);
+                        XmlElement periodOfTime = doc.CreateElement("dct", "PeriodOfTime", xmlnsDct);
+
+                        string dateFrom = data.ValidTimePeriod.ValidFrom;
+                        if (string.IsNullOrEmpty(dateFrom) || dateFrom == "0001-01-01") { 
+                            if(data.DatePublished.HasValue)
+                                dateFrom = data.DatePublished.Value.ToString("yyyy-MM-dd");
+                            else if (data.DateCreated.HasValue)
+                                dateFrom = data.DateCreated.Value.ToString("yyyy-MM-dd");
+                            else if (data.DateUpdated.HasValue)
+                                dateFrom = data.DateUpdated.Value.ToString("yyyy-MM-dd");
+                            else if (data.DateMetadataUpdated.HasValue)
+                                dateFrom = data.DateMetadataUpdated.Value.ToString("yyyy-MM-dd");
+                        }
+                        string dateTo = data.ValidTimePeriod.ValidTo;
+
+                        XmlElement startDate = doc.CreateElement("dcat", "startDate", xmlnsDcat);
+                        startDate.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#dateTime");
+                        startDate.InnerText = dateFrom + "T00:00:00Z";
+                        periodOfTime.AppendChild(startDate);
+
+                        if (!string.IsNullOrEmpty(dateTo) && dateTo != "0001-01-01")
+                        {
+                            XmlElement endDate = doc.CreateElement("dcat", "endDate", xmlnsDcat);
+                            endDate.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#dateTime");
+                            endDate.InnerText = dateTo + "T00:00:00Z";
+                            periodOfTime.AppendChild(endDate);
+                        }
+
+                        temporal.AppendChild(periodOfTime);
+                        dataset.AppendChild(temporal);
+
                         XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
                         if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
                             datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
@@ -1055,7 +1087,7 @@ namespace Kartverket.Geonorge.Api.Services
             //                {
             //                    escapeChar = "\\",
             //                    singleChar = "_",
-            //                    wildCard = "%",
+            //                    wildCard = "*",
             //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
             //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
             //                }
