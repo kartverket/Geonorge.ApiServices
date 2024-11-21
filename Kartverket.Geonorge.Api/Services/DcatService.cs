@@ -525,10 +525,10 @@ namespace Kartverket.Geonorge.Api.Services
                                         distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                     distribution.AppendChild(distributionLicense);
 
-                                    XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
-                                    if (!string.IsNullOrEmpty(data.Status))
-                                        distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
-                                    distribution.AppendChild(distributionStatus);
+                                    //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+                                    //if (!string.IsNullOrEmpty(data.Status))
+                                    //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
+                                    //distribution.AppendChild(distributionStatus);
                                 }
 
                             }
