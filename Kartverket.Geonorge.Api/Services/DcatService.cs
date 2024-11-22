@@ -13,6 +13,7 @@ using Kartverket.Geonorge.Api.Models;
 using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Data;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -209,9 +210,9 @@ namespace Kartverket.Geonorge.Api.Services
                     MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                     var data = new SimpleMetadata(md);
 
-                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0 
+                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
                         && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
-                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol) )
+                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
                     {
                         Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
@@ -280,7 +281,7 @@ namespace Kartverket.Geonorge.Api.Services
                             spatialLocn.SetAttribute("rdf:datatype", "http://www.opengis.net/ont/geosparql#gmlLiteral");
 
                             //var cdata = doc.CreateCDataSection("<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>");
-                            spatialLocn.InnerText ="<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>";
+                            spatialLocn.InnerText = "<gml:Envelope srsName=\"http://www.opengis.net/def/crs/OGC/1.3/CRS84\"><gml:lowerCorner>" + data.BoundingBox.WestBoundLongitude + " " + data.BoundingBox.SouthBoundLatitude + "</gml:lowerCorner><gml:upperCorner>" + data.BoundingBox.EastBoundLongitude + " " + data.BoundingBox.NorthBoundLatitude + "</gml:upperCorner></gml:Envelope>";
                             //spatialLocn.AppendChild(cdata);
 
                             datasetSpatial.AppendChild(spatialLocn);
@@ -299,7 +300,7 @@ namespace Kartverket.Geonorge.Api.Services
                         {
                             var aboutConcept = GetConcept(theme.Keyword);
 
-                            if(!string.IsNullOrEmpty(aboutConcept))
+                            if (!string.IsNullOrEmpty(aboutConcept))
                             {
                                 themes.Add(aboutConcept);
                             }
@@ -316,8 +317,8 @@ namespace Kartverket.Geonorge.Api.Services
                         foreach (var themeInspire in themeInspires)
                         {
                             if (Mappings.ThemeInspireToEU.ContainsKey(themeInspire.Keyword))
-                            { 
-                                if(!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
+                            {
+                                if (!themes.Contains(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]))
                                     themes.Add(euLink + Mappings.ThemeInspireToEU[themeInspire.Keyword]);
                             }
                         }
@@ -331,9 +332,9 @@ namespace Kartverket.Geonorge.Api.Services
 
                             if (!string.IsNullOrEmpty(aboutConcept))
                             {
-                            
+
                                 if (!ConceptObjects.ContainsKey(aboutConcept))
-                                { 
+                                {
                                     ConceptObjects.Add(aboutConcept, aboutConcept);
                                     themes.Add(aboutConcept);
                                 }
@@ -343,7 +344,7 @@ namespace Kartverket.Geonorge.Api.Services
                         foreach (var theme in themes)
                         {
                             XmlElement datasetTheme;
-                            if(theme.Contains("objektkatalog.geonorge.no"))
+                            if (theme.Contains("objektkatalog.geonorge.no"))
                                 datasetTheme = doc.CreateElement("dct", "subject", xmlnsDct);
                             else
                                 datasetTheme = doc.CreateElement("dcat", "theme", xmlnsDcat);
@@ -381,9 +382,9 @@ namespace Kartverket.Geonorge.Api.Services
                         datasetIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
                         if (data.DateCreated.HasValue || data.DatePublished.HasValue)
                         {
-                            if(data.DateCreated.HasValue)
+                            if (data.DateCreated.HasValue)
                                 datasetIssued.InnerText = data.DateCreated.Value.ToString("yyyy-MM-dd");
-                            else if(data.DatePublished.HasValue)
+                            else if (data.DatePublished.HasValue)
                                 datasetIssued.InnerText = data.DatePublished.Value.ToString("yyyy-MM-dd");
 
                             dataset.AppendChild(datasetIssued);
@@ -393,8 +394,9 @@ namespace Kartverket.Geonorge.Api.Services
                         XmlElement periodOfTime = doc.CreateElement("dct", "PeriodOfTime", xmlnsDct);
 
                         string dateFrom = data.ValidTimePeriod.ValidFrom;
-                        if (string.IsNullOrEmpty(dateFrom) || dateFrom == "0001-01-01") { 
-                            if(data.DatePublished.HasValue)
+                        if (string.IsNullOrEmpty(dateFrom) || dateFrom == "0001-01-01")
+                        {
+                            if (data.DatePublished.HasValue)
                                 dateFrom = data.DatePublished.Value.ToString("yyyy-MM-dd");
                             else if (data.DateCreated.HasValue)
                                 dateFrom = data.DateCreated.Value.ToString("yyyy-MM-dd");
@@ -421,46 +423,166 @@ namespace Kartverket.Geonorge.Api.Services
                         temporal.AppendChild(periodOfTime);
                         dataset.AppendChild(temporal);
 
-                        XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                            datasetPublisher.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
-
-                        dataset.AppendChild(datasetPublisher);
-
                         Organization organization = null;
 
-                        if (data.ContactOwner != null)
+                        if (data.ContactMetadata != null)
                         {
-                            Log.Info("Looking up organization: " + data.ContactOwner.Organization);
-                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
+                            Log.Info("Looking up organization: " + data.ContactMetadata.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization);
                             organization = getOrganizationTask.Result;
                         }
 
-                        XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                            datasetContactPoint.SetAttribute("resource", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
-                        dataset.AppendChild(datasetContactPoint);
+                        string organizationUri = null;
 
-                        XmlElement datasetKind = doc.CreateElement("vcard", "Organization", xmlnsVcard);
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                            datasetKind.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"));
-
-                        XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-unit", xmlnsVcard);
-                        datasetOrganizationName.SetAttribute("xml:lang", "");
-                        if (organization != null)
-                            datasetOrganizationName.InnerText = organization.Name;
-                        datasetKind.AppendChild(datasetOrganizationName);
-
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
+                        //dct:creator => Referanse til aktøren som er produsent av datasettet => ContactOwner.Email => foaf:Agent
+                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization))
                         {
-                            XmlElement datasetHasEmail = doc.CreateElement("vcard", "hasEmail", xmlnsVcard);
-                            datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
-                            datasetKind.AppendChild(datasetHasEmail);
-                        }
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                            if (!vcardKinds.ContainsKey(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/")))
-                                vcardKinds.Add(OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/"), datasetKind);
+                            organizationUri = OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
+                            if (!string.IsNullOrEmpty(data.ContactOwner.Email))
+                            {
+                                organizationUri = organizationUri + "/" + GetUsernameFromEmail(data.ContactOwner.Email);
+                            }
+                            XmlElement datasetCreator = doc.CreateElement("dct", "creator", xmlnsDct);
+                            datasetCreator.SetAttribute("resource", xmlnsRdf, organizationUri);
 
+                            dataset.AppendChild(datasetCreator);
+
+                            XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
+                            agent.SetAttribute("about", xmlnsRdf, organizationUri);
+
+                            XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
+                            agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                            agent.AppendChild(agentType);
+
+
+                            if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                            {
+                                XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                                agentIdentifier.InnerText = organization.Number;
+                                agent.AppendChild(agentIdentifier);
+                            }
+                            else
+                            {
+                                //Use number for Norwegian Mapping Authority, mostly for Geovekst
+                                XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                                agentIdentifier.InnerText = "971040238";
+                                agent.AppendChild(agentIdentifier);
+                            }
+
+                            XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
+                            if (organization != null)
+                                agentName.InnerText = organization.Name;
+                            agent.AppendChild(agentName);
+
+                            if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
+                            {
+                                XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
+                                agentMbox.InnerText = data.ContactOwner.Email;
+                                agent.AppendChild(agentMbox);
+                            }
+
+                            if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                            {
+                                XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
+                                agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                                agent.AppendChild(agentSameAs);
+                            }
+
+                            if (!foafAgents.ContainsKey(organizationUri))
+                                foafAgents.Add(organizationUri, agent);
+                        }
+
+                        //dct:publisher => Referanse til en aktør (organisasjon) som er ansvarlig for å gjøre datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
+                        if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization))
+                        {
+                            organizationUri = OrganizationsLink[data.ContactPublisher.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
+                            if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
+                            {
+                                organizationUri = organizationUri + "/" + GetUsernameFromEmail(data.ContactPublisher.Email);
+                            }
+
+                            XmlElement datasetPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
+                            datasetPublisher.SetAttribute("resource", xmlnsRdf, organizationUri);
+
+                            dataset.AppendChild(datasetPublisher);
+
+                            XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
+                            agent.SetAttribute("about", xmlnsRdf, organizationUri);
+
+                            XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
+                            agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                            agent.AppendChild(agentType);
+
+
+                            if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                            {
+                                XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                                agentIdentifier.InnerText = organization.Number;
+                                agent.AppendChild(agentIdentifier);
+                            }
+                            else
+                            {
+                                //Use number for Norwegian Mapping Authority, mostly for Geovekst
+                                XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+                                agentIdentifier.InnerText = "971040238";
+                                agent.AppendChild(agentIdentifier);
+                            }
+
+                            XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
+                            if (organization != null)
+                                agentName.InnerText = organization.Name;
+                            agent.AppendChild(agentName);
+
+                            if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Email))
+                            {
+                                XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
+                                agentMbox.InnerText = data.ContactPublisher.Email;
+                                agent.AppendChild(agentMbox);
+                            }
+
+                            if (organization != null && !string.IsNullOrEmpty(organization.Number))
+                            {
+                                XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
+                                agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                                agent.AppendChild(agentSameAs);
+                            }
+
+                            if (!foafAgents.ContainsKey(organizationUri))
+                                foafAgents.Add(organizationUri, agent);
+
+                        }
+
+                        //dcat:contactPoint => Referanse til kontaktpunkt med kontaktopplysninger. Disse kan brukes til å sende kommentarer om datatjenesten. => ContactMetadata.Email => vcard:Kind
+                        if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Organization))
+                        {
+                            organizationUri = OrganizationsLink[data.ContactMetadata.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
+                            if (!string.IsNullOrEmpty(data.ContactMetadata.Email))
+                            {
+                                organizationUri = organizationUri + "/" + GetUsernameFromEmail(data.ContactMetadata.Email);
+                            }
+                            XmlElement datasetContactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                            datasetContactPoint.SetAttribute("resource", xmlnsRdf, organizationUri);
+                            dataset.AppendChild(datasetContactPoint);
+
+                            XmlElement datasetKind = doc.CreateElement("vcard", "Organization", xmlnsVcard);
+                            datasetKind.SetAttribute("about", xmlnsRdf, organizationUri);
+
+                            XmlElement datasetOrganizationName = doc.CreateElement("vcard", "organization-unit", xmlnsVcard);
+                            datasetOrganizationName.SetAttribute("xml:lang", "");
+                            if (organization != null)
+                                datasetOrganizationName.InnerText = organization.Name;
+                            datasetKind.AppendChild(datasetOrganizationName);
+
+                            if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Email))
+                            {
+                                XmlElement datasetHasEmail = doc.CreateElement("vcard", "hasEmail", xmlnsVcard);
+                                datasetHasEmail.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactMetadata.Email);
+                                datasetKind.AppendChild(datasetHasEmail);
+                            }
+                            if (!vcardKinds.ContainsKey(organizationUri))
+                                vcardKinds.Add(organizationUri, datasetKind);
+
+                        }
 
                         XmlElement datasetAccrualPeriodicity = doc.CreateElement("dct", "accrualPeriodicity", xmlnsDct);
                         if (!string.IsNullOrEmpty(data.MaintenanceFrequency))
@@ -479,15 +601,15 @@ namespace Kartverket.Geonorge.Api.Services
 
                         var accessConstraint = "PUBLIC";
                         XmlElement datasetAccess = doc.CreateElement("dct", "accessRights", xmlnsDct);
-                        if (data.Constraints != null 
+                        if (data.Constraints != null
                             && !string.IsNullOrEmpty(data.Constraints.AccessConstraints))
                         {
                             if (data.Constraints.AccessConstraints.ToLower() == "restricted")
                                 accessConstraint = "NON-PUBLIC";
                             else if (data.Constraints.AccessConstraints == "norway digital restricted" || (data.Constraints.AccessConstraints == "otherRestrictions" && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsAccess)
                                 && data.Constraints.OtherConstraintsAccess.ToLower() == "norway digital restricted"))
-                            { 
-                                    accessConstraint = "RESTRICTED";
+                            {
+                                accessConstraint = "RESTRICTED";
                             }
                         }
                         datasetAccess.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/access-right/" + accessConstraint);
@@ -524,7 +646,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                                     XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
                                     if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                        distributionDescription.InnerText = GetDistributionDescription( data.DistributionDetails.Protocol);
+                                        distributionDescription.InnerText = GetDistributionDescription(data.DistributionDetails.Protocol);
                                     distribution.AppendChild(distributionDescription);
 
                                     XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
@@ -532,7 +654,8 @@ namespace Kartverket.Geonorge.Api.Services
                                     {
                                         distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
                                     }
-                                    else {
+                                    else
+                                    {
                                         distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
                                         distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
                                     }
@@ -567,65 +690,13 @@ namespace Kartverket.Geonorge.Api.Services
 
                                     distributionFormats.Add(distro.Name);
                                 }
-
+                                // Dataset distributions
+                                AddDistributions(uuid, dataset, data, services);
                             }
 
                         }
-
-                        // Dataset distributions
-                        AddDistributions(uuid, dataset, data, services);
-
-
-                        //Agent/publisher
-
-                        XmlElement agent = doc.CreateElement("foaf", "Agent", xmlnsFoaf);
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                            agent.SetAttribute("about", xmlnsRdf, OrganizationsLink[data.ContactOwner.Organization]);
-
-                        XmlElement agentType = doc.CreateElement("dct", "type", xmlnsDct);
-                        agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
-                        agent.AppendChild(agentType);
-
-
-                        if (organization != null && !string.IsNullOrEmpty(organization.Number))
-                        {
-                            XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = organization.Number;
-                            agent.AppendChild(agentIdentifier);
-                        }
-                        else
-                        {
-                            //Use number for Norwegian Mapping Authority, mostly for Geovekst
-                            XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = "971040238";
-                            agent.AppendChild(agentIdentifier);
-                        }
-
-                        XmlElement agentName = doc.CreateElement("foaf", "name", xmlnsFoaf);
-                        if (organization != null)
-                            agentName.InnerText = organization.Name;
-                        agent.AppendChild(agentName);
-
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
-                        {
-                            XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                            agentMbox.InnerText = data.ContactOwner.Email;
-                            agent.AppendChild(agentMbox);
-                        }
-
-                        if (organization != null && !string.IsNullOrEmpty(organization.Number))
-                        {
-                            XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
-                            agent.AppendChild(agentSameAs);
-                        }
-
-                        if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization) && OrganizationsLink.ContainsKey(data.ContactOwner.Organization) && OrganizationsLink[data.ContactOwner.Organization] != null)
-                        {
-                            if (!foafAgents.ContainsKey(OrganizationsLink[data.ContactOwner.Organization]))
-                                foafAgents.Add(OrganizationsLink[data.ContactOwner.Organization], agent);
-                        }
                     }
+
                 }
                 catch (Exception e)
                 {
@@ -650,6 +721,21 @@ namespace Kartverket.Geonorge.Api.Services
 
             AppendConcepts(root);
 
+        }
+
+        private string GetUsernameFromEmail(string email)
+        {
+            if(string.IsNullOrEmpty(email))
+                return "";
+
+            if(email.Contains("@"))
+                email = email.Split('@')[0];
+
+            email = email.Replace("@", "_").Replace(".", "_");
+
+            email = email.ToLower();
+
+            return email;
         }
 
         private string MapMaintenanceFrequency(string maintenanceFrequency)
@@ -755,15 +841,21 @@ namespace Kartverket.Geonorge.Api.Services
                     {
                         if (distro.Protocol == "W3C:AtomFeed" && distro.FormatName == "GML")
                         {
-                            var serviceDistributionUrl = kartkatalogenUrl + "Metadata/uuid/" + metadata.Uuid.Value + "/GML";
+                            var serviceDistributionUrl = kartkatalogenUrl + "Metadata/uuid/" + metadata.Uuid.Value + "/atom/GML";
 
                             string urlDownload = distro.URL.Value;
 
                             var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
-                            if (!services.ContainsKey(serviceDistributionUrl))
-                                services.Add(serviceDistributionUrl, distribution);
+                            if (!services.ContainsKey(serviceDistributionUrl)) {
 
-                            break;
+                                //Map distribution to dataset
+                                XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+                                distributionDataset.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
+                                dataset.AppendChild(distributionDataset);
+
+                                services.Add(serviceDistributionUrl, distribution);
+                                break;
+                            }
                         }
                     }
                 }
@@ -818,7 +910,6 @@ namespace Kartverket.Geonorge.Api.Services
             XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
             distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/historicalArchive");
             distribution.AppendChild(distributionStatus);
-
 
             return distribution;
         }
@@ -1080,7 +1171,7 @@ namespace Kartverket.Geonorge.Api.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
+            //string searchString = "af992d03-3861-47b9-b3e9-f0b985055a07";
             //var filters = new object[]
             //{
             //            new PropertyIsLikeType
