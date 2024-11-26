@@ -28,6 +28,7 @@ namespace Kartverket.Geonorge.Api.Services
         object GetSchema();
         Task<string> InsertMetadata(MetadataModel model);
         Task UpdateMetadata(string uuid, MetadataModel model);
+        Task UpdateMetadataFair(string uuid, string result);
     }
 
     public class MetadataService : IMetadataService
@@ -163,6 +164,60 @@ namespace Kartverket.Geonorge.Api.Services
             SimpleMetadata metadata = new SimpleMetadata(_geoNorge.GetRecordByUuid(uuid));
 
             UpdateMetadataFromModel(model, metadata);
+            metadata.RemoveUnnecessaryElements();
+            var transaction = _geoNorge.MetadataUpdate(metadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername));
+            if (transaction.TotalUpdated == "0")
+                throw new Exception("Kunne ikke lagre endringene - kontakt systemansvarlig");
+
+            return Task.CompletedTask;
+        }
+
+        public Task UpdateMetadataFair(string uuid, string result)
+        {
+            System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
+            string server = settings["GeoNetworkUrl"];
+            string usernameGeonetwork = settings["GeoNetworkUsername"];
+            string password = settings["GeoNetworkPassword"];
+            string geonorgeUsername = settings["GeonorgeUsername"];
+
+
+            GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);
+            _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
+            _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
+
+            SimpleMetadata metadata = new SimpleMetadata(_geoNorge.GetRecordByUuid(uuid));
+
+            bool fairFound = false;
+
+            List<SimpleQualitySpecification> updatedList = new List<SimpleQualitySpecification>();
+
+            if (metadata.QualitySpecifications == null)
+            {
+                metadata.QualitySpecifications = new List<SimpleQualitySpecification>();
+            } 
+
+            for(int f =0; f < metadata.QualitySpecifications.Count; f++)
+            {
+                updatedList.Add(metadata.QualitySpecifications[f]);
+
+                if (metadata.QualitySpecifications[f].Title == "Grad av FAIR dataleveranse")
+                {
+                    metadata.QualitySpecifications[f].QuantitativeResult = result;
+                    fairFound = true;
+                }
+            }
+
+            if(!fairFound)
+            {
+                SimpleQualitySpecification fair = new SimpleQualitySpecification();
+                fair.Title = "Grad av FAIR dataleveranse";
+                fair.TitleLinkDescription = "Angir fullstendighet i forhold til krav fra FAIR-prinsippene (The FAIR Guiding Principles for scientific data management and stewardship)";
+                fair.QuantitativeResult = result;
+                updatedList.Add(fair);
+            }
+
+            metadata.QualitySpecifications = updatedList;
+
             metadata.RemoveUnnecessaryElements();
             var transaction = _geoNorge.MetadataUpdate(metadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername));
             if (transaction.TotalUpdated == "0")

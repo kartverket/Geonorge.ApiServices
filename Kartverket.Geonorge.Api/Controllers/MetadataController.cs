@@ -26,6 +26,17 @@ namespace Kartverket.Geonorge.Api.Controllers
             _metadataService = metadataService;
         }
 
+
+        [Route("metadata-update-fair/{uuid}/{result}")]
+        [HttpGet]
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public async Task<IHttpActionResult> UpdateFair(string uuid, string result)
+        {
+            await _metadataService.UpdateMetadataFair(uuid, result);
+            return Content(HttpStatusCode.OK, uuid);
+        }
+
+
         [Route("metadata-json-schema")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]
