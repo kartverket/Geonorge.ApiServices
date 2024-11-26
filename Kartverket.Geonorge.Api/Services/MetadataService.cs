@@ -202,7 +202,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                 if (metadata.QualitySpecifications[f].Title == "Grad av FAIR dataleveranse")
                 {
-                    metadata.QualitySpecifications[f].QuantitativeResult = result;
+                    updatedList[f].QuantitativeResult = result;
                     fairFound = true;
                 }
             }
