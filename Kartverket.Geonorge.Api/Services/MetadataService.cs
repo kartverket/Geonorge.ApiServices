@@ -191,23 +191,21 @@ namespace Kartverket.Geonorge.Api.Services
 
             List<SimpleQualitySpecification> updatedList = new List<SimpleQualitySpecification>();
 
-            if (metadata.QualitySpecifications == null)
-            {
-                metadata.QualitySpecifications = new List<SimpleQualitySpecification>();
-            } 
-
-            for(int f =0; f < metadata.QualitySpecifications.Count; f++)
-            {
-                updatedList.Add(metadata.QualitySpecifications[f]);
-
-                if (metadata.QualitySpecifications[f].Title == "Grad av FAIR dataleveranse")
+            if (metadata.QualitySpecifications != null) 
+            { 
+                for (int f =0; f < metadata.QualitySpecifications.Count; f++)
                 {
-                    updatedList[f].QuantitativeResult = result;
-                    fairFound = true;
+                    updatedList.Add(metadata.QualitySpecifications[f]);
+
+                    if (metadata.QualitySpecifications[f].Title == "Grad av FAIR dataleveranse")
+                    {
+                        updatedList[f].QuantitativeResult = result;
+                        fairFound = true;
+                    }
                 }
             }
 
-            if(!fairFound)
+            if (!fairFound)
             {
                 SimpleQualitySpecification fair = new SimpleQualitySpecification();
                 fair.Title = "Grad av FAIR dataleveranse";
