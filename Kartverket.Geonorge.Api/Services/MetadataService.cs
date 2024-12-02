@@ -197,7 +197,7 @@ namespace Kartverket.Geonorge.Api.Services
                 {
                     updatedList.Add(metadata.QualitySpecifications[f]);
 
-                    if (metadata.QualitySpecifications[f].Title == "Grad av FAIR dataleveranse")
+                    if (metadata.QualitySpecifications[f].Title.Contains("FAIR"))
                     {
                         updatedList[f].QuantitativeResult = result;
                         fairFound = true;
@@ -208,7 +208,7 @@ namespace Kartverket.Geonorge.Api.Services
             if (!fairFound)
             {
                 SimpleQualitySpecification fair = new SimpleQualitySpecification();
-                fair.Title = "Grad av FAIR dataleveranse";
+                fair.Title = "Prosentvis oppfyllelse av FAIR-prinsipper";
                 fair.TitleLinkDescription = "Angir fullstendighet i forhold til krav fra FAIR-prinsippene (The FAIR Guiding Principles for scientific data management and stewardship)";
                 fair.QuantitativeResult = result;
                 updatedList.Add(fair);
