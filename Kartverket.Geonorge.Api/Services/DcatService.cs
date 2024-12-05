@@ -1038,9 +1038,9 @@ namespace Kartverket.Geonorge.Api.Services
             catalogLabel.InnerText = "GeoNorge";
             catalog.AppendChild(catalogLabel);
 
-            XmlElement catalogHomePage = doc.CreateElement("foaf", "homepage", xmlnsFoaf);
-            catalogHomePage.InnerText = "http://www.geonorge.no/geonetwork";
-            catalog.AppendChild(catalogHomePage);
+            //XmlElement catalogHomePage = doc.CreateElement("foaf", "homepage", xmlnsFoaf);
+            //catalogHomePage.InnerText = "http://www.geonorge.no/geonetwork";
+            //catalog.AppendChild(catalogHomePage);
 
             XmlElement catalogOpenSearchDescription = doc.CreateElement("void", "openSearchDescription", xmlnsVoid);
             catalogOpenSearchDescription.InnerText = "http://www.geonorge.no/geonetwork/srv/nor/portal.opensearch";
