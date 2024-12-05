@@ -1052,11 +1052,8 @@ namespace Kartverket.Geonorge.Api.Services
 
             XmlElement catalogPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
 
-            if(WebConfigurationManager.AppSettings["EnvironmentName"] == "dev" )
-                catalogPublisher.SetAttribute("resource", xmlnsRdf, "http://register.dev.geonorge.no/organisasjoner/kartverket/10087020-f17c-45e1-8542-02acbcf3d8a3");
-            else
-                catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/geonorge/f5fb2fdf-76b6-4e15-9fd1-603849e41e09");
-
+            catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/kartverket");
+            
             catalog.AppendChild(catalogPublisher);
 
             XmlElement catalogLicense = doc.CreateElement("dct", "license", xmlnsDct);
