@@ -14,6 +14,7 @@ using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientF
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System.Data;
+using System.Web.UI.WebControls;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -1022,6 +1023,10 @@ namespace Kartverket.Geonorge.Api.Services
             catalogTitle.SetAttribute("xml:lang", "no");
             catalogTitle.InnerText = "Geonorge";
             catalog.AppendChild(catalogTitle);
+
+            XmlElement catalogIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+            catalogIdentifier.InnerText = "http://www.geonorge.no/geonetwork";
+            catalog.AppendChild(catalogIdentifier);
 
             XmlElement catalogDescription = doc.CreateElement("dct", "description", xmlnsDct);
             catalogDescription.InnerText = "GeoNorge er den nasjonale katalogen for geografisk informasjon";
