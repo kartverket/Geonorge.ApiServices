@@ -14,6 +14,7 @@ using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientF
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System.Data;
+using System.Web.UI.WebControls;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -1023,6 +1024,10 @@ namespace Kartverket.Geonorge.Api.Services
             catalogTitle.InnerText = "Geonorge";
             catalog.AppendChild(catalogTitle);
 
+            XmlElement catalogIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
+            catalogIdentifier.InnerText = "http://www.geonorge.no/geonetwork";
+            catalog.AppendChild(catalogIdentifier);
+
             XmlElement catalogDescription = doc.CreateElement("dct", "description", xmlnsDct);
             catalogDescription.InnerText = "GeoNorge er den nasjonale katalogen for geografisk informasjon";
             catalog.AppendChild(catalogDescription);
@@ -1038,9 +1043,9 @@ namespace Kartverket.Geonorge.Api.Services
             catalogLabel.InnerText = "GeoNorge";
             catalog.AppendChild(catalogLabel);
 
-            XmlElement catalogHomePage = doc.CreateElement("foaf", "homepage", xmlnsFoaf);
-            catalogHomePage.InnerText = "http://www.geonorge.no/geonetwork";
-            catalog.AppendChild(catalogHomePage);
+            //XmlElement catalogHomePage = doc.CreateElement("foaf", "homepage", xmlnsFoaf);
+            //catalogHomePage.InnerText = "http://www.geonorge.no/geonetwork";
+            //catalog.AppendChild(catalogHomePage);
 
             XmlElement catalogOpenSearchDescription = doc.CreateElement("void", "openSearchDescription", xmlnsVoid);
             catalogOpenSearchDescription.InnerText = "http://www.geonorge.no/geonetwork/srv/nor/portal.opensearch";
@@ -1052,11 +1057,8 @@ namespace Kartverket.Geonorge.Api.Services
 
             XmlElement catalogPublisher = doc.CreateElement("dct", "publisher", xmlnsDct);
 
-            if(WebConfigurationManager.AppSettings["EnvironmentName"] == "dev" )
-                catalogPublisher.SetAttribute("resource", xmlnsRdf, "http://register.dev.geonorge.no/organisasjoner/kartverket/10087020-f17c-45e1-8542-02acbcf3d8a3");
-            else
-                catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/geonorge/f5fb2fdf-76b6-4e15-9fd1-603849e41e09");
-
+            catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/kartverket");
+            
             catalog.AppendChild(catalogPublisher);
 
             XmlElement catalogLicense = doc.CreateElement("dct", "license", xmlnsDct);
