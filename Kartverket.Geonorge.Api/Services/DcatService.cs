@@ -426,10 +426,10 @@ namespace Kartverket.Geonorge.Api.Services
 
                         Organization organization = null;
 
-                        if (data.ContactMetadata != null)
+                        if (data.ContactOwner != null)
                         {
-                            Log.Info("Looking up organization: " + data.ContactMetadata.Organization);
-                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization);
+                            Log.Info("Looking up organization: " + data.ContactOwner.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
                             organization = getOrganizationTask.Result;
                         }
 
@@ -496,6 +496,11 @@ namespace Kartverket.Geonorge.Api.Services
                         //dct:publisher => Referanse til en aktør (organisasjon) som er ansvarlig for å gjøre datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
                         if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization))
                         {
+                           Log.Info("Looking up organization: " + data.ContactPublisher.Organization);
+                           Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactPublisher.Organization);
+                           organization = getOrganizationTask.Result;
+ 
+
                             organizationUri = OrganizationsLink[data.ContactPublisher.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
                             if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
                             {
@@ -556,6 +561,11 @@ namespace Kartverket.Geonorge.Api.Services
                         //dcat:contactPoint => Referanse til kontaktpunkt med kontaktopplysninger. Disse kan brukes til å sende kommentarer om datatjenesten. => ContactMetadata.Email => vcard:Kind
                         if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Organization))
                         {
+
+                            Log.Info("Looking up organization: " + data.ContactMetadata.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization);
+                            organization = getOrganizationTask.Result;
+
                             organizationUri = OrganizationsLink[data.ContactMetadata.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
                             if (!string.IsNullOrEmpty(data.ContactMetadata.Email))
                             {
@@ -1173,7 +1183,7 @@ namespace Kartverket.Geonorge.Api.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "af992d03-3861-47b9-b3e9-f0b985055a07";
+            //string searchString = "d1fe81f9-27a5-449c-9b47-9553a895aa09";
             //var filters = new object[]
             //{
             //            new PropertyIsLikeType
