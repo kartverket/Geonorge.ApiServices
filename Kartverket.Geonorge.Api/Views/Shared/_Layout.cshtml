@@ -56,9 +56,5 @@
     <geonorge-footer language="no" version="@Html.ApplicationVersionNumber()" environment="@Html.EnvironmentName()" />
     @Scripts.Render("~/node-modules/scripts")
     @RenderSection("scripts", required: false)
-    @if (Html.EnvironmentName() == "")
-    {
-        <noscript><p><img src="https://analyse.kartverket.no/analyse/matomo.php?idsite=16&rec=1" style="border:0" alt="" /></p></noscript>
-    }
 </body>
 </html>
