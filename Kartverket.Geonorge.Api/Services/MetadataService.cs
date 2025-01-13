@@ -187,6 +187,9 @@ namespace Kartverket.Geonorge.Api.Services
 
             SimpleMetadata metadata = new SimpleMetadata(_geoNorge.GetRecordByUuid(uuid));
 
+            var processHistory = metadata.ProcessHistory;
+            var processHistoryEnglish = metadata.EnglishProcessHistory;
+
             bool fairFound = false;
 
             List<SimpleQualitySpecification> updatedList = new List<SimpleQualitySpecification>();
@@ -215,6 +218,12 @@ namespace Kartverket.Geonorge.Api.Services
             }
 
             metadata.QualitySpecifications = updatedList;
+
+            if(!string.IsNullOrEmpty(processHistory))
+                metadata.ProcessHistory = processHistory;
+
+            if (!string.IsNullOrEmpty(processHistoryEnglish))
+                metadata.EnglishProcessHistory = processHistoryEnglish;
 
             metadata.RemoveUnnecessaryElements();
             var transaction = _geoNorge.MetadataUpdate(metadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername));
