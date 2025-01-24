@@ -80,10 +80,68 @@ namespace Kartverket.Geonorge.Api.Services
                     Role = "owner"
                 };
 
+                //todo: Produsent? use owner or publisher?
+
                 DateTime now = DateTime.Now;
                 metadata.DateCreated = now;
                 metadata.DatePublished = now;
                 metadata.DateUpdated = now;
+
+                metadata.Keywords = model.GetAllKeywords();
+
+                if (!string.IsNullOrWhiteSpace(model.TopicCategory))
+                    metadata.TopicCategory = model.TopicCategory;
+
+                metadata.Constraints = new SimpleConstraints
+                {
+                    SecurityConstraints = !string.IsNullOrWhiteSpace(model.SecurityConstraints) ? model.SecurityConstraints : "",
+                    AccessConstraints = !string.IsNullOrWhiteSpace(model.AccessConstraints) ? model.AccessConstraints : "",
+                    //AccessConstraintsLink = todo,
+                    UseConstraintsLicenseLink = !string.IsNullOrWhiteSpace(model.OtherConstraintsLink) ? model.OtherConstraintsLink : null,
+                    UseConstraintsLicenseLinkText = !string.IsNullOrWhiteSpace(model.OtherConstraintsLinkText) ? model.OtherConstraintsLinkText : null,
+                };
+
+                var refsys = model.GetReferenceSystems();
+                if (refsys != null)
+                    metadata.ReferenceSystems = refsys;
+
+                metadata.SpatialRepresentation = model.SpatialRepresentation;
+
+                DateTime? DateMetadataValidFrom = model.DateMetadataValidFrom;
+                DateTime? DateMetadataValidTo = model.DateMetadataValidTo;
+
+                metadata.ValidTimePeriod = new SimpleValidTimePeriod()
+                {
+                    ValidFrom = DateMetadataValidFrom != null ? String.Format("{0:yyyy-MM-dd}", DateMetadataValidFrom) : "",
+                    ValidTo = DateMetadataValidTo != null ? String.Format("{0:yyyy-MM-dd}", DateMetadataValidTo) : ""
+                };
+
+                var distribution = model.GetDistributionsFormats();
+  
+                metadata.DistributionsFormats = distribution;
+
+                if (metadata.DistributionsFormats != null && metadata.DistributionsFormats.Count > 0)
+                {
+                    metadata.DistributionDetails = new SimpleDistributionDetails
+                    {
+                        URL = metadata.DistributionsFormats[0].URL,
+                        Protocol = metadata.DistributionsFormats[0].Protocol,
+                        Name = metadata.DistributionsFormats[0].Name,
+                        UnitsOfDistribution = metadata.DistributionsFormats[0].UnitsOfDistribution,
+                        EnglishUnitsOfDistribution = metadata.DistributionsFormats[0].EnglishUnitsOfDistribution
+                    };
+                }
+
+                if (!string.IsNullOrWhiteSpace(model.BoundingBoxEast))
+                {
+                    metadata.BoundingBox = new SimpleBoundingBox
+                    {
+                        EastBoundLongitude = model.BoundingBoxEast,
+                        WestBoundLongitude = model.BoundingBoxWest,
+                        NorthBoundLatitude = model.BoundingBoxNorth,
+                        SouthBoundLatitude = model.BoundingBoxSouth
+                    };
+                }
 
                 SetDefaultValuesOnMetadata(metadata);
 
@@ -106,7 +164,6 @@ namespace Kartverket.Geonorge.Api.Services
             if (string.IsNullOrEmpty(metadata.MetadataLanguage))
                 metadata.MetadataLanguage = "nor";
         }
-
 
         private void LogEventsDebug(string log)
         {
