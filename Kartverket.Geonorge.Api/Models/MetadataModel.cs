@@ -39,7 +39,7 @@ namespace Kartverket.Geonorge.Api.Models
 
         public string AccessConstraints { get; set; }
 
-        public List<SimpleReferenceSystem> ReferenceSystems { get; set; }
+        public List<SimpleReferenceSystem> ReferenceSystems { get; set; } // todo use string instead of SimpleReferenceSystem with only epsg code?
 
         public string SpatialRepresentation { get; set; }
 

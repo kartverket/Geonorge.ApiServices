@@ -1,0 +1,23 @@
+{
+  "title": "Tittel",
+  "description": "Beskrivelse",
+  "contactName": "dag@arkitektum.no",
+  "contactEmail": "post@norgedigitalt.no",
+  "contactOrganization": "Kartverket",
+  "keywordsTheme": [ "ABAS", "Fylkesgrenser" ],
+  "topicCategory": "boundaries",
+  "keywordsNationalTheme": [ "Basis geodata" ],
+  "securityConstraints": "restricted",
+  "accessConstraints": "norway digital restricted",
+  "referenceSystems": null,
+  "spatialRepresentation": "vector",
+  "dateMetadataValidFrom": null,
+  "dateMetadataValidTo": null,
+  "distributionsFormats": null,
+  "otherConstraintsLink": "https://creativecommons.org/licenses/by/4.0/",
+  "otherConstraintsLinkText": "Creative Commons BY 4.0 (CC BY 4.0)",
+  "boundingBoxEast": "32.00",
+  "boundingBoxWest": "4.00",
+  "boundingBoxNorth": "72.00",
+  "boundingBoxSouth": "57.00"
+}

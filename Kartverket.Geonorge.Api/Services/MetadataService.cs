@@ -56,7 +56,7 @@ namespace Kartverket.Geonorge.Api.Services
                 metadata.MetadataLanguage = "nor";    
                 metadata.Title = model.Title;
 
-                metadata.Abstract = "...";
+                metadata.Abstract = model.Description;
                 metadata.ContactMetadata = new SimpleContact
                 {
                     Name = model.ContactName,
