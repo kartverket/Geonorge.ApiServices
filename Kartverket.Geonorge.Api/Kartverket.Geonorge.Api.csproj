@@ -453,6 +453,7 @@
     <Content Include="authentication.config" />
     <Content Include="authentication.default.config" />
     <Content Include="schema.json" />
+    <Content Include="testdata.json" />
     <None Include="Web.Dev.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
