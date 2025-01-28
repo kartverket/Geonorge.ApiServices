@@ -9,11 +9,32 @@
   "keywordsNationalTheme": [ "Basis geodata" ],
   "securityConstraints": "restricted",
   "accessConstraints": "norway digital restricted",
-  "referenceSystems": null,
+  "accessConstraintsLink": "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d",
+  "referenceSystems": [
+    {
+      "coordinateSystem": "http://www.opengis.net/def/crs/EPSG/0/23032"
+    },
+    {
+      "coordinateSystem": "http://www.opengis.net/def/crs/EPSG/0/3855"
+    }
+  ],
   "spatialRepresentation": "vector",
-  "dateMetadataValidFrom": null,
-  "dateMetadataValidTo": null,
-  "distributionsFormats": null,
+  "dateMetadataValidFrom": "2025-01-28",
+  "dateMetadataValidTo": "2025-02-05",
+  "distributionsFormats": [
+    {
+      "organization": "Kartverket",
+      "protocol": "GEONORGE:DOWNLOAD",
+      "uRL": "https://nedlasting.geonorge.no/api/capabilities/",
+      "formatName": "GML"
+    },
+    {
+      "organization": "Kartverket",
+      "protocol": "WWW:DOWNLOAD-1.0-http--download",
+      "uRL": "https://geonorge.no/",
+      "formatName": "PDF"
+    }
+  ],
   "otherConstraintsLink": "https://creativecommons.org/licenses/by/4.0/",
   "otherConstraintsLinkText": "Creative Commons BY 4.0 (CC BY 4.0)",
   "boundingBoxEast": "32.00",

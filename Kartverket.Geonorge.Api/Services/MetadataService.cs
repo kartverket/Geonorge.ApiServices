@@ -96,7 +96,7 @@ namespace Kartverket.Geonorge.Api.Services
                 {
                     SecurityConstraints = !string.IsNullOrWhiteSpace(model.SecurityConstraints) ? model.SecurityConstraints : "",
                     AccessConstraints = !string.IsNullOrWhiteSpace(model.AccessConstraints) ? model.AccessConstraints : "",
-                    //AccessConstraintsLink = todo,
+                    AccessConstraintsLink = !string.IsNullOrWhiteSpace(model.AccessConstraintsLink) ? model.AccessConstraintsLink : "",
                     UseConstraintsLicenseLink = !string.IsNullOrWhiteSpace(model.OtherConstraintsLink) ? model.OtherConstraintsLink : null,
                     UseConstraintsLicenseLinkText = !string.IsNullOrWhiteSpace(model.OtherConstraintsLinkText) ? model.OtherConstraintsLinkText : null,
                 };

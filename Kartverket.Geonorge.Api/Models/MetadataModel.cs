@@ -38,6 +38,7 @@ namespace Kartverket.Geonorge.Api.Models
         public string SecurityConstraints { get; set; }
 
         public string AccessConstraints { get; set; }
+        public string AccessConstraintsLink { get; set; }
 
         public List<SimpleReferenceSystem> ReferenceSystems { get; set; } // todo use string instead of SimpleReferenceSystem with only epsg code?
 
