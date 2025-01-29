@@ -44,6 +44,7 @@ namespace Kartverket.Geonorge.Api.Models
 
         public string SpatialRepresentation { get; set; }
 
+        public DateTime? DateUpdated { get; set; }
         public DateTime? DateMetadataValidFrom { get; set; }
         public DateTime? DateMetadataValidTo { get; set; }
 

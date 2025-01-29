@@ -80,12 +80,10 @@ namespace Kartverket.Geonorge.Api.Services
                     Role = "owner"
                 };
 
-                //todo: Produsent? use owner or publisher?
-
                 DateTime now = DateTime.Now;
                 metadata.DateCreated = now;
                 metadata.DatePublished = now;
-                metadata.DateUpdated = now;
+                metadata.DateUpdated = model.DateUpdated != null ? model.DateUpdated : now;
 
                 metadata.Keywords = model.GetAllKeywords();
 
