@@ -12,13 +12,14 @@
   "accessConstraintsLink": "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d",
   "referenceSystems": [
     {
-      "coordinateSystem": "http://www.opengis.net/def/crs/EPSG/0/23032"
+      "coordinateSystem": "23032"
     },
     {
-      "coordinateSystem": "http://www.opengis.net/def/crs/EPSG/0/3855"
+      "coordinateSystem": "3855"
     }
   ],
   "spatialRepresentation": "vector",
+  "dateOfCreation": "2025-01-27",
   "dateUpdated": "2025-01-28",
   "dateMetadataValidFrom": "2025-01-28",
   "dateMetadataValidTo": "2025-02-05",

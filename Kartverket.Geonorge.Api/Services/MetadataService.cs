@@ -81,7 +81,7 @@ namespace Kartverket.Geonorge.Api.Services
                 };
 
                 DateTime now = DateTime.Now;
-                metadata.DateCreated = now;
+                metadata.DateCreated = model.DateOfCreation != null ? model.DateOfCreation : now; ;
                 metadata.DatePublished = now;
                 metadata.DateUpdated = model.DateUpdated != null ? model.DateUpdated : now;
 

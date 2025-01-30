@@ -44,6 +44,7 @@ namespace Kartverket.Geonorge.Api.Models
 
         public string SpatialRepresentation { get; set; }
 
+        public DateTime? DateOfCreation { get; set; }
         public DateTime? DateUpdated { get; set; }
         public DateTime? DateMetadataValidFrom { get; set; }
         public DateTime? DateMetadataValidTo { get; set; }
@@ -126,7 +127,7 @@ namespace Kartverket.Geonorge.Api.Models
                     if (!string.IsNullOrEmpty(ReferenceSystems[r].CoordinateSystemLink))
                         referenceSystem.CoordinateSystemLink = ReferenceSystems[r].CoordinateSystemLink;
                     else
-                        referenceSystem.CoordinateSystemLink = ReferenceSystems[r].CoordinateSystem;
+                        referenceSystem.CoordinateSystemLink = "http://www.opengis.net/def/crs/EPSG/0/" + ReferenceSystems[r].CoordinateSystem;
                     referenceSystems.Add(referenceSystem);
                 }
             }
