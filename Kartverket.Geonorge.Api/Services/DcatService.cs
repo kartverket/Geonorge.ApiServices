@@ -47,7 +47,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsLocn = "http://www.w3.org/ns/locn#";
         const string xmlnsGml = "http://www.opengis.net/gml";
 
-        string geoNetworkendPoint = "srv/nor/csw-dataset?";
+        //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
         string kartkatalogenUrl = WebConfigurationManager.AppSettings["KartkatalogenUrl"];
 
