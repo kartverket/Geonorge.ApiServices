@@ -15,6 +15,7 @@ using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System.Data;
 using System.Web.UI.WebControls;
+using IHttpClientFactory = Kartverket.Geonorge.Utilities.Organization.IHttpClientFactory;
 
 namespace Kartverket.Geonorge.Api.Services
 {

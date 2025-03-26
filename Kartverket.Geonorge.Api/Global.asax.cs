@@ -8,7 +8,7 @@ using log4net.Config;
 
 namespace Kartverket.Geonorge.Api
 {
-    public class WebApiApplication : HttpApplication
+    public class MvcApplication : HttpApplication
     {
         protected void Application_Start()
         {

@@ -34,6 +34,12 @@
             Check for mismatch between kartkatalog search index and geonetwork
             </summary>
         </member>
+        <member name="M:Kartverket.Geonorge.Api.Controllers.HomeController.SignOutCallback">
+            <summary>
+            This is the action responding to /signout-callback-oidc route after logout at the identity provider
+            </summary>
+            <returns></returns>
+        </member>
         <member name="P:Kartverket.Geonorge.Api.Models.DatasetFile.Title">
             <summary>
             Dataset file title
