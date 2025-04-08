@@ -129,6 +129,7 @@ namespace Kartverket.Geonorge.Api.Services
                //{ "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
+               { "ZIP", "https://www.iana.org/assignments/media-types/application/zip" },
                //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
@@ -154,7 +155,8 @@ namespace Kartverket.Geonorge.Api.Services
                { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
                { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
                { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
-               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" }
+               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
+               { "ZIP", "http://publications.europa.eu/resource/authority/file-type/ZIP" },
 
             };
         }
@@ -633,12 +635,16 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.AppendChild(datasetDataQuality);
 
                         //Distribution
-                        if (data.DistributionFormats != null)
+                        if (data.DistributionsFormats != null)
                         {
                             List<string> distributionFormats = new List<string>();
 
-                            foreach (var distro in data.DistributionFormats)
+                            foreach (var distro in data.DistributionsFormats)
                             {
+
+                                if(string.IsNullOrEmpty(distro.Name))
+                                    distro.Name = "ZIP";
+
                                 if (!string.IsNullOrEmpty(distro.Name) && !distributionFormats.Contains(distro.Name))
                                 {
                                     //Map distribution to dataset
