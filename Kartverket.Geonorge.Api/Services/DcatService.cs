@@ -692,7 +692,11 @@ namespace Kartverket.Geonorge.Api.Services
                                     distribution.AppendChild(distributionTitle);
 
                                     XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    if(!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                    else
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    
                                     distribution.AppendChild(distributionAccessURL);
 
                                     XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
