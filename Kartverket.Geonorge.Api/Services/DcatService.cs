@@ -130,6 +130,7 @@ namespace Kartverket.Geonorge.Api.Services
                //{ "JPEG", "http://publications.europa.eu/resource/authority/file-type/JPEG" }, //not found iana, empty?
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
+               { "ZIP", "https://www.iana.org/assignments/media-types/application/zip" },
                //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
 
             };
@@ -155,7 +156,8 @@ namespace Kartverket.Geonorge.Api.Services
                { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
                { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
                { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
-               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" }
+               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
+               { "ZIP", "http://publications.europa.eu/resource/authority/file-type/ZIP" },
 
             };
         }
@@ -212,10 +214,10 @@ namespace Kartverket.Geonorge.Api.Services
                     MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                     var data = new SimpleMetadata(md);
 
-                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
-                        && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
-                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                    {
+                    //if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
+                    //    && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
+                    //    data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                    //{
                         Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
                         //Map dataset to catalog
@@ -427,16 +429,16 @@ namespace Kartverket.Geonorge.Api.Services
 
                         Organization organization = null;
 
-                        if (data.ContactMetadata != null)
+                        if (data.ContactOwner != null)
                         {
-                            Log.Info("Looking up organization: " + data.ContactMetadata.Organization);
-                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization);
+                            Log.Info("Looking up organization: " + data.ContactOwner.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactOwner.Organization);
                             organization = getOrganizationTask.Result;
                         }
 
                         string organizationUri = null;
 
-                        //dct:creator => Referanse til aktøren som er produsent av datasettet => ContactOwner.Email => foaf:Agent
+                        //dct:creator => Referanse til aktï¿½ren som er produsent av datasettet => ContactOwner.Email => foaf:Agent
                         if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization))
                         {
                             organizationUri = OrganizationsLink[data.ContactOwner.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
@@ -494,9 +496,14 @@ namespace Kartverket.Geonorge.Api.Services
                                 foafAgents.Add(organizationUri, agent);
                         }
 
-                        //dct:publisher => Referanse til en aktør (organisasjon) som er ansvarlig for å gjøre datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
+                        //dct:publisher => Referanse til en aktï¿½r (organisasjon) som er ansvarlig for ï¿½ gjï¿½re datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
                         if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization))
                         {
+                           Log.Info("Looking up organization: " + data.ContactPublisher.Organization);
+                           Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactPublisher.Organization);
+                           organization = getOrganizationTask.Result;
+ 
+
                             organizationUri = OrganizationsLink[data.ContactPublisher.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
                             if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
                             {
@@ -554,9 +561,14 @@ namespace Kartverket.Geonorge.Api.Services
 
                         }
 
-                        //dcat:contactPoint => Referanse til kontaktpunkt med kontaktopplysninger. Disse kan brukes til å sende kommentarer om datatjenesten. => ContactMetadata.Email => vcard:Kind
+                        //dcat:contactPoint => Referanse til kontaktpunkt med kontaktopplysninger. Disse kan brukes til ï¿½ sende kommentarer om datatjenesten. => ContactMetadata.Email => vcard:Kind
                         if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Organization))
                         {
+
+                            Log.Info("Looking up organization: " + data.ContactMetadata.Organization);
+                            Task<Organization> getOrganizationTask = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization);
+                            organization = getOrganizationTask.Result;
+
                             organizationUri = OrganizationsLink[data.ContactMetadata.Organization].Replace("organisasjoner/kartverket/", "organisasjoner/");
                             if (!string.IsNullOrEmpty(data.ContactMetadata.Email))
                             {
@@ -624,12 +636,16 @@ namespace Kartverket.Geonorge.Api.Services
                         dataset.AppendChild(datasetDataQuality);
 
                         //Distribution
-                        if (data.DistributionFormats != null)
+                        if (data.DistributionsFormats != null)
                         {
                             List<string> distributionFormats = new List<string>();
 
-                            foreach (var distro in data.DistributionFormats)
+                            foreach (var distro in data.DistributionsFormats)
                             {
+
+                                if(string.IsNullOrEmpty(distro.Name))
+                                    distro.Name = "ZIP";
+
                                 if (!string.IsNullOrEmpty(distro.Name) && !distributionFormats.Contains(distro.Name))
                                 {
                                     //Map distribution to dataset
@@ -677,7 +693,11 @@ namespace Kartverket.Geonorge.Api.Services
                                     distribution.AppendChild(distributionTitle);
 
                                     XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    if(!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                    else
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    
                                     distribution.AppendChild(distributionAccessURL);
 
                                     XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
@@ -697,7 +717,7 @@ namespace Kartverket.Geonorge.Api.Services
                             }
 
                         }
-                    }
+                    //}
 
                 }
                 catch (Exception e)
@@ -1174,7 +1194,7 @@ namespace Kartverket.Geonorge.Api.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "af992d03-3861-47b9-b3e9-f0b985055a07";
+            //string searchString = "d1fe81f9-27a5-449c-9b47-9553a895aa09";
             //var filters = new object[]
             //{
             //            new PropertyIsLikeType
