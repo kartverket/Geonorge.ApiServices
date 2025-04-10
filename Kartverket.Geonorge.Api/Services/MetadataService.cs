@@ -57,6 +57,7 @@ namespace Kartverket.Geonorge.Api.Services
                 metadata.Title = model.Title;
 
                 metadata.Abstract = model.Description;
+
                 metadata.ContactMetadata = new SimpleContact
                 {
                     Name = model.ContactName,
@@ -65,20 +66,27 @@ namespace Kartverket.Geonorge.Api.Services
                     Role = "pointOfContact"
                 };
 
-                metadata.ContactPublisher = new SimpleContact
+                if (!string.IsNullOrEmpty(model.PublisherOrganization))
                 {
-                    Name = model.ContactName,
-                    Email = model.ContactEmail,
-                    Organization = model.ContactOrganization,
-                    Role = "publisher"
-                };
-                metadata.ContactOwner = new SimpleContact
+                    metadata.ContactPublisher = new SimpleContact
+                    {
+                        Name = model.PublisherName,
+                        Email = model.PublisherEmail,
+                        Organization = model.PublisherOrganization,
+                        Role = "publisher"
+                    };
+                }
+
+                if (!string.IsNullOrEmpty(model.OwnerOrganization))
                 {
-                    Name = model.ContactName,
-                    Email = model.ContactEmail,
-                    Organization = model.ContactOrganization,
-                    Role = "owner"
-                };
+                    metadata.ContactOwner = new SimpleContact
+                    {
+                        Name = model.OwnerName,
+                        Email = model.OwnerEmail,
+                        Organization = model.OwnerOrganization,
+                        Role = "owner"
+                    };
+                }
 
                 DateTime now = DateTime.Now;
                 metadata.DateCreated = model.DateOfCreation != null ? model.DateOfCreation : now; ;
@@ -291,7 +299,9 @@ namespace Kartverket.Geonorge.Api.Services
         private void UpdateMetadataFromModel(MetadataModel model, SimpleMetadata metadata)
         {
             metadata.Title = model.Title;
+
             metadata.Abstract = model.Description;
+
             metadata.ContactMetadata = new SimpleContact
             {
                 Name = model.ContactName,
@@ -299,6 +309,91 @@ namespace Kartverket.Geonorge.Api.Services
                 Organization = model.ContactOrganization,
                 Role = "pointOfContact"
             };
+
+
+            if (!string.IsNullOrEmpty(model.PublisherOrganization))
+            {
+                metadata.ContactPublisher = new SimpleContact
+                {
+                    Name = model.PublisherName,
+                    Email = model.PublisherEmail,
+                    Organization = model.PublisherOrganization,
+                    Role = "publisher"
+                };
+            }
+
+            if (!string.IsNullOrEmpty(model.OwnerOrganization)) 
+            { 
+                metadata.ContactOwner = new SimpleContact
+                {
+                    Name = model.OwnerName,
+                    Email = model.OwnerEmail,
+                    Organization = model.OwnerOrganization,
+                    Role = "owner"
+                };
+            }
+
+            DateTime now = DateTime.Now;
+            metadata.DateCreated = model.DateOfCreation != null ? model.DateOfCreation : now; ;
+            metadata.DatePublished = now;
+            metadata.DateUpdated = model.DateUpdated != null ? model.DateUpdated : now;
+
+            metadata.Keywords = model.GetAllKeywords();
+
+            if (!string.IsNullOrWhiteSpace(model.TopicCategory))
+                metadata.TopicCategory = model.TopicCategory;
+
+            metadata.Constraints = new SimpleConstraints
+            {
+                SecurityConstraints = !string.IsNullOrWhiteSpace(model.SecurityConstraints) ? model.SecurityConstraints : "",
+                AccessConstraints = !string.IsNullOrWhiteSpace(model.AccessConstraints) ? model.AccessConstraints : "",
+                AccessConstraintsLink = !string.IsNullOrWhiteSpace(model.AccessConstraintsLink) ? model.AccessConstraintsLink : "",
+                UseConstraintsLicenseLink = !string.IsNullOrWhiteSpace(model.OtherConstraintsLink) ? model.OtherConstraintsLink : null,
+                UseConstraintsLicenseLinkText = !string.IsNullOrWhiteSpace(model.OtherConstraintsLinkText) ? model.OtherConstraintsLinkText : null,
+            };
+
+            var refsys = model.GetReferenceSystems();
+            if (refsys != null)
+                metadata.ReferenceSystems = refsys;
+
+            metadata.SpatialRepresentation = model.SpatialRepresentation;
+
+            DateTime? DateMetadataValidFrom = model.DateMetadataValidFrom;
+            DateTime? DateMetadataValidTo = model.DateMetadataValidTo;
+
+            metadata.ValidTimePeriod = new SimpleValidTimePeriod()
+            {
+                ValidFrom = DateMetadataValidFrom != null ? String.Format("{0:yyyy-MM-dd}", DateMetadataValidFrom) : "",
+                ValidTo = DateMetadataValidTo != null ? String.Format("{0:yyyy-MM-dd}", DateMetadataValidTo) : ""
+            };
+
+            var distribution = model.GetDistributionsFormats();
+  
+            metadata.DistributionsFormats = distribution;
+
+            if (metadata.DistributionsFormats != null && metadata.DistributionsFormats.Count > 0)
+            {
+                metadata.DistributionDetails = new SimpleDistributionDetails
+                {
+                    URL = metadata.DistributionsFormats[0].URL,
+                    Protocol = metadata.DistributionsFormats[0].Protocol,
+                    Name = metadata.DistributionsFormats[0].Name,
+                    UnitsOfDistribution = metadata.DistributionsFormats[0].UnitsOfDistribution,
+                    EnglishUnitsOfDistribution = metadata.DistributionsFormats[0].EnglishUnitsOfDistribution
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.BoundingBoxEast))
+            {
+                metadata.BoundingBox = new SimpleBoundingBox
+                {
+                    EastBoundLongitude = model.BoundingBoxEast,
+                    WestBoundLongitude = model.BoundingBoxWest,
+                    NorthBoundLatitude = model.BoundingBoxNorth,
+                    SouthBoundLatitude = model.BoundingBoxSouth
+                };
+            }
+
 
             SetDefaultValuesOnMetadata(metadata);
 

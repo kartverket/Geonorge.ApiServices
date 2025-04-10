@@ -29,6 +29,13 @@ namespace Kartverket.Geonorge.Api.Models
         [Required(ErrorMessage = "Organisasjon er påkrevd.")]
         public string ContactOrganization { get; set; }
 
+        public string PublisherName { get; set; }
+        public string PublisherEmail { get; set; }
+        public string PublisherOrganization { get; set; }
+        public string OwnerName { get; set; }
+        public string OwnerEmail { get; set; }
+        public string OwnerOrganization { get; set; }
+
         public List<String> KeywordsTheme { get; set; }
 
         public string TopicCategory { get; set; }
