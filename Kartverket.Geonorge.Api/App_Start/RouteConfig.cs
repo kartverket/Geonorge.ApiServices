@@ -13,6 +13,11 @@ namespace Kartverket.Geonorge.Api
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
 
+            routes.MapRoute("SignIn", "SignIn", new { controller = "Home", action = "SignIn" });
+            routes.MapRoute("SignOut", "SignOut", new { controller = "Home", action = "SignOut" });
+            // authentication - openid connect 
+            routes.MapRoute("OIDC-callback-signout", "signout-callback-oidc", new { controller = "Home", action = "SignOutCallback" });
+
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",

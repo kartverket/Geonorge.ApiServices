@@ -13,7 +13,7 @@ namespace Kartverket.Geonorge.Api.Services
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        string geoNetworkendPoint = "srv/nor/csw-dataset?";
+        //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
         GeoNorge geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
 
@@ -93,7 +93,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         public SearchResultsType GetDatasets()
         {
-            GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"] + geoNetworkendPoint);
+            GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
             var filters = new object[]

@@ -36,7 +36,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             return Content(HttpStatusCode.OK, uuid);
         }
 
-
+        [Obsolete]
         [Route("metadata-json-schema")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]

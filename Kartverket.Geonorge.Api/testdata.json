@@ -1,0 +1,52 @@
+{
+  "title": "Tittel",
+  "description": "Beskrivelse",
+  "contactName": "Dag O",
+  "contactEmail": "post@norgedigitalt.no",
+  "contactOrganization": "Kartverket",
+  "publisherName": "Dag Olav",
+  "publisherEmail": "post@norgedigitalt.no",
+  "publisherOrganization": "Kartverket",
+  "ownerName": "Dag",
+  "ownerEmail": "post@norgedigitalt.no",
+  "ownerOrganization": "Kartverket",
+  "keywordsTheme": [ "ABAS", "Fylkesgrenser" ],
+  "topicCategory": "boundaries",
+  "keywordsNationalTheme": [ "Basis geodata" ],
+  "securityConstraints": "restricted",
+  "accessConstraints": "norway digital restricted",
+  "accessConstraintsLink": "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d",
+  "referenceSystems": [
+    {
+      "coordinateSystem": "23032"
+    },
+    {
+      "coordinateSystem": "3855"
+    }
+  ],
+  "spatialRepresentation": "vector",
+  "dateOfCreation": "2025-01-27",
+  "dateUpdated": "2025-01-28",
+  "dateMetadataValidFrom": "2025-01-28",
+  "dateMetadataValidTo": "2025-02-05",
+  "distributionsFormats": [
+    {
+      "organization": "Kartverket",
+      "protocol": "GEONORGE:DOWNLOAD",
+      "uRL": "https://nedlasting.geonorge.no/api/capabilities/",
+      "formatName": "GML"
+    },
+    {
+      "organization": "Kartverket",
+      "protocol": "WWW:DOWNLOAD-1.0-http--download",
+      "uRL": "https://geonorge.no/",
+      "formatName": "PDF"
+    }
+  ],
+  "otherConstraintsLink": "https://creativecommons.org/licenses/by/4.0/",
+  "otherConstraintsLinkText": "Creative Commons BY 4.0 (CC BY 4.0)",
+  "boundingBoxEast": "32.00",
+  "boundingBoxWest": "4.00",
+  "boundingBoxNorth": "72.00",
+  "boundingBoxSouth": "57.00"
+}

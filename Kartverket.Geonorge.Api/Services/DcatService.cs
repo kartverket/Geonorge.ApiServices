@@ -15,6 +15,7 @@ using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System.Data;
 using System.Web.UI.WebControls;
+using IHttpClientFactory = Kartverket.Geonorge.Utilities.Organization.IHttpClientFactory;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -47,7 +48,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsLocn = "http://www.w3.org/ns/locn#";
         const string xmlnsGml = "http://www.opengis.net/gml";
 
-        string geoNetworkendPoint = "srv/nor/csw-dataset?";
+        //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
         string kartkatalogenUrl = WebConfigurationManager.AppSettings["KartkatalogenUrl"];
 
