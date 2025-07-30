@@ -47,6 +47,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
         const string xmlnsLocn = "http://www.w3.org/ns/locn#";
         const string xmlnsGml = "http://www.opengis.net/gml";
+        const string xmlnsDcatAp = "http://data.europa.eu/r5r/";
 
         //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -249,7 +250,7 @@ namespace Kartverket.Geonorge.Api.Services
                         landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
                         dataset.AppendChild(landingPage);
 
-                        foreach (var keyword in data.Keywords)
+                    foreach (var keyword in data.Keywords)
                         {
 
                             XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
@@ -259,9 +260,31 @@ namespace Kartverket.Geonorge.Api.Services
 
                         }
 
-                        //Place
-                        // URI for the geographic identifier
-                        var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+                    //High value dataset
+                    var highValueDatasetCategories = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_HIGHVALUE_DATASET);
+
+                    if (highValueDatasetCategories != null && highValueDatasetCategories.Count > 0) 
+                    { 
+                        foreach (var highValueDatasetCategory in highValueDatasetCategories)
+                        {
+                            var aboutHighValueDatasetCategory = highValueDatasetCategory.KeywordLink;
+
+                            if (!string.IsNullOrEmpty(aboutHighValueDatasetCategory))
+                            {
+                                XmlElement datasetHighValueCategory = doc.CreateElement("dcatap", "hvdCategory", xmlnsDcatAp);
+                                datasetHighValueCategory.SetAttribute("resource", xmlnsRdf, aboutHighValueDatasetCategory);
+                                dataset.AppendChild(datasetHighValueCategory);
+                            }
+                        }
+
+                        XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                        applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                        dataset.AppendChild(applicableLegislation);
+                    }
+
+                    //Place
+                    // URI for the geographic identifier
+                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
 
                         foreach (var place in places)
                         {
@@ -1133,6 +1156,7 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:owl", xmlnsOwl);
             root.SetAttribute("xmlns:locn", xmlnsLocn);
             root.SetAttribute("xmlns:gml", xmlnsGml);
+            root.SetAttribute("xmlns:dcatap", xmlnsDcatAp);
 
             doc.AppendChild(root);
             return root;
@@ -1155,62 +1179,62 @@ namespace Kartverket.Geonorge.Api.Services
             GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
-            var filters = new object[]
-                      {
-
-                    new BinaryLogicOpType()
-                        {
-                            Items = new object[]
-                                {
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "dataset" }}
-                                    },
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "series" }}
-                                    }
-                                },
-
-                                ItemsElementName = new ItemsChoiceType22[]
-                                    {
-                                        ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
-                                    }
-                        },
-
-                      };
-
-            var filterNames = new ItemsChoiceType23[]
-                {
-                    ItemsChoiceType23.Or
-                };
-
-            //test use only 1 dataset todo remove
-            //string searchString = "d1fe81f9-27a5-449c-9b47-9553a895aa09";
             //var filters = new object[]
-            //{
-            //            new PropertyIsLikeType
-            //                {
-            //                    escapeChar = "\\",
-            //                    singleChar = "_",
-            //                    wildCard = "*",
-            //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-            //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
-            //                }
-            //};
+            //          {
+
+            //        new BinaryLogicOpType()
+            //            {
+            //                Items = new object[]
+            //                    {
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
+            //                        },
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "series" }}
+            //                        }
+            //                    },
+
+            //                    ItemsElementName = new ItemsChoiceType22[]
+            //                        {
+            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+            //                        }
+            //            },
+
+            //          };
 
             //var filterNames = new ItemsChoiceType23[]
-            //{
-            //            ItemsChoiceType23.PropertyIsLike,
-            //};
+            //    {
+            //        ItemsChoiceType23.Or
+            //    };
+
+            //test use only 1 dataset todo remove
+            string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
+            var filters = new object[]
+            {
+                        new PropertyIsLikeType
+                            {
+                                escapeChar = "\\",
+                                singleChar = "_",
+                                wildCard = "*",
+                                PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+                                Literal = new LiteralType {Text = new[] {searchString}}
+                            }
+            };
+
+            var filterNames = new ItemsChoiceType23[]
+            {
+                        ItemsChoiceType23.PropertyIsLike,
+            };
 
 
             var stopwatch = new Stopwatch();
