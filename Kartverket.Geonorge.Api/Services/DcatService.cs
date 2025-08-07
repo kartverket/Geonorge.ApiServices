@@ -643,18 +643,18 @@ namespace Kartverket.Geonorge.Api.Services
                             foreach (var distro in data.DistributionsFormats)
                             {
 
-                                if(string.IsNullOrEmpty(distro.Name))
-                                    distro.Name = "ZIP";
+                                if(string.IsNullOrEmpty(distro.FormatName))
+                                    distro.FormatName = "ZIP";
 
-                                if (!string.IsNullOrEmpty(distro.Name) && !distributionFormats.Contains(distro.Name))
+                                if (!string.IsNullOrEmpty(distro.FormatName) && !distributionFormats.Contains(distro.FormatName))
                                 {
                                     //Map distribution to dataset
                                     XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
                                     dataset.AppendChild(distributionDataset);
 
                                     XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
                                     root.AppendChild(distribution);
 
                                     XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
@@ -668,21 +668,21 @@ namespace Kartverket.Geonorge.Api.Services
                                     distribution.AppendChild(distributionDescription);
 
                                     XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                    if (FormatUrls.ContainsKey(distro.Name))
+                                    if (FormatUrls.ContainsKey(distro.FormatName))
                                     {
-                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
                                     }
                                     else
                                     {
                                         distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
+                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.FormatName;
                                     }
                                     distribution.AppendChild(distributionFormat);
 
                                     XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                    if (MediaTypes.ContainsKey(distro.Name))
+                                    if (MediaTypes.ContainsKey(distro.FormatName))
                                     {
-                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.FormatName]);
                                     }
                                     else
                                     {
@@ -710,7 +710,7 @@ namespace Kartverket.Geonorge.Api.Services
                                     //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
                                     //distribution.AppendChild(distributionStatus);
 
-                                    distributionFormats.Add(distro.Name);
+                                    distributionFormats.Add(distro.FormatName);
                                 }
                                 // Dataset distributions
                                 AddDistributions(uuid, dataset, data, services);
