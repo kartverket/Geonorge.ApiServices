@@ -700,6 +700,13 @@ namespace Kartverket.Geonorge.Api.Services
                                     
                                     distribution.AppendChild(distributionAccessURL);
 
+                                    if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download")) 
+                                    {
+                                        XmlElement downloadURL = doc.CreateElement("dcat", "downloadURL", xmlnsDcat);
+                                        downloadURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                        distribution.AppendChild(downloadURL);
+                                    }
+
                                     XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
                                     if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
                                         distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
