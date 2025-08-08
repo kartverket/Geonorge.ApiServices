@@ -59,64 +59,64 @@
 
 <!-- Norske tema - geonorge -->
 
-<skos:ConceptScheme rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling">
+<skos:ConceptScheme rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling">
   <dct:title xml:lang="no">Nasjonal temainndeling for geografiske data</dct:title>
 </skos:ConceptScheme>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/basis-geodata">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/basis-geodata">
   <skos:prefLabel xml:lang="no">Basis geodata</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/befolkning">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/befolkning">
   <skos:prefLabel xml:lang="no">Befolkning</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/energi">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/energi">
   <skos:prefLabel xml:lang="no">Energi</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/forurensning">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/forurensning">
   <skos:prefLabel xml:lang="no">Forurensning</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/friluftsliv">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/friluftsliv">
   <skos:prefLabel xml:lang="no">Friluftsliv</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/geologi">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/geologi">
   <skos:prefLabel xml:lang="no">Geologi</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/kulturminner">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/kulturminner">
   <skos:prefLabel xml:lang="no">Kulturminner</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/kyst-og-fiskeri">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/kyst-og-fiskeri">
   <skos:prefLabel xml:lang="no">Kyst og fiskeri</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/landbruk">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/landbruk">
   <skos:prefLabel xml:lang="no">Landbruk</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/landskap">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/landskap">
   <skos:prefLabel xml:lang="no">Landskap</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/natur">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/natur">
   <skos:prefLabel xml:lang="no">Natur</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/plan">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/plan">
   <skos:prefLabel xml:lang="no">Plan</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/samferdsel">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/samferdsel">
   <skos:prefLabel xml:lang="no">Samferdsel</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
-<skos:Concept rdf:about="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling/kartverket/samfunnssikkerhet">
+<skos:Concept rdf:about="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling/samfunnssikkerhet">
   <skos:prefLabel xml:lang="no">Samfunnssikkerhet</skos:prefLabel>
-  <skos:inScheme  rdf:resource="https://register.geonorge.no/subregister/metadata-kodelister/kartverket/nasjonal-temainndeling"/>
+  <skos:inScheme  rdf:resource="https://register.geonorge.no/metadata-kodelister/nasjonal-temainndeling"/>
 </skos:Concept>
 </rdf:RDF>
 
