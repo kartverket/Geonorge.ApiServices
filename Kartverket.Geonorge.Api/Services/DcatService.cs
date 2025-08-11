@@ -47,6 +47,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
         const string xmlnsLocn = "http://www.w3.org/ns/locn#";
         const string xmlnsGml = "http://www.opengis.net/gml";
+        const string xmlnsDcatAp = "http://data.europa.eu/r5r/";
 
         //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -249,7 +250,7 @@ namespace Kartverket.Geonorge.Api.Services
                         landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
                         dataset.AppendChild(landingPage);
 
-                        foreach (var keyword in data.Keywords)
+                    foreach (var keyword in data.Keywords)
                         {
 
                             XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
@@ -259,9 +260,31 @@ namespace Kartverket.Geonorge.Api.Services
 
                         }
 
-                        //Place
-                        // URI for the geographic identifier
-                        var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+                    //High value dataset
+                    var highValueDatasetCategories = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_HIGHVALUE_DATASET);
+
+                    if (highValueDatasetCategories != null && highValueDatasetCategories.Count > 0) 
+                    { 
+                        foreach (var highValueDatasetCategory in highValueDatasetCategories)
+                        {
+                            var aboutHighValueDatasetCategory = highValueDatasetCategory.KeywordLink;
+
+                            if (!string.IsNullOrEmpty(aboutHighValueDatasetCategory))
+                            {
+                                XmlElement datasetHighValueCategory = doc.CreateElement("dcatap", "hvdCategory", xmlnsDcatAp);
+                                datasetHighValueCategory.SetAttribute("resource", xmlnsRdf, aboutHighValueDatasetCategory);
+                                dataset.AppendChild(datasetHighValueCategory);
+                            }
+                        }
+
+                        XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                        applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                        dataset.AppendChild(applicableLegislation);
+                    }
+
+                    //Place
+                    // URI for the geographic identifier
+                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
 
                         foreach (var place in places)
                         {
@@ -1140,6 +1163,7 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:owl", xmlnsOwl);
             root.SetAttribute("xmlns:locn", xmlnsLocn);
             root.SetAttribute("xmlns:gml", xmlnsGml);
+            root.SetAttribute("xmlns:dcatap", xmlnsDcatAp);
 
             doc.AppendChild(root);
             return root;
@@ -1201,7 +1225,7 @@ namespace Kartverket.Geonorge.Api.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "d1fe81f9-27a5-449c-9b47-9553a895aa09";
+            //string searchString = "9e419f66-f5d4-43e0-b01b-59d6c36b607c";
             //var filters = new object[]
             //{
             //            new PropertyIsLikeType
@@ -1210,7 +1234,7 @@ namespace Kartverket.Geonorge.Api.Services
             //                    singleChar = "_",
             //                    wildCard = "*",
             //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-            //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
+            //                    Literal = new LiteralType {Text = new[] {searchString}}
             //                }
             //};
 
