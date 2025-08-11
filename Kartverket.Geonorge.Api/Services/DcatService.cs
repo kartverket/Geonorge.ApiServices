@@ -47,6 +47,7 @@ namespace Kartverket.Geonorge.Api.Services
         const string xmlnsOwl = "http://www.w3.org/2002/07/owl#";
         const string xmlnsLocn = "http://www.w3.org/ns/locn#";
         const string xmlnsGml = "http://www.opengis.net/gml";
+        const string xmlnsDcatAp = "http://data.europa.eu/r5r/";
 
         //string geoNetworkendPoint = "srv/nor/csw-dataset?";
 
@@ -214,10 +215,10 @@ namespace Kartverket.Geonorge.Api.Services
                     MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                     var data = new SimpleMetadata(md);
 
-                    //if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
-                    //    && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
-                    //    data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                    //{
+                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
+                        && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
+                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                    {
                         Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
                         //Map dataset to catalog
@@ -249,7 +250,7 @@ namespace Kartverket.Geonorge.Api.Services
                         landingPage.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
                         dataset.AppendChild(landingPage);
 
-                        foreach (var keyword in data.Keywords)
+                    foreach (var keyword in data.Keywords)
                         {
 
                             XmlElement datasetKeyword = doc.CreateElement("dcat", "keyword", xmlnsDcat);
@@ -259,9 +260,31 @@ namespace Kartverket.Geonorge.Api.Services
 
                         }
 
-                        //Place
-                        // URI for the geographic identifier
-                        var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
+                    //High value dataset
+                    var highValueDatasetCategories = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_HIGHVALUE_DATASET);
+
+                    if (highValueDatasetCategories != null && highValueDatasetCategories.Count > 0) 
+                    { 
+                        foreach (var highValueDatasetCategory in highValueDatasetCategories)
+                        {
+                            var aboutHighValueDatasetCategory = highValueDatasetCategory.KeywordLink;
+
+                            if (!string.IsNullOrEmpty(aboutHighValueDatasetCategory))
+                            {
+                                XmlElement datasetHighValueCategory = doc.CreateElement("dcatap", "hvdCategory", xmlnsDcatAp);
+                                datasetHighValueCategory.SetAttribute("resource", xmlnsRdf, aboutHighValueDatasetCategory);
+                                dataset.AppendChild(datasetHighValueCategory);
+                            }
+                        }
+
+                        XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                        applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                        dataset.AppendChild(applicableLegislation);
+                    }
+
+                    //Place
+                    // URI for the geographic identifier
+                    var places = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_ADMIN_UNITS);
 
                         foreach (var place in places)
                         {
@@ -643,18 +666,18 @@ namespace Kartverket.Geonorge.Api.Services
                             foreach (var distro in data.DistributionsFormats)
                             {
 
-                                if(string.IsNullOrEmpty(distro.Name))
-                                    distro.Name = "ZIP";
+                                if(string.IsNullOrEmpty(distro.FormatName))
+                                    distro.FormatName = "ZIP";
 
-                                if (!string.IsNullOrEmpty(distro.Name) && !distributionFormats.Contains(distro.Name))
+                                if (!string.IsNullOrEmpty(distro.FormatName) && !distributionFormats.Contains(distro.FormatName))
                                 {
                                     //Map distribution to dataset
                                     XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
                                     dataset.AppendChild(distributionDataset);
 
                                     XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Name));
+                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
                                     root.AppendChild(distribution);
 
                                     XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
@@ -668,21 +691,21 @@ namespace Kartverket.Geonorge.Api.Services
                                     distribution.AppendChild(distributionDescription);
 
                                     XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                    if (FormatUrls.ContainsKey(distro.Name))
+                                    if (FormatUrls.ContainsKey(distro.FormatName))
                                     {
-                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.Name]);
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
                                     }
                                     else
                                     {
                                         distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.Name;
+                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.FormatName;
                                     }
                                     distribution.AppendChild(distributionFormat);
 
                                     XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                    if (MediaTypes.ContainsKey(distro.Name))
+                                    if (MediaTypes.ContainsKey(distro.FormatName))
                                     {
-                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.Name]);
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.FormatName]);
                                     }
                                     else
                                     {
@@ -700,6 +723,13 @@ namespace Kartverket.Geonorge.Api.Services
                                     
                                     distribution.AppendChild(distributionAccessURL);
 
+                                    if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download")) 
+                                    {
+                                        XmlElement downloadURL = doc.CreateElement("dcat", "downloadURL", xmlnsDcat);
+                                        downloadURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                        distribution.AppendChild(downloadURL);
+                                    }
+
                                     XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
                                     if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
                                         distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
@@ -710,14 +740,14 @@ namespace Kartverket.Geonorge.Api.Services
                                     //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
                                     //distribution.AppendChild(distributionStatus);
 
-                                    distributionFormats.Add(distro.Name);
+                                    distributionFormats.Add(distro.FormatName);
                                 }
                                 // Dataset distributions
                                 AddDistributions(uuid, dataset, data, services);
                             }
 
                         }
-                    //}
+                    }
 
                 }
                 catch (Exception e)
@@ -1133,6 +1163,7 @@ namespace Kartverket.Geonorge.Api.Services
             root.SetAttribute("xmlns:owl", xmlnsOwl);
             root.SetAttribute("xmlns:locn", xmlnsLocn);
             root.SetAttribute("xmlns:gml", xmlnsGml);
+            root.SetAttribute("xmlns:dcatap", xmlnsDcatAp);
 
             doc.AppendChild(root);
             return root;
@@ -1155,62 +1186,62 @@ namespace Kartverket.Geonorge.Api.Services
             GeoNorge _geoNorge = new GeoNorge("", "", WebConfigurationManager.AppSettings["GeoNetworkUrl"]);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
-            var filters = new object[]
-                      {
-
-                    new BinaryLogicOpType()
-                        {
-                            Items = new object[]
-                                {
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "dataset" }}
-                                    },
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "series" }}
-                                    }
-                                },
-
-                                ItemsElementName = new ItemsChoiceType22[]
-                                    {
-                                        ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
-                                    }
-                        },
-
-                      };
-
-            var filterNames = new ItemsChoiceType23[]
-                {
-                    ItemsChoiceType23.Or
-                };
-
-            //test use only 1 dataset todo remove
-            //string searchString = "d1fe81f9-27a5-449c-9b47-9553a895aa09";
             //var filters = new object[]
-            //{
-            //            new PropertyIsLikeType
-            //                {
-            //                    escapeChar = "\\",
-            //                    singleChar = "_",
-            //                    wildCard = "*",
-            //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-            //                    Literal = new LiteralType {Text = new[] {"%" + searchString + "%"}}
-            //                }
-            //};
+            //          {
+
+            //        new BinaryLogicOpType()
+            //            {
+            //                Items = new object[]
+            //                    {
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
+            //                        },
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "series" }}
+            //                        }
+            //                    },
+
+            //                    ItemsElementName = new ItemsChoiceType22[]
+            //                        {
+            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+            //                        }
+            //            },
+
+            //          };
 
             //var filterNames = new ItemsChoiceType23[]
-            //{
-            //            ItemsChoiceType23.PropertyIsLike,
-            //};
+            //    {
+            //        ItemsChoiceType23.Or
+            //    };
+
+            //test use only 1 dataset todo remove
+            string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
+            var filters = new object[]
+            {
+                        new PropertyIsLikeType
+                            {
+                                escapeChar = "\\",
+                                singleChar = "_",
+                                wildCard = "*",
+                                PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+                                Literal = new LiteralType {Text = new[] {searchString}}
+                            }
+            };
+
+            var filterNames = new ItemsChoiceType23[]
+            {
+                        ItemsChoiceType23.PropertyIsLike,
+            };
 
 
             var stopwatch = new Stopwatch();
