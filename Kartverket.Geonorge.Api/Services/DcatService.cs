@@ -263,7 +263,9 @@ namespace Kartverket.Geonorge.Api.Services
                     //High value dataset
                     var highValueDatasetCategories = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_HIGHVALUE_DATASET);
 
-                    if (highValueDatasetCategories != null && highValueDatasetCategories.Count > 0) 
+                    bool hasHighValueDataset = highValueDatasetCategories != null && highValueDatasetCategories.Count > 0;
+
+                    if (hasHighValueDataset) 
                     { 
                         foreach (var highValueDatasetCategory in highValueDatasetCategories)
                         {
@@ -735,10 +737,18 @@ namespace Kartverket.Geonorge.Api.Services
                                         distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                     distribution.AppendChild(distributionLicense);
 
-                                    //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
-                                    //if (!string.IsNullOrEmpty(data.Status))
-                                    //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
-                                    //distribution.AppendChild(distributionStatus);
+                                //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+                                //if (!string.IsNullOrEmpty(data.Status))
+                                //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
+                                //distribution.AppendChild(distributionStatus);
+
+                                if (hasHighValueDataset) {
+
+                                    XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                                    applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                                    distribution.AppendChild(applicableLegislation);
+
+                                }
 
                                     distributionFormats.Add(distro.FormatName);
                                 }
