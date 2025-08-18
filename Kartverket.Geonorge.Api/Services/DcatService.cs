@@ -215,10 +215,10 @@ namespace Kartverket.Geonorge.Api.Services
                     MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                     var data = new SimpleMetadata(md);
 
-                    if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
-                        && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
-                        data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                    {
+                    //if (data.DistributionFormats != null && data.DistributionFormats.Count > 0
+                    //    && !string.IsNullOrEmpty(data.DistributionFormats[0].Name) &&
+                    //    data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
+                    //{
                         Log.Info($"Processing dataset: [title={data.Title}], [uuid={uuid}]");
 
                         //Map dataset to catalog
@@ -263,7 +263,9 @@ namespace Kartverket.Geonorge.Api.Services
                     //High value dataset
                     var highValueDatasetCategories = SimpleKeyword.Filter(data.Keywords, null, SimpleKeyword.THESAURUS_HIGHVALUE_DATASET);
 
-                    if (highValueDatasetCategories != null && highValueDatasetCategories.Count > 0) 
+                    bool hasHighValueDataset = highValueDatasetCategories != null && highValueDatasetCategories.Count > 0;
+
+                    if (hasHighValueDataset) 
                     { 
                         foreach (var highValueDatasetCategory in highValueDatasetCategories)
                         {
@@ -735,10 +737,18 @@ namespace Kartverket.Geonorge.Api.Services
                                         distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                     distribution.AppendChild(distributionLicense);
 
-                                    //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
-                                    //if (!string.IsNullOrEmpty(data.Status))
-                                    //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
-                                    //distribution.AppendChild(distributionStatus);
+                                //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+                                //if (!string.IsNullOrEmpty(data.Status))
+                                //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
+                                //distribution.AppendChild(distributionStatus);
+
+                                if (hasHighValueDataset) {
+
+                                    XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                                    applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                                    distribution.AppendChild(applicableLegislation);
+
+                                }
 
                                     distributionFormats.Add(distro.FormatName);
                                 }
@@ -747,7 +757,7 @@ namespace Kartverket.Geonorge.Api.Services
                             }
 
                         }
-                    }
+                    //}
 
                 }
                 catch (Exception e)
