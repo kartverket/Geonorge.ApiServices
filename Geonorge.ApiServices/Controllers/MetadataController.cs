@@ -1,19 +1,9 @@
 ﻿using Kartverket.Geonorge.Api.Models;
 using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Download;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Net.Http.Formatting;
-using System.Net.Http.Headers;
-using System.Net.Mime;
-using System.Threading.Tasks;
-using System.Web.Http;
-using System.Web.Http.Description;
-using System.Web.Http.Results;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
@@ -34,7 +24,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         public async Task<IActionResult> UpdateFair(string uuid, string result)
         {
             await _metadataService.UpdateMetadataFair(uuid, result);
-            return Content(HttpStatusCode.OK, uuid);
+            return StatusCode((int)HttpStatusCode.OK, uuid);
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
@@ -44,7 +34,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         public async Task<IActionResult> InsertMetadata(MetadataModel metadata)
         {
             var uuid = await _metadataService.InsertMetadata(metadata);
-            return Content(HttpStatusCode.Created, uuid);
+            return StatusCode((int)HttpStatusCode.Created, uuid);
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
@@ -54,7 +44,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         public async Task<IActionResult> UpdateMetadata(string uuid, MetadataModel model)
         {
             await _metadataService.UpdateMetadata(uuid, model);
-            return Content(HttpStatusCode.OK, uuid);
+            return StatusCode((int)HttpStatusCode.OK, uuid);
         }
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
@@ -64,7 +54,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         public async Task<IActionResult> DeleteMetadata(string uuid)
         {
             await _metadataService.DeleteMetadata(uuid);
-            return Content(HttpStatusCode.Gone, uuid);
+            return StatusCode((int)HttpStatusCode.Gone, uuid);
         }
     }
 }

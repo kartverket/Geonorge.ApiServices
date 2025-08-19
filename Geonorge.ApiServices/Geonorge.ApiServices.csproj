@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="GeoNorgeAPI" Version="3.8.3" />
+    <PackageReference Include="Kartverket.Geonorge.Utilities" Version="1.0.62" />
     <PackageReference Include="log4net" Version="3.1.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
   </ItemGroup>

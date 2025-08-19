@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
-using System.Web.Configuration;
 using System.Xml;
 using www.opengis.net;
 using Kartverket.Geonorge.Api.Models;
@@ -25,13 +24,12 @@ namespace Kartverket.Geonorge.Api.Services
     public interface IMetadataService
     {
         Task DeleteMetadata(string uuid);
-        object GetSchema();
         Task<string> InsertMetadata(MetadataModel model);
         Task UpdateMetadata(string uuid, MetadataModel model);
         Task UpdateMetadataFair(string uuid, string result);
     }
 
-    public class MetadataService : IMetadataService
+    public class MetadataService(IConfiguration settings) : IMetadataService
     {
         private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private static readonly HttpClient HttpClient = new HttpClient();
@@ -41,7 +39,6 @@ namespace Kartverket.Geonorge.Api.Services
             SimpleMetadata metadata = null;
             try
             {
-                System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
                 string server = settings["GeoNetworkUrl"];
                 string usernameGeonetwork = settings["GeoNetworkUsername"];
                 string password = settings["GeoNetworkPassword"];
@@ -195,7 +192,6 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task DeleteMetadata(string uuid)
         {
-            System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
             string server = settings["GeoNetworkUrl"];
             string usernameGeonetwork = settings["GeoNetworkUsername"];
             string password = settings["GeoNetworkPassword"];
@@ -213,7 +209,6 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task UpdateMetadata(string uuid, MetadataModel model)
         {
-            System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
             string server = settings["GeoNetworkUrl"];
             string usernameGeonetwork = settings["GeoNetworkUsername"];
             string password = settings["GeoNetworkPassword"];
@@ -237,7 +232,6 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task UpdateMetadataFair(string uuid, string result)
         {
-            System.Collections.Specialized.NameValueCollection settings = System.Web.Configuration.WebConfigurationManager.AppSettings;
             string server = settings["GeoNetworkUrl"];
             string usernameGeonetwork = settings["GeoNetworkUsername"];
             string password = settings["GeoNetworkPassword"];
@@ -398,19 +392,6 @@ namespace Kartverket.Geonorge.Api.Services
             SetDefaultValuesOnMetadata(metadata);
 
             
-        }
-
-        public object GetSchema()
-        {
-            var json = "";
-            using (StreamReader r = new StreamReader(System.Web.Hosting.HostingEnvironment.MapPath("~/schema.json")))
-            {
-                json = r.ReadToEnd();
-            }
-
-            var output = JObject.Parse(json);
-
-            return output;
         }
     }
 
