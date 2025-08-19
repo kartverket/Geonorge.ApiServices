@@ -18,6 +18,8 @@ using System.Web.Http;
 using Newtonsoft.Json;
 using System.IO;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -29,9 +31,17 @@ namespace Kartverket.Geonorge.Api.Services
         Task UpdateMetadataFair(string uuid, string result);
     }
 
-    public class MetadataService(IConfiguration settings) : IMetadataService
+    public class MetadataService : IMetadataService
     {
-        private static readonly log4net.ILog Log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private readonly ILogger<MetadataService> _logger;
+        private readonly IConfiguration _settings;
+
+        public MetadataService(IConfiguration settings, ILogger<MetadataService> logger)
+        {
+            _settings = settings;
+            _logger = logger;
+        }
+
         private static readonly HttpClient HttpClient = new HttpClient();
 
         public Task<string> InsertMetadata(MetadataModel model)
@@ -39,10 +49,10 @@ namespace Kartverket.Geonorge.Api.Services
             SimpleMetadata metadata = null;
             try
             {
-                string server = settings["GeoNetworkUrl"];
-                string usernameGeonetwork = settings["GeoNetworkUsername"];
-                string password = settings["GeoNetworkPassword"];
-                string geonorgeUsername = settings["GeonorgeUsername"];
+                string server = _settings["GeoNetworkUrl"];
+                string usernameGeonetwork = _settings["GeoNetworkUsername"];
+                string password = _settings["GeoNetworkPassword"];
+                string geonorgeUsername = _settings["GeonorgeUsername"];
 
 
                 GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);
@@ -153,7 +163,7 @@ namespace Kartverket.Geonorge.Api.Services
             }
             catch (Exception ex)
             {
-                Log.Error("Error inserting metadata uuid: " + metadata.Uuid + ", error: " + ex);
+                _logger.LogError("Error inserting metadata uuid: " + metadata.Uuid + ", error: " + ex);
             }
 
             return Task.FromResult(metadata.Uuid);
@@ -171,12 +181,12 @@ namespace Kartverket.Geonorge.Api.Services
         private void LogEventsDebug(string log)
         {
 
-            Log.Debug(log);
+            _logger.LogDebug(log);
         }
 
         private void LogEventsError(string log, Exception ex)
         {
-            Log.Error(log, ex);
+            _logger.LogError(log, ex);
         }
 
         public Dictionary<string, string> CreateAdditionalHeadersWithUsername(string username, string published = "")
@@ -192,10 +202,10 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task DeleteMetadata(string uuid)
         {
-            string server = settings["GeoNetworkUrl"];
-            string usernameGeonetwork = settings["GeoNetworkUsername"];
-            string password = settings["GeoNetworkPassword"];
-            string geonorgeUsername = settings["GeonorgeUsername"];
+            string server = _settings["GeoNetworkUrl"];
+            string usernameGeonetwork = _settings["GeoNetworkUsername"];
+            string password = _settings["GeoNetworkPassword"];
+            string geonorgeUsername = _settings["GeonorgeUsername"];
 
 
             GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);
@@ -204,15 +214,17 @@ namespace Kartverket.Geonorge.Api.Services
 
             var respons = _geoNorge.MetadataDelete(uuid, CreateAdditionalHeadersWithUsername(geonorgeUsername));
 
+            _logger.LogInformation("Metadata with uuid: {Uuid} deleted. Response: {Response}", uuid, respons);
+
             return Task.CompletedTask;
         }
 
         public Task UpdateMetadata(string uuid, MetadataModel model)
         {
-            string server = settings["GeoNetworkUrl"];
-            string usernameGeonetwork = settings["GeoNetworkUsername"];
-            string password = settings["GeoNetworkPassword"];
-            string geonorgeUsername = settings["GeonorgeUsername"];
+            string server = _settings["GeoNetworkUrl"];
+            string usernameGeonetwork = _settings["GeoNetworkUsername"];
+            string password = _settings["GeoNetworkPassword"];
+            string geonorgeUsername = _settings["GeonorgeUsername"];
 
 
             GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);
@@ -232,10 +244,10 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task UpdateMetadataFair(string uuid, string result)
         {
-            string server = settings["GeoNetworkUrl"];
-            string usernameGeonetwork = settings["GeoNetworkUsername"];
-            string password = settings["GeoNetworkPassword"];
-            string geonorgeUsername = settings["GeonorgeUsername"];
+            string server = _settings["GeoNetworkUrl"];
+            string usernameGeonetwork = _settings["GeoNetworkUsername"];
+            string password = _settings["GeoNetworkPassword"];
+            string geonorgeUsername = _settings["GeonorgeUsername"];
 
 
             GeoNorge _geoNorge = new GeoNorge(usernameGeonetwork, password, server);

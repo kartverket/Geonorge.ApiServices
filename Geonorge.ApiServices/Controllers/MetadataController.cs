@@ -47,7 +47,7 @@ namespace Kartverket.Geonorge.Api.Controllers
             return StatusCode((int)HttpStatusCode.OK, uuid);
         }
 
-        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
+        //[Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication/{uuid}")]
         [HttpDelete]
         [ApiExplorerSettings(IgnoreApi = true)]

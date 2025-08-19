@@ -1,6 +1,15 @@
 using Kartverket.Geonorge.Api.Services;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Setup Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // Add services to the container.
 
