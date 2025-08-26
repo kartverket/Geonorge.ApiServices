@@ -151,12 +151,16 @@ namespace Kartverket.Geonorge.Api.Services
 
                 SetDefaultValuesOnMetadata(metadata);
 
-                _geoNorge.MetadataInsert(metadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername));
+               var result = _geoNorge.MetadataInsert(metadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername));
+
+                if (result.TotalInserted == "0")
+                    throw new Exception("Kunne ikke lagre endringene");
 
             }
             catch (Exception ex)
             {
                 Log.Error("Error inserting metadata uuid: " + metadata.Uuid + ", error: " + ex);
+                throw new Exception("Kunne ikke lagre endringene, " + ex);
             }
 
             return Task.FromResult(metadata.Uuid);
