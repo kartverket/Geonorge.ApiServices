@@ -7,7 +7,7 @@ using System.Net;
 
 namespace Kartverket.Geonorge.Api.Controllers
 {
-    [ApiExplorerSettings(IgnoreApi = true)]
+    //[ApiExplorerSettings(IgnoreApi = true)]
     public class MetadataController : ControllerBase
     {
         private readonly IMetadataService _metadataService;
@@ -30,7 +30,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication")]
         [HttpPost]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        //[ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> InsertMetadata(MetadataModel metadata)
         {
             var uuid = await _metadataService.InsertMetadata(metadata);
@@ -40,7 +40,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication/{uuid}")]
         [HttpPut]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        //[ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> UpdateMetadata(string uuid, MetadataModel model)
         {
             await _metadataService.UpdateMetadata(uuid, model);
@@ -50,7 +50,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication/{uuid}")]
         [HttpDelete]
-        [ApiExplorerSettings(IgnoreApi = true)]
+        //[ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> DeleteMetadata(string uuid)
         {
             await _metadataService.DeleteMetadata(uuid);
