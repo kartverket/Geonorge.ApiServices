@@ -47,6 +47,8 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddScoped<IMetadataService, MetadataService>();
 builder.Services.AddScoped<IDcatService, DcatService>();
+builder.Services.AddScoped<IFeedService, FeedService>();
+builder.Services.AddScoped<IAtomFeedParser, AtomFeedParser>();
 
 builder.Services.AddAuthentication("Basic")
     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", null);
