@@ -1,3 +1,4 @@
+using Geonorge.ApiServices.Services;
 using Kartverket.Geonorge.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Serilog;
@@ -45,6 +46,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddScoped<IMetadataService, MetadataService>();
+builder.Services.AddScoped<IDcatService, DcatService>();
 
 builder.Services.AddAuthentication("Basic")
     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", null);
