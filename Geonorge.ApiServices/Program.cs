@@ -45,6 +45,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IMetadataService, MetadataService>();
 builder.Services.AddScoped<IDcatService, DcatService>();
 builder.Services.AddScoped<IFeedService, FeedService>();

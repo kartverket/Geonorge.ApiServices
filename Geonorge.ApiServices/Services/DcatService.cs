@@ -23,8 +23,9 @@ namespace Geonorge.ApiServices.Services
         private readonly ILogger<DcatService> _logger;
         private readonly IConfiguration _settings;
         private readonly IWebHostEnvironment _env;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public DcatService(IConfiguration settings, ILogger<DcatService> logger, IWebHostEnvironment env)
+        public DcatService(IConfiguration settings, ILogger<DcatService> logger, IWebHostEnvironment env, IHttpClientFactory httpClientFactory)
         {
             _settings = settings;
             _logger = logger;
@@ -34,9 +35,9 @@ namespace Geonorge.ApiServices.Services
             registryUrl = _settings["RegistryUrl"];
             _organizationService = new OrganizationService(registryUrl, new HttpClientFactory());
             geoNorge = new GeoNorge("", "", geoNetworkUrl);
+            _httpClientFactory = httpClientFactory;
         }
 
-        private readonly IHttpClientFactory _httpClientFactory;
         const string xmlnsRdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
         const string xmlnsFoaf = "http://xmlns.com/foaf/0.1/";
         const string xmlnsGco = "http://www.isotc211.org/2005/gco";
@@ -80,9 +81,9 @@ namespace Geonorge.ApiServices.Services
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
 
-        public DcatService(IHttpClientFactory httpClientFactory)
+        public DcatService()
         {
-            _httpClientFactory = httpClientFactory;
+          
         }
 
         public XmlDocument GenerateDcat()
@@ -1204,62 +1205,62 @@ namespace Geonorge.ApiServices.Services
             GeoNorge _geoNorge = new GeoNorge("", "", _settings["GeoNetworkUrl"]);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
-            var filters = new object[]
-                      {
-
-                    new BinaryLogicOpType()
-                        {
-                            Items = new object[]
-                                {
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "dataset" }}
-                                    },
-                                    new PropertyIsLikeType
-                                    {
-                                        escapeChar = "\\",
-                                        singleChar = "_",
-                                        wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "series" }}
-                                    }
-                                },
-
-                                ItemsElementName = new ItemsChoiceType22[]
-                                    {
-                                        ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
-                                    }
-                        },
-
-                      };
-
-            var filterNames = new ItemsChoiceType23[]
-                {
-                    ItemsChoiceType23.Or
-                };
-
-            //test use only 1 dataset todo remove
-            //string searchString = "9e419f66-f5d4-43e0-b01b-59d6c36b607c";
             //var filters = new object[]
-            //{
-            //            new PropertyIsLikeType
-            //                {
-            //                    escapeChar = "\\",
-            //                    singleChar = "_",
-            //                    wildCard = "*",
-            //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-            //                    Literal = new LiteralType {Text = new[] {searchString}}
-            //                }
-            //};
+            //          {
+
+            //        new BinaryLogicOpType()
+            //            {
+            //                Items = new object[]
+            //                    {
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
+            //                        },
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "series" }}
+            //                        }
+            //                    },
+
+            //                    ItemsElementName = new ItemsChoiceType22[]
+            //                        {
+            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+            //                        }
+            //            },
+
+            //          };
 
             //var filterNames = new ItemsChoiceType23[]
-            //{
-            //            ItemsChoiceType23.PropertyIsLike,
-            //};
+            //    {
+            //        ItemsChoiceType23.Or
+            //    };
+
+            //test use only 1 dataset todo remove
+            string searchString = "9e419f66-f5d4-43e0-b01b-59d6c36b607c";
+            var filters = new object[]
+            {
+                        new PropertyIsLikeType
+                            {
+                                escapeChar = "\\",
+                                singleChar = "_",
+                                wildCard = "*",
+                                PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+                                Literal = new LiteralType {Text = new[] {searchString}}
+                            }
+            };
+
+            var filterNames = new ItemsChoiceType23[]
+            {
+                        ItemsChoiceType23.PropertyIsLike,
+            };
 
 
             var stopwatch = new Stopwatch();

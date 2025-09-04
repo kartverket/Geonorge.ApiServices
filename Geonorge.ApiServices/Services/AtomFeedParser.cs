@@ -12,11 +12,10 @@ namespace Geonorge.ApiServices.Services
         private readonly IConfiguration _settings;
         IAtomFeedParser _atomFeedParser;
 
-        public AtomFeedParser(IConfiguration settings, ILogger<AtomFeedParser> logger, IAtomFeedParser atomFeedParser)
+        public AtomFeedParser(IConfiguration settings, ILogger<AtomFeedParser> logger)
         {
             _settings = settings;
             _logger = logger;
-            _atomFeedParser = atomFeedParser;
         }
 
         public List<Dataset> ParseDatasets(string xml)

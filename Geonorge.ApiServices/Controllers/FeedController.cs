@@ -6,7 +6,6 @@ using System.Net;
 
 namespace Geonorge.ApiServices.Controllers
 {
-    [Route("api/[controller]")]
     [ApiExplorerSettings(IgnoreApi = true)]
     [ApiController]
     public class FeedController : ControllerBase

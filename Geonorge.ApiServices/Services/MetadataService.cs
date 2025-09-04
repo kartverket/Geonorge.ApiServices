@@ -46,6 +46,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         public Task<string> InsertMetadata(MetadataModel model)
         {
+
             SimpleMetadata metadata = null;
             try
             {
