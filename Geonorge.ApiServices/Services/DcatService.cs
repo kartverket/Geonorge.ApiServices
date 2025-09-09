@@ -171,7 +171,7 @@ namespace Geonorge.ApiServices.Services
         private void GetConcepts()
         {
             conceptsDoc = new XmlDocument();
-            conceptsDoc.Load(Path.Combine(_env.ContentRootPath, "App_Data", "Concepts.xml"));
+            conceptsDoc.Load(Path.Combine(_env.ContentRootPath, "", "Concepts.xml"));
         }
 
         private string GetConcept(string prefLabel)
