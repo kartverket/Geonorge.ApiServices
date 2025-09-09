@@ -25,7 +25,7 @@ namespace Geonorge.ApiServices.Services
         private readonly IWebHostEnvironment _env;
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public DcatService(IConfiguration settings, ILogger<DcatService> logger, IWebHostEnvironment env, IHttpClientFactory httpClientFactory)
+        public DcatService(IConfiguration settings, ILogger<DcatService> logger, IWebHostEnvironment env)
         {
             _settings = settings;
             _logger = logger;
@@ -35,7 +35,7 @@ namespace Geonorge.ApiServices.Services
             registryUrl = _settings["RegistryUrl"];
             _organizationService = new OrganizationService(registryUrl, new HttpClientFactory());
             geoNorge = new GeoNorge("", "", geoNetworkUrl);
-            _httpClientFactory = httpClientFactory;
+            _httpClientFactory = new HttpClientFactory();
         }
 
         const string xmlnsRdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
@@ -80,11 +80,6 @@ namespace Geonorge.ApiServices.Services
         Dictionary<string, string> MediaTypes;
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
-
-        public DcatService()
-        {
-          
-        }
 
         public XmlDocument GenerateDcat()
         {
