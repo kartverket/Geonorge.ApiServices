@@ -10,7 +10,6 @@ namespace Geonorge.ApiServices.Services
 
         private readonly ILogger<AtomFeedParser> _logger;
         private readonly IConfiguration _settings;
-        IAtomFeedParser _atomFeedParser;
 
         public AtomFeedParser(IConfiguration settings, ILogger<AtomFeedParser> logger)
         {
@@ -174,7 +173,7 @@ namespace Geonorge.ApiServices.Services
             {
                 var getFeedTask = HttpClient.GetStringAsync(url);
                 _logger.LogDebug("Fetch dataset files from " + url);
-                List<DatasetFile> datasetFiles = _atomFeedParser.ParseDatasetFiles(getFeedTask.Result, dataset).OrderBy(d => d.Title).ToList();
+                List<DatasetFile> datasetFiles = ParseDatasetFiles(getFeedTask.Result, dataset).OrderBy(d => d.Title).ToList();
 
                 return datasetFiles;
             }
