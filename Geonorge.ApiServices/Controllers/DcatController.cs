@@ -19,27 +19,21 @@ namespace Geonorge.ApiServices.Controllers
         /// </summary>
         [Route("metadata/dcat")]
         [HttpGet]
-        public HttpResponseMessage GetDcat()
+        public IActionResult GetDcat()
         {
             var doc = new XmlDocument();
             var filePath = Path.Combine(Directory.GetCurrentDirectory(), "dcat", "geonorge_dcat.rdf");
             doc.Load(filePath);
-            return new HttpResponseMessage
-            {
-                Content = new StringContent(doc.OuterXml, Encoding.UTF8, "application/rdf+xml")
-            };
+            return Content(doc.OuterXml, "application/rdf+xml", Encoding.UTF8);
         }
 
         [Route("metadata/updatedcat")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]
-        public HttpResponseMessage UpdateDcat()
+        public IActionResult UpdateDcat()
         {
             var dcat = _dcatService.GenerateDcat();
-            return new HttpResponseMessage
-            {
-                Content = new StringContent(dcat.OuterXml, Encoding.UTF8, "application/rdf+xml")
-            };
+            return Content(dcat.OuterXml, "application/rdf+xml", Encoding.UTF8);
         }
     }
 }
