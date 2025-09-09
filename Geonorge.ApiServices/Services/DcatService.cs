@@ -105,7 +105,8 @@ namespace Geonorge.ApiServices.Services
 
                 Finalize(root, catalog);
 
-                doc.Save(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dcat", "geonorge_dcat.rdf"));
+                var path = Path.Combine(_env.ContentRootPath, "dcat", "geonorge_dcat.rdf");
+                doc.Save(path);
 
                 _logger.LogInformation("Finished generating DCAT");
             }
