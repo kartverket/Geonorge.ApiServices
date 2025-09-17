@@ -2,8 +2,10 @@ using Geonorge.ApiServices.Services;
 using Kartverket.Geonorge.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using System;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +47,22 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
+
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Geonorge diverse APIer",
+        Description = "Diverse apier for metadata og dcat",
+        Contact = new OpenApiContact
+        {
+            Name = "Geonorge",
+            Url = new Uri("https://www.geonorge.no/aktuelt/om-geonorge/")
+        },
+    });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
 });
 
 builder.Services.AddHttpClient();
