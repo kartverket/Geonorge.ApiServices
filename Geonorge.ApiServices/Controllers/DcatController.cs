@@ -8,10 +8,12 @@ namespace Geonorge.ApiServices.Controllers
     public class DcatController : ControllerBase
     {
         private readonly IDcatService _dcatService;
+        private readonly IConfiguration _settings;
 
-        public DcatController(IDcatService dcatService)
+        public DcatController(IDcatService dcatService, IConfiguration settings)
         {
             _dcatService = dcatService;
+            _settings = settings;
         }
 
         /// <summary>
@@ -22,7 +24,7 @@ namespace Geonorge.ApiServices.Controllers
         public IActionResult GetDcat()
         {
             var doc = new XmlDocument();
-            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "dcat", "geonorge_dcat.rdf");
+            var filePath = _settings["DcatFolder"] + "\\geonorge_dcat.rdf";
             doc.Load(filePath);
             return Content(doc.OuterXml, "application/rdf+xml", Encoding.UTF8);
         }
