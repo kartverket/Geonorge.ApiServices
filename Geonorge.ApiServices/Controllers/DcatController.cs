@@ -17,7 +17,7 @@ namespace Geonorge.ApiServices.Controllers
         }
 
         /// <summary>
-        ///     Catalogue in dcat format
+        ///     Metadata catalogue in dcat format
         /// </summary>
         [Route("metadata/dcat")]
         [HttpGet]
@@ -29,6 +29,9 @@ namespace Geonorge.ApiServices.Controllers
             return Content(doc.OuterXml, "application/rdf+xml", Encoding.UTF8);
         }
 
+        /// <summary>
+        ///     Update dcat file from metadata csw server
+        /// </summary>
         [Route("metadata/updatedcat")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]

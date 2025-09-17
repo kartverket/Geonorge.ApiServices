@@ -17,6 +17,9 @@ namespace Geonorge.ApiServices.Controllers
             _feedService = feedService;
         }
 
+        /// <summary>
+        ///     Update metadata distributions with atom feeds
+        /// </summary>
         [Route("metadata/update-atomfeed")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]

@@ -17,7 +17,9 @@ namespace Kartverket.Geonorge.Api.Controllers
             _metadataService = metadataService;
         }
 
-
+        /// <summary>
+        ///     Update metadata with fair result
+        /// </summary>
         [Route("metadata-update-fair/{uuid}/{result}")]
         [HttpGet]
         [ApiExplorerSettings(IgnoreApi = true)]
@@ -26,6 +28,10 @@ namespace Kartverket.Geonorge.Api.Controllers
             await _metadataService.UpdateMetadataFair(uuid, result);
             return StatusCode((int)HttpStatusCode.OK, uuid);
         }
+
+        /// <summary>
+        ///     Insert new metadata to csw server
+        /// </summary>
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication")]
@@ -37,6 +43,10 @@ namespace Kartverket.Geonorge.Api.Controllers
             return StatusCode((int)HttpStatusCode.Created, uuid);
         }
 
+        /// <summary>
+        ///     Update metadata to csw server
+        /// </summary>
+
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication/{uuid}")]
         [HttpPut]
@@ -46,6 +56,10 @@ namespace Kartverket.Geonorge.Api.Controllers
             await _metadataService.UpdateMetadata(uuid, model);
             return StatusCode((int)HttpStatusCode.OK, uuid);
         }
+
+        /// <summary>
+        ///     Delete metadata from csw server
+        /// </summary>
 
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata-publication/{uuid}")]
