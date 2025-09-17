@@ -1,7 +1,9 @@
 using Geonorge.ApiServices.Services;
 using Kartverket.Geonorge.Api.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 using Serilog;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,9 +65,12 @@ var app = builder.Build();
  {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Geonorge diverse APIer");
     c.RoutePrefix = string.Empty;
+    c.InjectStylesheet("custom.css");
  });
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
 
 app.UseRouting();
 
