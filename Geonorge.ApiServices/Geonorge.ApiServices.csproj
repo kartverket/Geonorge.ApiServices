@@ -21,4 +21,10 @@
     <None Include="wwwroot\custom.css" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Concepts.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
