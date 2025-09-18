@@ -190,7 +190,7 @@ namespace Kartverket.Geonorge.Api.Services
 
         private void LogEventsError(string log, Exception ex)
         {
-            _logger.LogError(log, ex);
+            _logger.LogError(log + ": " + ex);
         }
 
         public Dictionary<string, string> CreateAdditionalHeadersWithUsername(string username, string published = "")

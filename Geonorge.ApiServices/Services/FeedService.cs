@@ -54,7 +54,7 @@ namespace Geonorge.ApiServices.Services
                         { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
                         catch (Exception e)
                         {
-                            _logger.LogError("Error with LastUpdated: " + item.LastUpdated, e);
+                            _logger.LogError("Error with LastUpdated: " + item.LastUpdated + $": {e}");
                         }
 
                         foreach (var distribution in item.DistributionsFormats)
@@ -141,7 +141,10 @@ namespace Geonorge.ApiServices.Services
                     if (metadataInfo.DatasetDateUpdated.HasValue)
                         simpleMetadata.DateUpdated = metadataInfo.DatasetDateUpdated;
 
-                    api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    var result = api.MetadataUpdate(simpleMetadata.GetMetadata(), CreateAdditionalHeadersWithUsername(geonorgeUsername, "true"));
+                    if (result.TotalUpdated == "0")
+                        throw new Exception("Kunne ikke lagre endringene");
+
                     _logger.LogInformation($"Metadata updated for uuid: {metadataInfo.Uuid}");
                 }
                 catch (Exception ex)
@@ -203,7 +206,7 @@ namespace Geonorge.ApiServices.Services
 
         private void LogEventsError(string log, Exception ex)
         {
-            _logger.LogError(log, ex);
+            _logger.LogError(log + ": " + ex);
         }
 
         public Dictionary<string, string> CreateAdditionalHeadersWithUsername(string username, string published = "")

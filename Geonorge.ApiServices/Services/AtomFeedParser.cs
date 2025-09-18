@@ -179,7 +179,7 @@ namespace Geonorge.ApiServices.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Could not get dataset files", e);
+                _logger.LogError($"Could not get dataset files: {e}");
                 return new List<DatasetFile>();
             }
         }
