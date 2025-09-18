@@ -2,6 +2,7 @@
 using GeoNorgeAPI;
 using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Utilities.Organization;
+using System;
 using System.Diagnostics;
 using System.Web;
 using System.Xml;
@@ -112,7 +113,7 @@ namespace Geonorge.ApiServices.Services
             }
             catch (Exception e)
             {
-                _logger.LogError("Error generating DCAT", e);
+                _logger.LogError($"Error generating DCAT: {e}");
             }
 
             return doc;
@@ -769,7 +770,7 @@ namespace Geonorge.ApiServices.Services
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError("Error processing dataset", e);
+                    _logger.LogError($"Error processing dataset: {e}");
                 }
             }
 
@@ -932,7 +933,7 @@ namespace Geonorge.ApiServices.Services
             }
             catch (Exception e)
             {
-                _logger.LogError($"Unable to fetch distributions from: [url={metadataUrl}], [message={e.Message}]", e);
+                _logger.LogError($"Unable to fetch distributions from: [url={metadataUrl}], [message={e.Message}]");
             }
         }
 
@@ -1295,7 +1296,7 @@ namespace Geonorge.ApiServices.Services
 
         private void LogEventsError(string log, Exception ex)
         {
-            _logger.LogError(log, ex);
+            _logger.LogError(log + ": " + ex);
         }
 
         string EncodeUrl(string url)
