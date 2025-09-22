@@ -417,6 +417,10 @@ namespace Kartverket.Geonorge.Api.Services
 
             if (securityConstraints == "unclassified_sensitive")
                 securityConstraints = "unclassified";
+            else if (securityConstraints == "ugradert")
+                securityConstraints = "unclassified";
+            else if (securityConstraints == "ugradert_skjermingsverdig")
+                securityConstraints = "unclassified";
 
             return securityConstraints;
         }
