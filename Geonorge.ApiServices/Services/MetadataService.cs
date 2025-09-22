@@ -108,9 +108,9 @@ namespace Kartverket.Geonorge.Api.Services
 
                 metadata.Constraints = new SimpleConstraints
                 {
-                    SecurityConstraints = !string.IsNullOrWhiteSpace(model.SecurityConstraints) ? model.SecurityConstraints : "",
-                    AccessConstraints = !string.IsNullOrWhiteSpace(model.AccessConstraints) ? model.AccessConstraints : "",
-                    AccessConstraintsLink = !string.IsNullOrWhiteSpace(model.AccessConstraintsLink) ? model.AccessConstraintsLink : "",
+                    SecurityConstraints = MapSecurityConstraints(model.SecurityConstraints),
+                    AccessConstraints = MapAccessConstraints(model.AccessConstraints),
+                    AccessConstraintsLink = MapAccessConstraintsLink(model.AccessConstraintsLink, model.AccessConstraints),
                     UseConstraintsLicenseLink = !string.IsNullOrWhiteSpace(model.OtherConstraintsLink) ? model.OtherConstraintsLink : null,
                     UseConstraintsLicenseLinkText = !string.IsNullOrWhiteSpace(model.OtherConstraintsLinkText) ? model.OtherConstraintsLinkText : null,
                 };
@@ -355,9 +355,9 @@ namespace Kartverket.Geonorge.Api.Services
 
             metadata.Constraints = new SimpleConstraints
             {
-                SecurityConstraints = !string.IsNullOrWhiteSpace(model.SecurityConstraints) ? model.SecurityConstraints : "",
-                AccessConstraints = !string.IsNullOrWhiteSpace(model.AccessConstraints) ? model.AccessConstraints : "",
-                AccessConstraintsLink = !string.IsNullOrWhiteSpace(model.AccessConstraintsLink) ? model.AccessConstraintsLink : "",
+                SecurityConstraints = MapSecurityConstraints(model.SecurityConstraints),
+                AccessConstraints = MapAccessConstraints(model.AccessConstraints),
+                AccessConstraintsLink = MapAccessConstraintsLink(model.AccessConstraintsLink, model.AccessConstraints),
                 UseConstraintsLicenseLink = !string.IsNullOrWhiteSpace(model.OtherConstraintsLink) ? model.OtherConstraintsLink : null,
                 UseConstraintsLicenseLinkText = !string.IsNullOrWhiteSpace(model.OtherConstraintsLinkText) ? model.OtherConstraintsLinkText : null,
             };
@@ -409,6 +409,50 @@ namespace Kartverket.Geonorge.Api.Services
 
             
         }
+
+        private string MapSecurityConstraints(string securityConstraints)
+        {
+            if (string.IsNullOrWhiteSpace(securityConstraints))
+                securityConstraints = "";
+
+            if (securityConstraints == "unclassified_sensitive")
+                securityConstraints = "unclassified";
+
+            return securityConstraints;
+        }
+
+        private string MapAccessConstraints(string accessConstraints)
+        {
+            if (string.IsNullOrWhiteSpace(accessConstraints))
+                accessConstraints = "";
+
+            if (accessConstraints == "public")
+                accessConstraints = "Åpne data";
+            else if(accessConstraints == "restricted")
+                accessConstraints = "Norge digitalt begrenset";
+            else if (accessConstraints == "non_public")
+                accessConstraints = "Tilgang begrenses på grunn av fare for brudd på konfidensialitet med hensyn til personopplysninger";
+            return accessConstraints;
+        }
+
+        private string MapAccessConstraintsLink(string accessConstraintsLink, string accessConstraints)
+        {
+            if (string.IsNullOrWhiteSpace(accessConstraintsLink))
+                accessConstraintsLink = "";
+
+            if (string.IsNullOrWhiteSpace(accessConstraints))
+                accessConstraints = "";
+
+            if (accessConstraints == "public")
+                accessConstraintsLink = "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/noLimitations";
+            else if (accessConstraints == "restricted")
+                accessConstraintsLink = "https://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d";
+            else if (accessConstraints == "non_public")
+                accessConstraintsLink = "https://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1f";
+
+            return accessConstraintsLink;
+        }
+
     }
 
 
