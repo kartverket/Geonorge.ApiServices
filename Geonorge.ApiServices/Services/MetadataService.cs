@@ -14,7 +14,6 @@ using System.Linq;
 using Kartverket.Geonorge.Utilities.LogEntry;
 using Kartverket.Geonorge.Utilities;
 using System.Globalization;
-using System.Web.Http;
 using Newtonsoft.Json;
 using System.IO;
 using Newtonsoft.Json.Linq;
