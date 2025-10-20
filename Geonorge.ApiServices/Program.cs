@@ -1,0 +1,99 @@
+using Geonorge.ApiServices.Services;
+using Kartverket.Geonorge.Api.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using System;
+using System.Reflection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Setup Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+// Add services to the container.
+
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.AddSecurityDefinition("basic", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "basic",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Basic Authentication header"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "basic"
+                }
+            },
+            new List<string>()
+        }
+    });
+
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Geonorge diverse APIer",
+        Description = "Diverse apier for metadata og dcat",
+        Contact = new OpenApiContact
+        {
+            Name = "Geonorge",
+            Url = new Uri("https://www.geonorge.no/aktuelt/om-geonorge/")
+        },
+    });
+
+    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
+});
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IMetadataService, MetadataService>();
+builder.Services.AddScoped<IDcatService, DcatService>();
+builder.Services.AddScoped<IFeedService, FeedService>();
+builder.Services.AddScoped<IAtomFeedParser, AtomFeedParser>();
+
+builder.Services.AddAuthentication("Basic")
+    .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", null);
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+ app.UseSwagger();
+ app.UseSwaggerUI(c =>
+ {
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Geonorge diverse APIer");
+    c.RoutePrefix = string.Empty;
+    c.InjectStylesheet("custom.css");
+ });
+
+app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
