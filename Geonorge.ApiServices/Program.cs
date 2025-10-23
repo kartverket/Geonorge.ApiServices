@@ -1,10 +1,12 @@
 using Geonorge.ApiServices.Services;
 using Kartverket.Geonorge.Api.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System;
+using System.Net;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -70,6 +72,7 @@ builder.Services.AddScoped<IMetadataService, MetadataService>();
 builder.Services.AddScoped<IDcatService, DcatService>();
 builder.Services.AddScoped<IFeedService, FeedService>();
 builder.Services.AddScoped<IAtomFeedParser, AtomFeedParser>();
+ConfigureProxy(builder.Configuration);
 
 builder.Services.AddAuthentication("Basic")
     .AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler>("Basic", null);
@@ -97,3 +100,19 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void ConfigureProxy(IConfiguration settings)
+{
+    var urlProxy = settings.GetValue<string>("UrlProxy");
+
+    if (!string.IsNullOrWhiteSpace(urlProxy))
+    {
+        var proxy = new WebProxy(urlProxy)
+        {
+            Credentials = CredentialCache.DefaultCredentials
+        };
+
+        WebRequest.DefaultWebProxy = proxy;
+        HttpClient.DefaultProxy = proxy;
+    }
+}
