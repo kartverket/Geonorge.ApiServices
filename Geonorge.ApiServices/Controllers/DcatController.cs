@@ -26,7 +26,9 @@ namespace Geonorge.ApiServices.Controllers
             var doc = new XmlDocument();
             var filePath = _settings["DcatFolder"] + "\\geonorge_dcat.rdf";
             doc.Load(filePath);
-            return Content(doc.OuterXml, "application/rdf+xml", Encoding.UTF8);
+            var fileName = "geonorge_dcat.rdf";
+            var fileBytes = Encoding.UTF8.GetBytes(doc.OuterXml);
+            return File(fileBytes, "application/rdf+xml", fileName);
         }
 
         /// <summary>
