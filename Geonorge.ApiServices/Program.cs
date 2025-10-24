@@ -15,6 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
+    .Filter.ByExcluding(logEvent =>
+        logEvent.RenderMessage().Contains("AuthenticationScheme: \"Basic\" was not authenticated"))
     .CreateLogger();
 
 builder.Host.UseSerilog();
