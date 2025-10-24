@@ -22,7 +22,7 @@ public class BasicAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.ContainsKey("Authorization"))
-            return Task.FromResult(AuthenticateResult.Fail("Missing Authorization Header"));
+            return Task.FromResult(AuthenticateResult.NoResult());
 
         var authHeader = Request.Headers["Authorization"].ToString();
         if (!authHeader.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
