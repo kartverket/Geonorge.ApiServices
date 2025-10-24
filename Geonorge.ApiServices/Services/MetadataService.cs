@@ -433,8 +433,8 @@ namespace Kartverket.Geonorge.Api.Services
                 accessConstraints = "Åpne data";
             else if(accessConstraints == "restricted")
                 accessConstraints = "Norge digitalt begrenset";
-            else if (accessConstraints == "non_public")
-                accessConstraints = "Tilgang begrenses på grunn av fare for brudd på konfidensialitet med hensyn til personopplysninger";
+            else if (accessConstraints == "NON_PUBLIC")
+                accessConstraints = "Personvern begrenset";
             return accessConstraints;
         }
 
@@ -450,8 +450,8 @@ namespace Kartverket.Geonorge.Api.Services
                 accessConstraintsLink = "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/noLimitations";
             else if (accessConstraints == "restricted")
                 accessConstraintsLink = "https://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1d";
-            else if (accessConstraints == "non_public")
-                accessConstraintsLink = "https://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1f";
+            else if (accessConstraints == "NON_PUBLIC")
+                accessConstraintsLink = "http://inspire.ec.europa.eu/metadata-codelist/LimitationsOnPublicAccess/INSPIRE_Directive_Article13_1f";
 
             return accessConstraintsLink;
         }
