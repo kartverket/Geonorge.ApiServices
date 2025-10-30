@@ -5,6 +5,12 @@ using Geonorge.ApiServices.Models;
 using Geonorge.ApiServices.Services;
 using HttpClientFactory = Kartverket.Geonorge.Utilities.Organization.HttpClientFactory;
 using IHttpClientFactory = Kartverket.Geonorge.Utilities.Organization.IHttpClientFactory;
+using Serilog;
+using System.Text.RegularExpressions;
+using www.opengis.net;
+using System;
+using Kartverket.Geonorge.Utilities;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Kartverket.Geonorge.Api.Services
 {
@@ -16,6 +22,7 @@ namespace Kartverket.Geonorge.Api.Services
         private readonly IHttpClientFactory _httpClientFactory;
 
         string kartkatalogenUrl;
+        GeoNorge _geoNorge;
 
         IEnumerable<JToken> metadataSets;
 
@@ -28,10 +35,11 @@ namespace Kartverket.Geonorge.Api.Services
             _env = env;
             kartkatalogenUrl = _settings["KartkatalogenUrl"];
             _httpClientFactory = new HttpClientFactory();
+            _geoNorge = new GeoNorge("", "", _settings["GeoNetworkUrl"]);
         }
 
 
-        public void Check()
+        public void CheckSolr()
         {
             _logger.LogInformation("Start checking mismatch search index and metadata in geonetwork");
             metadataSets = GetSearchMetadata();
@@ -40,12 +48,9 @@ namespace Kartverket.Geonorge.Api.Services
         }
 
         private void CheckMetadata()
-        {   
-            string server = _settings["GeoNetworkUrl"];
-
-            GeoNorge api = new GeoNorge("","", server);
-            api.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
-            api.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
+        {
+            _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
+            _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
 
             foreach (var metadata in metadataSets.ToList())
             {
@@ -56,7 +61,7 @@ namespace Kartverket.Geonorge.Api.Services
 
                 try
                 {
-                    var metadataGeonetwork = api.GetRecordByUuid(uuid);
+                    var metadataGeonetwork = _geoNorge.GetRecordByUuid(uuid);
                     if (metadataGeonetwork == null)
                         throw new Exception("Metadata not found in geonetwork");
                 }
@@ -91,10 +96,58 @@ namespace Kartverket.Geonorge.Api.Services
         {
             _logger.LogError(log, ex);
         }
+
+        public void CheckGeonetwork()
+        {
+            _logger.LogInformation("Start checking mismatch geonetwork and search index");
+            RunSearch(1);
+            _logger.LogInformation("End checking mismatch geonetwork and search index");
+        }
+
+        private void RunSearch(int startPosition)
+        {
+            _logger.LogInformation("Running search from start position: " + startPosition);
+            SearchResultsType searchResult = null;
+            try
+            {
+                searchResult = _geoNorge.SearchIso("", startPosition, 50, false);
+                _logger.LogInformation("Next record: " + searchResult.nextRecord + " " + searchResult.numberOfRecordsReturned + " " + searchResult.numberOfRecordsMatched);
+                
+                foreach(var item in searchResult.Items) 
+                {
+                   MD_Metadata_Type metadata = (MD_Metadata_Type)item;
+                   string uuid = metadata.fileIdentifier.CharacterString.ToString();
+                    var httpClient = _httpClientFactory.GetHttpClient();
+                    var json = httpClient.GetStringAsync(kartkatalogenUrl + "api/metadata/" + uuid).Result;
+                    var response = Newtonsoft.Json.Linq.JObject.Parse(json);
+
+                    var uuidResponse = response["Uuid"];
+                    if (uuidResponse == null)
+                        _logger.LogError("Metadata not found in kartkatalogen for uuid: " + uuid);
+
+                }
+            }
+            catch (Exception exception)
+            {
+                Log.Error("Error in ISO format from Geonetwork position: " + startPosition, exception);
+            }
+
+            int nextRecord;
+            int numberOfRecordsMatched;
+            nextRecord = int.Parse(searchResult.nextRecord);
+            numberOfRecordsMatched = int.Parse(searchResult.numberOfRecordsMatched);
+            if (nextRecord < numberOfRecordsMatched)
+            {
+                if (nextRecord > 0)
+                    RunSearch(nextRecord);
+            }
+
+        }
     }
 
     public interface IMetadataChecker
     {
-        public void Check();
+        public void CheckSolr();
+        public void CheckGeonetwork();
     }
 }

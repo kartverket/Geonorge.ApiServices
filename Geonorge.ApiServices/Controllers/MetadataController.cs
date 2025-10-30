@@ -85,7 +85,26 @@ namespace Kartverket.Geonorge.Api.Controllers
 
             Thread t = new Thread(new ThreadStart(() =>
             {
-                _metadataChecker.Check();
+                _metadataChecker.CheckSolr();
+            }));
+            t.Start();
+
+            return Ok();
+
+        }
+
+        /// <summary>
+        /// Check for mismatch between geonetwork and kartkatalog search index
+        /// </summary>
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
+        [Route("metadata/geonetworkindexproblems")]
+        [HttpGet]
+        public async Task<IActionResult> GeonetworkIndexProblems()
+        {
+
+            Thread t = new Thread(new ThreadStart(() =>
+            {
+                _metadataChecker.CheckGeonetwork();
             }));
             t.Start();
 
