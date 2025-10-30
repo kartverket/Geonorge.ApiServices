@@ -75,7 +75,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         /// <summary>
-        /// Check for mismatch between kartkatalog search index and geonetwork
+        /// Check for mismatch between kartkatalog search index and geonetwork, writes log entries for problems found
         /// </summary>
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata/searchindexproblems")]
@@ -94,7 +94,7 @@ namespace Kartverket.Geonorge.Api.Controllers
         }
 
         /// <summary>
-        /// Check for mismatch between geonetwork and kartkatalog search index
+        /// Check for mismatch between geonetwork and kartkatalog search index, writes log entries for problems found
         /// </summary>
         [Authorize(Roles = AuthConfig.DatasetProviderRole)]
         [Route("metadata/geonetworkindexproblems")]
