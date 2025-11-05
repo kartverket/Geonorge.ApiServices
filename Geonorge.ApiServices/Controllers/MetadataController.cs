@@ -3,6 +3,7 @@ using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Download;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 
 namespace Kartverket.Geonorge.Api.Controllers
@@ -11,10 +12,12 @@ namespace Kartverket.Geonorge.Api.Controllers
     public class MetadataController : ControllerBase
     {
         private readonly IMetadataService _metadataService;
+        private readonly IMetadataChecker _metadataChecker;
 
-        public MetadataController(IMetadataService metadataService)
+        public MetadataController(IMetadataService metadataService, IMetadataChecker metadataChecker)
         {
             _metadataService = metadataService;
+            _metadataChecker = metadataChecker;
         }
 
         /// <summary>
@@ -70,5 +73,44 @@ namespace Kartverket.Geonorge.Api.Controllers
             await _metadataService.DeleteMetadata(uuid);
             return StatusCode((int)HttpStatusCode.Gone, uuid);
         }
+
+        /// <summary>
+        /// Check for mismatch between kartkatalog search index and geonetwork, writes log entries for problems found
+        /// </summary>
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
+        [Route("metadata/searchindexproblems")]
+        [HttpGet]
+        public async Task<IActionResult> SearchIndexProblems()
+        {
+
+            Thread t = new Thread(new ThreadStart(() =>
+            {
+                _metadataChecker.CheckSolr();
+            }));
+            t.Start();
+
+            return Ok();
+
+        }
+
+        /// <summary>
+        /// Check for mismatch between geonetwork and kartkatalog search index, writes log entries for problems found
+        /// </summary>
+        [Authorize(Roles = AuthConfig.DatasetProviderRole)]
+        [Route("metadata/geonetworkindexproblems")]
+        [HttpGet]
+        public async Task<IActionResult> GeonetworkIndexProblems()
+        {
+
+            Thread t = new Thread(new ThreadStart(() =>
+            {
+                _metadataChecker.CheckGeonetwork();
+            }));
+            t.Start();
+
+            return Ok();
+
+        }
+
     }
 }
