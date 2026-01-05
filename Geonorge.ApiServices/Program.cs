@@ -8,6 +8,8 @@ using Serilog;
 using System;
 using System.Net;
 using System.Reflection;
+// ADD: prometheus-net namespaces
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +26,6 @@ builder.Host.UseSerilog();
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -66,10 +67,12 @@ builder.Services.AddSwaggerGen(c =>
 
     var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
-
 });
 
-builder.Services.AddHttpClient();
+// Instrument outgoing HTTP requests (requires prometheus-net.HttpClient)
+builder.Services.AddHttpClient()
+    .UseHttpClientMetrics(); // records request duration, result codes, etc.
+
 builder.Services.AddScoped<IMetadataService, MetadataService>();
 builder.Services.AddScoped<IMetadataChecker, MetadataChecker>();
 builder.Services.AddScoped<IDcatService, DcatService>();
@@ -84,13 +87,20 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
- app.UseSwagger();
- app.UseSwaggerUI(c =>
- {
+// Enable ASP.NET Core request metrics and Kestrel metrics
+app.UseHttpMetrics(); // adds labels like method, code, endpoint
+app.UseMetricServer("/metrics"); // exposes Prometheus metrics at /metrics
+
+// Optional: Kestrel-specific metrics (connections, TLS) if needed
+// Kestrel metrics are included via UseHttpMetrics for requests; deeper transport metrics require exporters.
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Geonorge diverse APIer");
     c.RoutePrefix = string.Empty;
     c.InjectStylesheet("custom.css");
- });
+});
 
 app.UseHttpsRedirection();
 
