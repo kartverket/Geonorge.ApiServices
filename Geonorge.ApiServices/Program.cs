@@ -87,12 +87,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Enable ASP.NET Core request metrics and Kestrel metrics
-app.UseHttpMetrics(); // adds labels like method, code, endpoint
-app.UseMetricServer("/metrics"); // exposes Prometheus metrics at /metrics
+// Start a dedicated metrics server on another port (e.g., 9100)
+var metricsServer = new KestrelMetricServer(port: 9100, url: "/metrics");
+metricsServer.Start();
 
-// Optional: Kestrel-specific metrics (connections, TLS) if needed
-// Kestrel metrics are included via UseHttpMetrics for requests; deeper transport metrics require exporters.
+app.UseHttpMetrics();
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -103,14 +102,10 @@ app.UseSwaggerUI(c =>
 });
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
