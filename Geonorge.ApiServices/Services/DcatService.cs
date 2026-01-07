@@ -1321,7 +1321,7 @@ namespace Geonorge.ApiServices.Services
 
         public Dictionary<string, string> GetOrganizationsLink()
         {
-            Dictionary<string, string> organizations = new Dictionary<string, string>();
+            Dictionary<string, string> organizations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             var httpClient = _httpClientFactory.GetHttpClient();
             string url = _settings["RegistryUrl"] + "api/register/organisasjoner";
