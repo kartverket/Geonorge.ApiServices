@@ -4,6 +4,7 @@ using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Utilities.Organization;
 using System;
 using System.Diagnostics;
+using System.Net;
 using System.Web;
 using System.Xml;
 using www.opengis.net;
@@ -81,6 +82,8 @@ namespace Geonorge.ApiServices.Services
         Dictionary<string, string> MediaTypes;
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
+
+        List<string> distributionFormats = new List<string>();
 
         public XmlDocument GenerateDcat()
         {
@@ -528,7 +531,7 @@ namespace Geonorge.ApiServices.Services
                             foafAgents.Add(organizationUri, agent);
                     }
 
-                    //dct:publisher => Referanse til en akt�r (organisasjon) som er ansvarlig for � gj�re datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
+                    //dct:publisher => Referanse til en aktør (organisasjon) som er ansvarlig for å gjøre datatjenesten tilgjengelig => ContactPublisher.Email => foaf:Agent
                     if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization))
                     {
                         _logger.LogInformation("Looking up organization: " + data.ContactPublisher.Organization);
@@ -670,7 +673,7 @@ namespace Geonorge.ApiServices.Services
                     //Distribution
                     if (data.DistributionsFormats != null)
                     {
-                        List<string> distributionFormats = new List<string>();
+                        distributionFormats = new List<string>();
 
                         foreach (var distro in data.DistributionsFormats)
                         {
@@ -887,21 +890,32 @@ namespace Geonorge.ApiServices.Services
                         var protocol = related.Protocol.Value;
                         var serviceDistributionUrl = related.DistributionUrl.Value;
 
-                        if (services.ContainsKey(serviceDistributionUrl))
-                            continue;
-
-                        string protocolName = protocol;
-                        if (protocolName.Contains("-"))
-                            protocolName = protocolName.Split('-')[0];
-
-                        protocol = "OGC:" + protocolName;
-
-                        if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
+                        var distroFormats = related?.DistributionFormats;
+                        if (distroFormats is not null)
                         {
-                            var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
-                                protocolName, serviceDistributionUrl);
-                            if (!services.ContainsKey(serviceDistributionUrl))
-                                services.Add(serviceDistributionUrl, distribution);
+                            var format = distroFormats[0]?.Name?.Value;
+
+                            if(format == null || distributionFormats.Contains(format))
+                                continue;
+
+                            distributionFormats.Add(format);
+
+                            if (services.ContainsKey(serviceDistributionUrl))
+                                continue;
+
+                            string protocolName = protocol;
+                            if (protocolName.Contains("-"))
+                                protocolName = protocolName.Split('-')[0];
+
+                            protocol = "OGC:" + protocolName;
+
+                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
+                            {
+                                var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
+                                    protocolName, serviceDistributionUrl, format);
+                                if (!services.ContainsKey(serviceDistributionUrl))
+                                    services.Add(serviceDistributionUrl, distribution);
+                            }
                         }
                     }
                 }
@@ -913,8 +927,9 @@ namespace Geonorge.ApiServices.Services
                         {
                             var serviceDistributionUrl = kartkatalogenUrl + "Metadata/uuid/" + metadata.Uuid.Value + "/atom/GML";
 
-                            string urlDownload = distro.URL.Value;
-
+                            string? urlDownload = distro?.URL?.Value;
+                            if(string.IsNullOrEmpty(urlDownload))
+                                continue;
                             var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
                             if (!services.ContainsKey(serviceDistributionUrl))
                             {
@@ -941,7 +956,7 @@ namespace Geonorge.ApiServices.Services
         {
             XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
             distributionDataset.SetAttribute("resource", xmlnsRdf,
-                kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+                serviceDistributionUrl);
             dataset.AppendChild(distributionDataset);
 
             XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
@@ -986,15 +1001,15 @@ namespace Geonorge.ApiServices.Services
         }
 
         private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
-            dynamic protocol, string protocolName, dynamic serviceDistributionUrl)
+            dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format)
         {
             XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
             distributionDataset.SetAttribute("resource", xmlnsRdf,
-                kartkatalogenUrl + "Metadata/uuid/" + uuidService);
+                kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
             dataset.AppendChild(distributionDataset);
 
             XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-            distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService);
+            distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
 
             XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
             distributionTitle.SetAttribute("xml:lang", "no");
@@ -1241,7 +1256,7 @@ namespace Geonorge.ApiServices.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "9e419f66-f5d4-43e0-b01b-59d6c36b607c";
+            //string searchString = "779a554b-fc3e-48a6-b202-561b07e9d4c2";
             //var filters = new object[]
             //{
             //            new PropertyIsLikeType
@@ -1306,7 +1321,7 @@ namespace Geonorge.ApiServices.Services
 
         public Dictionary<string, string> GetOrganizationsLink()
         {
-            Dictionary<string, string> organizations = new Dictionary<string, string>();
+            Dictionary<string, string> organizations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             var httpClient = _httpClientFactory.GetHttpClient();
             string url = _settings["RegistryUrl"] + "api/register/organisasjoner";
