@@ -861,9 +861,11 @@ namespace Geonorge.ApiServices.Services
                                 }
                             }
                         }
+                        string org = null;
+                        if(organization != null) org = organization?.Name;
 
                         // Dataset distributions and services
-                        AddServiceAndDistributions(uuid, dataset, data, services, dataServices, publisherUri, organizationUri, organization.Name, vcardKinds);
+                        AddServiceAndDistributions(uuid, dataset, data, services, dataServices, publisherUri, organizationUri, org, vcardKinds);
 
                     }
                     //}
@@ -1029,9 +1031,9 @@ namespace Geonorge.ApiServices.Services
                             string? urlDownload = distro?.URL?.Value;
                             if(string.IsNullOrEmpty(urlDownload))
                                 continue;
-                            var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
                             if (!services.ContainsKey(serviceDistributionUrl))
                             {
+                                var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
 
                                 //Map distribution to dataset
                                 XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
@@ -1053,11 +1055,6 @@ namespace Geonorge.ApiServices.Services
 
         private XmlNode CreateXmlElementForDistributionAtomFeed(XmlElement dataset, SimpleMetadata data, dynamic serviceDistributionUrl, string urlDownload)
         {
-            XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-            distributionDataset.SetAttribute("resource", xmlnsRdf,
-                serviceDistributionUrl);
-            dataset.AppendChild(distributionDataset);
-
             XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
             distribution.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
 
@@ -1385,46 +1382,6 @@ namespace Geonorge.ApiServices.Services
             GeoNorge _geoNorge = new GeoNorge("", "", _settings["GeoNetworkUrl"]);
             _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
             _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
-            //var filters = new object[]
-            //          {
-
-            //        new BinaryLogicOpType()
-            //            {
-            //                Items = new object[]
-            //                    {
-            //                        new PropertyIsLikeType
-            //                        {
-            //                            escapeChar = "\\",
-            //                            singleChar = "_",
-            //                            wildCard = "%",
-            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
-            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
-            //                        },
-            //                        new PropertyIsLikeType
-            //                        {
-            //                            escapeChar = "\\",
-            //                            singleChar = "_",
-            //                            wildCard = "%",
-            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
-            //                            Literal = new LiteralType {Text = new[] { "series" }}
-            //                        }
-            //                    },
-
-            //                    ItemsElementName = new ItemsChoiceType22[]
-            //                        {
-            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
-            //                        }
-            //            },
-
-            //          };
-
-            //var filterNames = new ItemsChoiceType23[]
-            //    {
-            //        ItemsChoiceType23.Or
-            //    };
-
-            //test use only 1 dataset todo remove
-            string searchString = "779a554b-fc3e-48a6-b202-561b07e9d4c2";
             var filters = new object[]
                       {
 
@@ -1437,8 +1394,8 @@ namespace Geonorge.ApiServices.Services
                                         escapeChar = "\\",
                                         singleChar = "_",
                                         wildCard = "%",
-                                        PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-                                        Literal = new LiteralType {Text = new[] { searchString }}
+                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
+                                        Literal = new LiteralType {Text = new[] { "dataset" }}
                                     },
                                     new PropertyIsLikeType
                                     {
@@ -1446,7 +1403,7 @@ namespace Geonorge.ApiServices.Services
                                         singleChar = "_",
                                         wildCard = "%",
                                         PropertyName = new PropertyNameType {Text = new[] {"type"}},
-                                        Literal = new LiteralType {Text = new[] { "dataset" }}
+                                        Literal = new LiteralType {Text = new[] { "series" }}
                                     }
                                 },
 
@@ -1460,8 +1417,48 @@ namespace Geonorge.ApiServices.Services
 
             var filterNames = new ItemsChoiceType23[]
                 {
-                    ItemsChoiceType23.And
+                    ItemsChoiceType23.Or
                 };
+
+            //test use only 1 dataset todo remove
+            //string searchString = "Kommuneplan";
+            //var filters = new object[]
+            //          {
+
+            //        new BinaryLogicOpType()
+            //            {
+            //                Items = new object[]
+            //                    {
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+            //                            Literal = new LiteralType {Text = new[] { searchString }}
+            //                        },
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
+            //                        }
+            //                    },
+
+            //                    ItemsElementName = new ItemsChoiceType22[]
+            //                        {
+            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+            //                        }
+            //            },
+
+            //          };
+
+            //var filterNames = new ItemsChoiceType23[]
+            //    {
+            //        ItemsChoiceType23.And
+            //    };
 
 
             var stopwatch = new Stopwatch();
