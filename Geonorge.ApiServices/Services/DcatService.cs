@@ -718,11 +718,8 @@ namespace Geonorge.ApiServices.Services
 
                                 if(isDataService)
                                 {
-                                    string contactEmail = "kunstigintelligens@digdir.no";
-                                    string contactName = "Kunstig Intelligens Digdir";
-
                                     XmlElement dataService = doc.CreateElement("dcat", "DataService", xmlnsDcat);
-                                    dataService.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
+                                    dataService.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.Protocol));
 
                                     // dcat:servesDataset
                                     XmlElement servesDataset = doc.CreateElement("dcat", "servesDataset", xmlnsDcat);
@@ -751,28 +748,17 @@ namespace Geonorge.ApiServices.Services
 
                                     var organizationName = distro.Organization;
 
-                                    //todo contactPoint
                                     if (string.IsNullOrEmpty(organizationName)) 
                                     {
-                                        //use ContactOwner as fallback
-
+                                        XmlElement contactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                                        contactPoint.SetAttribute("resource", xmlnsRdf, organizationUri);
+                                        dataService.AppendChild(contactPoint);
                                     }
                                     else 
-                                    { 
-                                        // dcat:contactPoint
+                                    {
+                                        var orgVcard = vcardKinds.Where(v => v.Value.InnerText == organizationName).FirstOrDefault();
                                         XmlElement contactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                                        XmlElement vcardOrg = doc.CreateElement("vcard", "Organization", xmlnsVcard);
-                                        vcardOrg.SetAttribute("type", xmlnsRdf, "vcard:Organization");
-
-                                        XmlElement vcardEmail = doc.CreateElement("vcard", "hasEmail", xmlnsVcard);
-                                        vcardEmail.InnerText = contactEmail;
-                                        vcardOrg.AppendChild(vcardEmail);
-
-                                        XmlElement vcardFn = doc.CreateElement("vcard", "fn", xmlnsVcard);
-                                        vcardFn.InnerText = contactName;
-                                        vcardOrg.AppendChild(vcardFn);
-
-                                        contactPoint.AppendChild(vcardOrg);
+                                        contactPoint.SetAttribute("resource", xmlnsRdf, orgVcard.Key);
                                         dataService.AppendChild(contactPoint);
                                     }
 
@@ -876,8 +862,8 @@ namespace Geonorge.ApiServices.Services
                             }
                         }
 
-                        // Dataset distributions
-                        AddServiceAndDistributions(uuid, dataset, data, services, dataServices);
+                        // Dataset distributions and services
+                        AddServiceAndDistributions(uuid, dataset, data, services, dataServices, publisherUri, organizationUri, organization.Name, vcardKinds);
 
                     }
                     //}
@@ -975,7 +961,8 @@ namespace Geonorge.ApiServices.Services
             return link;
         }
 
-        private void AddServiceAndDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services, Dictionary<string, XmlNode> dataServices)
+        private void AddServiceAndDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services, Dictionary<string, XmlNode> dataServices
+            , string publisherUri, string organizationUri, string organization, Dictionary<string, XmlNode> vcardKinds)
         {
             // Get distribution from index in kartkatalog 
             string metadataUrl = _settings["KartkatalogenUrl"] + "api/getdata/" + uuid;
@@ -1024,7 +1011,7 @@ namespace Geonorge.ApiServices.Services
                             if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS" || protocol == "OGC:API-Features" || protocol == "OGC:API-Processes")
                             {
                                 var distribution = CreateXmlElementForDataservice(dataset, data, uuidService, protocol,
-                                    protocolName, serviceDistributionUrl, format);
+                                    protocolName, serviceDistributionUrl, format, publisherUri, organizationUri,organization, vcardKinds );
                                 if (!dataServices.ContainsKey(serviceDistributionUrl))
                                     dataServices.Add(serviceDistributionUrl, distribution);
                             }
@@ -1115,55 +1102,69 @@ namespace Geonorge.ApiServices.Services
 
         //todo change to dcat:Dataservice
         private XmlElement CreateXmlElementForDataservice(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
-                dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format)
+                dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format, string publisherUri, string organizationUri,
+                string organization, Dictionary<string, XmlNode> vcardKinds)
             {
-            XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-            distributionDataset.SetAttribute("resource", xmlnsRdf,
-                kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
-            dataset.AppendChild(distributionDataset);
 
-            XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-            distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
+            XmlElement dataService = doc.CreateElement("dcat", "DataService", xmlnsDcat);
+            dataService.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(protocol));
 
-            XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-            distributionTitle.SetAttribute("xml:lang", "no");
-            distributionTitle.InnerText = GetDistributionTitle(protocol);
-            distribution.AppendChild(distributionTitle);
+            // dcat:servesDataset
+            XmlElement servesDataset = doc.CreateElement("dcat", "servesDataset", xmlnsDcat);
+            servesDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+            dataService.AppendChild(servesDataset);
 
-            distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-            distributionTitle.SetAttribute("xml:lang", "en");
-            distributionTitle.InnerText = protocol;
-            distribution.AppendChild(distributionTitle);
+            // dcat:endpointURL
+            XmlElement endpoint = doc.CreateElement("dcat", "endpointURL", xmlnsDcat);
+            endpoint.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
+            dataService.AppendChild(endpoint);
 
-            XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-            distributionDescription.SetAttribute("xml:lang", "no");
-            distributionDescription.InnerText = GetDistributionDescription(protocol);
-            distribution.AppendChild(distributionDescription);
+            // dct:title
+            XmlElement titleEl = doc.CreateElement("dct", "title", xmlnsDct);
+            titleEl.SetAttribute("xml:lang", "nb");
+            titleEl.InnerText = GetDistributionTitle(protocol);
+            dataService.AppendChild(titleEl);
 
-            distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-            distributionDescription.SetAttribute("xml:lang", "en");
-            distributionDescription.InnerText = "View Service (" + protocolName + ")";
-            distribution.AppendChild(distributionDescription);
-
-            XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-
-            if (FormatUrls.ContainsKey(protocolName))
+            // dct:publisher
+            if (string.IsNullOrEmpty(publisherUri))
             {
-                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[protocolName]);
+                publisherUri = organizationUri;
             }
-            else { distributionFormat.InnerText = protocolName; }
+            XmlElement publisher = doc.CreateElement("dct", "publisher", xmlnsDct);
+            publisher.SetAttribute("resource", xmlnsRdf, publisherUri);
+            dataService.AppendChild(publisher);
 
-            distribution.AppendChild(distributionFormat);
+            var organizationName = organization;
 
-            XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-            distributionAccessURL.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
-            distribution.AppendChild(distributionAccessURL);
+            if (string.IsNullOrEmpty(organizationName))
+            {
+                XmlElement contactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                contactPoint.SetAttribute("resource", xmlnsRdf, organizationUri);
+                dataService.AppendChild(contactPoint);
+            }
+            else
+            {
+                var orgVcard = vcardKinds.Where(v => v.Value.InnerText == organizationName).FirstOrDefault();
+                XmlElement contactPoint = doc.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                contactPoint.SetAttribute("resource", xmlnsRdf, orgVcard.Key);
+                dataService.AppendChild(contactPoint);
+            }
 
-            XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-            if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
-                distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
-            distribution.AppendChild(distributionLicense);
-            return distribution;
+            // dct:license
+            XmlElement license = doc.CreateElement("dct", "license", xmlnsDct);
+            if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                license.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+            dataService.AppendChild(license);
+
+            // dct:format 
+            XmlElement formatElement = doc.CreateElement("dct", "format", xmlnsDct);
+            formatElement.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
+            dataService.AppendChild(formatElement);
+
+            distributionFormats.Add(format);
+
+            return dataService;
+
         }
 
         [Obsolete]
