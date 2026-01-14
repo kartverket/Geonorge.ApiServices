@@ -768,10 +768,15 @@ namespace Geonorge.ApiServices.Services
                                         license.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
                                     dataService.AppendChild(license);
 
-                                    // dct:format 
-                                    XmlElement format = doc.CreateElement("dct", "format", xmlnsDct);
-                                    format.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
-                                    dataService.AppendChild(format);
+                                    // dct:format
+                                    XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+                                    if (FormatUrls.ContainsKey(distro.FormatName))
+                                    {
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
+                                    }
+                                    else { distributionFormat.InnerText = distro.FormatName; }
+
+                                    dataService.AppendChild(distributionFormat);
 
                                     distributionFormats.Add(distro.FormatName);
 
@@ -1154,9 +1159,14 @@ namespace Geonorge.ApiServices.Services
             dataService.AppendChild(license);
 
             // dct:format 
-            XmlElement formatElement = doc.CreateElement("dct", "format", xmlnsDct);
-            formatElement.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
-            dataService.AppendChild(formatElement);
+            XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+            if (FormatUrls.ContainsKey(format))
+            {
+                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
+            }
+            else { distributionFormat.InnerText = format; }
+
+            dataService.AppendChild(distributionFormat);
 
             distributionFormats.Add(format);
 
