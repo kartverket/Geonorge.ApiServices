@@ -1826,7 +1826,7 @@ namespace Geonorge.ApiServices.Services
                                         singleChar = "_",
                                         wildCard = "%",
                                         PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-                                        Literal = new LiteralType {Text = new[] { "666e4559-60bf-4a1d-9e72-c43502a9a58b" }} //todo change to *
+                                        Literal = new LiteralType {Text = new[] { "666e4559-60bf-4a1d-9e72-c43502a9a58b" }} //todo change to * 
                                     }
                                 },
 
