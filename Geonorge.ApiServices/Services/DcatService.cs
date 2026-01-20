@@ -86,10 +86,9 @@ namespace Geonorge.ApiServices.Services
         Dictionary<string, string> MediaTypes;
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
+        Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>();
 
         List<string> distributionFormats = new List<string>();
-
-        Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>();
 
         public void GenerateDcat()
         {
@@ -115,6 +114,8 @@ namespace Geonorge.ApiServices.Services
                 dataServices = CreateDataServices(metadataServices);
 
                 CreateDatasets(root, catalog);
+
+                CreateDataServices(dataServices);
 
                 AddDataServicesToCatalog(catalogService);
 
@@ -296,9 +297,7 @@ namespace Geonorge.ApiServices.Services
                     }
 
                     // Build identifier for the DataService (align with accessService target when protocol exists)
-                    var about = !string.IsNullOrEmpty(protocol)
-                        ? kartkatalogenUrl + "Metadata/uuid/" + uuid + "/" + HttpUtility.UrlEncode(protocol)
-                        : kartkatalogenUrl + "Metadata/uuid/" + uuid;
+                    var about = endpointUrl;
 
                     XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
                     dataService.SetAttribute("about", xmlnsRdf, about);
@@ -368,13 +367,61 @@ namespace Geonorge.ApiServices.Services
             return result;
         }
 
+        private void CreateDataServices(Dictionary<string, XmlNode> discoveredDataServices)
+        {
+            if (discoveredDataServices == null || discoveredDataServices.Count == 0)
+                return;
+
+            foreach (var kv in discoveredDataServices)
+            {
+                var endpointUrl = kv.Key;                         // key is the endpoint URL
+                var dataServiceNode = kv.Value as XmlElement;
+
+                // Does a service with this about/endpoint already exist in the RDF doc?
+                bool existsInDoc =
+                    docService.DocumentElement?
+                        .SelectNodes("//dcat:DataService", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(el => el.GetAttribute("about", xmlnsRdf) == endpointUrl) == true;
+
+                if (existsInDoc)
+                    continue;
+
+                // Prefer appending the full node we already built (it already has dct:title)
+                if (dataServiceNode != null)
+                {
+                    var nodeToAppend = dataServiceNode.OwnerDocument == docService
+                        ? dataServiceNode
+                        : (XmlElement)docService.ImportNode(dataServiceNode, true);
+
+                    docService.DocumentElement?.AppendChild(nodeToAppend);
+                    continue;
+                }
+
+                // Fallback: create a minimal DataService; try to reuse a provided title if present
+                var ds = docService.CreateElement("dcat", "DataService", xmlnsDcat);
+                ds.SetAttribute("about", xmlnsRdf, endpointUrl);
+
+                var endpoint = docService.CreateElement("dcat", "endpointURL", xmlnsDcat);
+                endpoint.SetAttribute("resource", xmlnsRdf, endpointUrl);
+                ds.AppendChild(endpoint);
+
+                var titleEl = docService.CreateElement("dct", "title", xmlnsDct);
+                titleEl.SetAttribute("xml:lang", "nb");
+                var providedTitle = (kv.Value as XmlElement)?.SelectSingleNode("./dct:title", nsmgr)?.InnerText;
+                titleEl.InnerText = !string.IsNullOrEmpty(providedTitle) ? providedTitle : "Dataservice";
+                ds.AppendChild(titleEl);
+
+                docService.DocumentElement?.AppendChild(ds);
+            }
+        }
+
         private void CreateDatasets(XmlElement root, XmlElement catalog)
         {
 
             Dictionary<string, XmlNode> foafAgents = new Dictionary<string, XmlNode>();
             Dictionary<string, XmlNode> vcardKinds = new Dictionary<string, XmlNode>();
             Dictionary<string, XmlNode> services = new Dictionary<string, XmlNode>();
-            Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>();
 
             foreach (var metadata in metadataSets)
             {
@@ -833,6 +880,10 @@ namespace Geonorge.ApiServices.Services
                         datasetDataQuality.InnerText = data.ProcessHistory;
                     dataset.AppendChild(datasetDataQuality);
 
+                    string org = null;
+                    if (organization != null) org = organization?.Name;
+
+
                     //Distribution
                     if (data.DistributionsFormats != null)
                     {
@@ -995,12 +1046,24 @@ namespace Geonorge.ApiServices.Services
 
                                     }
 
-                                    distributionFormats.Add(distro.FormatName);
+                                if (isDataService) {
+                                    XmlElement accessService = doc.CreateElement("dcat", "accessService", xmlnsDcat);
+                                    accessService.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                    distribution.AppendChild(accessService);
+
+                                    if (!dataServices.ContainsKey(distro.URL))
+                                    {
+                                        distribution = CreateXmlElementForDataservice(dataset, data, null, distro.Protocol,
+                                        null, distro.URL, distro.FormatName, publisherUri, organizationUri, org, vcardKinds);
+
+                                        dataServices.Add(distro.URL, distribution);
+                                    }
+                                }
+
+                                distributionFormats.Add(distro.FormatName);
                                 }
                             //}
                         }
-                        string org = null;
-                        if(organization != null) org = organization?.Name;
 
                         // Dataset distributions and services
                         AddServiceAndDistributions(uuid, dataset, data, services, publisherUri, organizationUri, org, vcardKinds);
@@ -1580,6 +1643,7 @@ namespace Geonorge.ApiServices.Services
             nsmgr.AddNamespace("rdf", xmlnsRdf);
             nsmgr.AddNamespace("skos", xmlnsSkos);
             nsmgr.AddNamespace("dct", xmlnsDct);
+            nsmgr.AddNamespace("dcat", xmlnsDcat);
 
             XmlDeclaration dec = docService.CreateXmlDeclaration("1.0", "UTF-8", null);
             docService.AppendChild(dec);
