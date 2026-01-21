@@ -267,34 +267,56 @@ namespace Geonorge.ApiServices.Services
         }
 
         // Helper: ensure foaf:Agent and vcard:Organization nodes exist with rdf:about
-        private void EnsureAgentAndContactPointNodes(string? publisherUri, string? contactPointUri, string? organizationName)
+        // Optional: agentIdentifier/orgIdentifier should be the organization number or similar stable identifier.
+        private void EnsureAgentAndContactPointNodes(
+            string? publisherUri,
+            string? contactPointUri,
+            string? organizationName,
+            string? agentIdentifier = null,
+            string? orgIdentifier = null)
         {
             // Publisher foaf:Agent
             if (!string.IsNullOrEmpty(publisherUri))
             {
-                var existsPublisherAgent = docService.DocumentElement?
+                var existingAgents = docService.DocumentElement?
                     .SelectNodes("//foaf:Agent", nsmgr)
-                    ?.Cast<XmlElement>()
-                    .Any(el => el.GetAttribute("about", xmlnsRdf) == publisherUri) == true;
+                    ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
 
-                if (!existsPublisherAgent)
+                var publisherAgent = existingAgents.FirstOrDefault(el => el.GetAttribute("about", xmlnsRdf) == publisherUri);
+
+                if (publisherAgent == null)
                 {
                     var agent = docService.CreateElement("foaf", "Agent", xmlnsFoaf);
                     agent.SetAttribute("about", xmlnsRdf, publisherUri);
 
-                    // Optional identifier/sameAs if known (Kartverket example kept)
+                    // dct:type -> NationalAuthority
+                    var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+                    agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                    agent.AppendChild(agentType);
+
+                    // dct:identifier (prefer provided; fallback for Kartverket)
+                    if (!string.IsNullOrEmpty(agentIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = agentIdentifier;
+                        agent.AppendChild(idEl);
+                    }
+                    else if (publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = "971040238";
+                        agent.AppendChild(idEl);
+                    }
+
+                    // owl:sameAs for Kartverket (known org)
                     if (publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
                     {
-                        var agentIdentifier = docService.CreateElement("dct", "identifier", xmlnsDct);
-                        agentIdentifier.InnerText = "971040238";
-                        agent.AppendChild(agentIdentifier);
-
                         var agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
                         agentSameAs.InnerText = "https://data.brreg.no/enhetsregisteret/api/enheter/971040238";
                         agent.AppendChild(agentSameAs);
                     }
 
-                    // Optional name if we have it
+                    // foaf:name if provided
                     if (!string.IsNullOrEmpty(organizationName))
                     {
                         var nameEl = docService.CreateElement("foaf", "name", xmlnsFoaf);
@@ -304,21 +326,49 @@ namespace Geonorge.ApiServices.Services
 
                     docService.DocumentElement?.AppendChild(agent);
                 }
+                else
+                {
+                    // Ensure missing dct:type is added
+                    var hasType = publisherAgent.SelectNodes("./dct:type", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(t => t.GetAttribute("resource", xmlnsRdf) == "http://purl.org/adms/publishertype/NationalAuthority") == true;
+
+                    if (!hasType)
+                    {
+                        var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+                        agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                        publisherAgent.AppendChild(agentType);
+                    }
+
+                    // Ensure dct:identifier is present if provided (or Kartverket fallback)
+                    var hasIdentifier = publisherAgent.SelectNodes("./dct:identifier", nsmgr)?.Count > 0;
+                    if (!hasIdentifier)
+                    {
+                        if (!string.IsNullOrEmpty(agentIdentifier) || publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                            idEl.InnerText = !string.IsNullOrEmpty(agentIdentifier) ? agentIdentifier : "971040238";
+                            publisherAgent.AppendChild(idEl);
+                        }
+                    }
+                }
             }
 
             // ContactPoint vcard:Organization
             if (!string.IsNullOrEmpty(contactPointUri))
             {
-                var existsVcard = docService.DocumentElement?
+                var existingVcards = docService.DocumentElement?
                     .SelectNodes("//vcard:Organization", nsmgr)
-                    ?.Cast<XmlElement>()
-                    .Any(el => el.GetAttribute("about", xmlnsRdf) == contactPointUri) == true;
+                    ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
 
-                if (!existsVcard)
+                var vcardOrg = existingVcards.FirstOrDefault(el => el.GetAttribute("about", xmlnsRdf) == contactPointUri);
+
+                if (vcardOrg == null)
                 {
-                    var vcardOrg = docService.CreateElement("vcard", "Organization", xmlnsVcard);
+                    vcardOrg = docService.CreateElement("vcard", "Organization", xmlnsVcard);
                     vcardOrg.SetAttribute("about", xmlnsRdf, contactPointUri);
 
+                    // vcard:organization-unit if we have a name
                     if (!string.IsNullOrEmpty(organizationName))
                     {
                         var unit = docService.CreateElement("vcard", "organization-unit", xmlnsVcard);
@@ -326,7 +376,43 @@ namespace Geonorge.ApiServices.Services
                         vcardOrg.AppendChild(unit);
                     }
 
+                    // dct:type -> NationalAuthority
+                    var orgType = docService.CreateElement("dct", "type", xmlnsDct);
+                    orgType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                    vcardOrg.AppendChild(orgType);
+
+                    // dct:identifier when provided
+                    if (!string.IsNullOrEmpty(orgIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = orgIdentifier;
+                        vcardOrg.AppendChild(idEl);
+                    }
+
                     docService.DocumentElement?.AppendChild(vcardOrg);
+                }
+                else
+                {
+                    // Ensure missing dct:type is added
+                    var hasType = vcardOrg.SelectNodes("./dct:type", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(t => t.GetAttribute("resource", xmlnsRdf) == "http://purl.org/adms/publishertype/NationalAuthority") == true;
+
+                    if (!hasType)
+                    {
+                        var orgType = docService.CreateElement("dct", "type", xmlnsDct);
+                        orgType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                        vcardOrg.AppendChild(orgType);
+                    }
+
+                    // Ensure dct:identifier is present when provided
+                    var hasIdentifier = vcardOrg.SelectNodes("./dct:identifier", nsmgr)?.Count > 0;
+                    if (!hasIdentifier && !string.IsNullOrEmpty(orgIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = orgIdentifier;
+                        vcardOrg.AppendChild(idEl);
+                    }
                 }
             }
         }
@@ -339,15 +425,11 @@ namespace Geonorge.ApiServices.Services
 
             foreach (var metadata in servicesMetadata)
             {
-                //try
-                //{
-                    string uuid = metadata.Items[0].Text[0];
+                string uuid = metadata.Items[0].Text[0];
 
-                // Load full metadata to extract details
                 MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                 var data = new SimpleMetadata(md);
 
-                // Try to pick a representative endpoint/protocol/format if available
                 string? endpointUrl = null;
                 string? protocol = null;
                 string? format = null;
@@ -360,25 +442,22 @@ namespace Geonorge.ApiServices.Services
                     format = firstDistro.FormatName;
                 }
 
-                // Build identifier for the DataService (align with accessService target when protocol exists)
                 var about = endpointUrl;
 
                 XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
                 dataService.SetAttribute("about", xmlnsRdf, about);
 
-                // dct:title
                 XmlElement titleEl = docService.CreateElement("dct", "title", xmlnsDct);
                 titleEl.SetAttribute("xml:lang", "nb");
                 titleEl.InnerText = string.IsNullOrEmpty(data?.Title) ? uuid : data.Title;
                 dataService.AppendChild(titleEl);
 
                 XmlElement description = docService.CreateElement("dct", "description", xmlnsDct);
-                    description.SetAttribute("xml:lang", "no");
+                description.SetAttribute("xml:lang", "no");
                 if (!string.IsNullOrEmpty(data?.Abstract))
                     description.InnerText = data.Abstract;
                 dataService.AppendChild(description);
 
-                // dcat:endpointURL (if known)
                 if (!string.IsNullOrEmpty(endpointUrl))
                 {
                     XmlElement endpoint = docService.CreateElement("dcat", "endpointURL", xmlnsDcat);
@@ -386,7 +465,38 @@ namespace Geonorge.ApiServices.Services
                     dataService.AppendChild(endpoint);
                 }
 
-                // dct:publisher + contactPoint + supporting nodes (single block)
+                // Resolve Organization.Number for publisher and contact
+                string? publisherIdentifier = null;
+                string? contactIdentifier = null;
+
+                Organization? publisherOrg = null;
+                Organization? contactOrg = null;
+
+                if (!string.IsNullOrEmpty(data?.ContactPublisher?.Organization))
+                {
+                    try
+                    {
+                        publisherOrg = _organizationService.GetOrganizationByName(data.ContactPublisher.Organization).Result;
+                        publisherIdentifier = publisherOrg?.Number;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug($"Organization lookup failed for publisher [{data.ContactPublisher.Organization}]: {ex.Message}");
+                    }
+                }
+                if (!string.IsNullOrEmpty(data?.ContactMetadata?.Organization))
+                {
+                    try
+                    {
+                        contactOrg = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization).Result;
+                        contactIdentifier = contactOrg?.Number;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug($"Organization lookup failed for contact [{data.ContactMetadata.Organization}]: {ex.Message}");
+                    }
+                }
+
                 if (data?.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization)
                     && OrganizationsLink != null && OrganizationsLink.TryGetValue(data.ContactPublisher.Organization, out var orgLink))
                 {
@@ -398,7 +508,6 @@ namespace Geonorge.ApiServices.Services
                     publisher.SetAttribute("resource", xmlnsRdf, publisherUri);
                     dataService.AppendChild(publisher);
 
-                    // ContactPoint derived from ContactMetadata (preferred) or fall back to publisher
                     string? contactPointUri = null;
                     string? orgName = null;
 
@@ -423,11 +532,16 @@ namespace Geonorge.ApiServices.Services
                         dataService.AppendChild(contactPoint);
                     }
 
-                    // Emit rdf:about nodes for both URIs
-                    EnsureAgentAndContactPointNodes(publisherUri, contactPointUri, orgName);
+                    // Ensure about-nodes with identifiers
+                    EnsureAgentAndContactPointNodes(
+                        publisherUri,
+                        contactPointUri,
+                        orgName,
+                        agentIdentifier: publisherIdentifier,
+                        orgIdentifier: contactIdentifier
+                    );
                 }
 
-                // dct:license (if present)
                 if (data?.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
                 {
                     XmlElement license = docService.CreateElement("dct", "license", xmlnsDct);
@@ -435,7 +549,6 @@ namespace Geonorge.ApiServices.Services
                     dataService.AppendChild(license);
                 }
 
-                // dct:format (if present)
                 if (!string.IsNullOrEmpty(format))
                 {
                     XmlElement formatEl = docService.CreateElement("dct", "format", xmlnsDct);
@@ -446,19 +559,12 @@ namespace Geonorge.ApiServices.Services
                     dataService.AppendChild(formatEl);
                 }
 
-                // Append to the service RDF root
                 docService.DocumentElement?.AppendChild(dataService);
 
-                // Use endpointUrl as key when available; fallback to about
                 var key = !string.IsNullOrEmpty(endpointUrl) ? endpointUrl : about;
                 if (!result.ContainsKey(key))
                     result.Add(key, dataService);
-                //}
-                //    catch (Exception e)
-                //    {
-                //    _logger.LogError($"Error processing service metadata: {e}");
-                //}
-        }
+            }
 
             return result;
         }
@@ -1405,7 +1511,7 @@ namespace Geonorge.ApiServices.Services
         private XmlElement CreateXmlElementForDataservice(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
                 dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format, string publisherUri, string organizationUri,
                 string organization, Dictionary<string, XmlNode> vcardKinds)
-            {
+        {
 
             XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
             dataService.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
@@ -1435,21 +1541,19 @@ namespace Geonorge.ApiServices.Services
             publisher.SetAttribute("resource", xmlnsRdf, publisherUri);
             dataService.AppendChild(publisher);
 
-            var organizationName = organization;
+            // contactPoint selection
+            string contactPointUri = string.IsNullOrEmpty(organization)
+                ? organizationUri
+                : vcardKinds.FirstOrDefault(v => v.Value.InnerText == organization).Key;
 
-            if (string.IsNullOrEmpty(organizationName))
+            if (string.IsNullOrEmpty(contactPointUri))
             {
-                XmlElement contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                contactPoint.SetAttribute("resource", xmlnsRdf, organizationUri);
-                dataService.AppendChild(contactPoint);
+                contactPointUri = organizationUri;
             }
-            else
-            {
-                var orgVcard = vcardKinds.Where(v => v.Value.InnerText == organizationName).FirstOrDefault();
-                XmlElement contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                contactPoint.SetAttribute("resource", xmlnsRdf, orgVcard.Key);
-                dataService.AppendChild(contactPoint);
-            }
+
+            XmlElement contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
+            contactPoint.SetAttribute("resource", xmlnsRdf, contactPointUri);
+            dataService.AppendChild(contactPoint);
 
             // dct:license
             XmlElement license = docService.CreateElement("dct", "license", xmlnsDct);
@@ -1469,7 +1573,30 @@ namespace Geonorge.ApiServices.Services
 
             distributionFormats.Add(format);
 
-            EnsureAgentAndContactPointNodes(publisherUri, string.IsNullOrEmpty(organization) ? organizationUri : vcardKinds.FirstOrDefault(v => v.Value.InnerText == organization).Key, organization);
+            // Resolve Organization.Number (identifier) from organization name (if present)
+            string? agentIdentifier = null;
+            string? orgIdentifier = null;
+            try
+            {
+                if (!string.IsNullOrEmpty(organization))
+                {
+                    var orgInfo = _organizationService.GetOrganizationByName(organization).Result;
+                    agentIdentifier = orgInfo?.Number;
+                    orgIdentifier = orgInfo?.Number;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug($"Organization lookup failed for [{organization}]: {ex.Message}");
+            }
+
+            // Ensure foaf:Agent and vcard:Organization include identifiers and type
+            EnsureAgentAndContactPointNodes(
+                publisherUri,
+                contactPointUri,
+                organization,
+                agentIdentifier: agentIdentifier,
+                orgIdentifier: orgIdentifier);
 
             return dataService;
 
@@ -1681,6 +1808,11 @@ namespace Geonorge.ApiServices.Services
             XmlElement agentIdentifier = docService.CreateElement("dct", "identifier", xmlnsDct);
             agentIdentifier.InnerText = "971040238";
             foafAgent.AppendChild(agentIdentifier);
+
+            // dct:type -> NationalAuthority
+            var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+            agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+            foafAgent.AppendChild(agentType);
 
             XmlElement agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
             agentSameAs.InnerText = "https://data.brreg.no/enhetsregisteret/api/enheter/971040238";
