@@ -3,6 +3,7 @@ using GeoNorgeAPI;
 using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Utilities.Organization;
 using System;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -340,7 +341,7 @@ namespace Geonorge.ApiServices.Services
             {
                 //try
                 //{
-                string uuid = metadata.Items[0].Text[0];
+                    string uuid = metadata.Items[0].Text[0];
 
                 // Load full metadata to extract details
                 MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
@@ -370,6 +371,12 @@ namespace Geonorge.ApiServices.Services
                 titleEl.SetAttribute("xml:lang", "nb");
                 titleEl.InnerText = string.IsNullOrEmpty(data?.Title) ? uuid : data.Title;
                 dataService.AppendChild(titleEl);
+
+                XmlElement description = docService.CreateElement("dct", "description", xmlnsDct);
+                    description.SetAttribute("xml:lang", "no");
+                if (!string.IsNullOrEmpty(data?.Abstract))
+                    description.InnerText = data.Abstract;
+                dataService.AppendChild(description);
 
                 // dcat:endpointURL (if known)
                 if (!string.IsNullOrEmpty(endpointUrl))
@@ -447,11 +454,11 @@ namespace Geonorge.ApiServices.Services
                 if (!result.ContainsKey(key))
                     result.Add(key, dataService);
                 //}
-                //catch (Exception e)
-                //{
+                //    catch (Exception e)
+                //    {
                 //    _logger.LogError($"Error processing service metadata: {e}");
                 //}
-            }
+        }
 
             return result;
         }
