@@ -95,8 +95,8 @@ namespace Geonorge.ApiServices.Services
         {
             _logger.LogInformation("Generating DCAT");
 
-            //try
-            //{
+            try
+            {
                 FormatUrls = GetFormatUrls();
                 MediaTypes = GetMediaTypes();
                 OrganizationsLink = GetOrganizationsLink();
@@ -132,11 +132,11 @@ namespace Geonorge.ApiServices.Services
                 docService.Save(pathService);
 
                 _logger.LogInformation("Finished generating DCAT");
-            //}
-            //catch (Exception e)
-            //{
-            //    _logger.LogError($"Error generating DCAT: {e}");
-            //}
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"Error generating DCAT: {e}");
+            }
 }
 
         private Dictionary<string, string> GetMediaTypes()
@@ -437,7 +437,7 @@ namespace Geonorge.ApiServices.Services
                 var firstDistro = data?.DistributionsFormats?.FirstOrDefault(df => !string.IsNullOrEmpty(df?.URL));
                 if (firstDistro != null)
                 {
-                    endpointUrl = firstDistro.URL;
+                    endpointUrl = SanitizeUrlForRdf(firstDistro.URL);
                     protocol = firstDistro.Protocol;
                     format = firstDistro.FormatName;
                 }
@@ -1443,16 +1443,27 @@ namespace Geonorge.ApiServices.Services
             return distribution;
         }
 
+        private static string SanitizeUrlForRdf(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return url;
+            // Percent-encode characters that are illegal in URIs but may appear in templated endpoints
+            // Already handled elsewhere: spaces, commas, [ and ]
+            return url
+                .Replace("{", "%7B")
+                .Replace("}", "%7D");
+        }
 
         private XmlElement CreateXmlElementForDataservice(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
                 dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format, string publisherUri, string organizationUri,
                 string organization, Dictionary<string, XmlNode> vcardKinds)
         {
+            serviceDistributionUrl = SanitizeUrlForRdf(serviceDistributionUrl);
 
             XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
             dataService.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
 
             // dcat:servesDataset
+            //todo improve point to all datasets it serves, now distribution is pointing relation dcat:accessService 
             XmlElement servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
             servesDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
             dataService.AppendChild(servesDataset);
@@ -1541,6 +1552,8 @@ namespace Geonorge.ApiServices.Services
         private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
             dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format)
         {
+            serviceDistributionUrl = SanitizeUrlForRdf(serviceDistributionUrl);
+
             XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
             distributionDataset.SetAttribute("resource", xmlnsRdf,
                 kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
