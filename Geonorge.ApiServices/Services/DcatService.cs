@@ -437,19 +437,17 @@ namespace Geonorge.ApiServices.Services
                         vcardOrg.AppendChild(fn);
                     }
 
-                    // Ensure vcard:hasEmail
+                    // Ensure only ONE vcard:hasEmail, applying precedence-chosen contactEmail if provided
                     if (!string.IsNullOrEmpty(contactEmail))
                     {
-                        var hasEmailExists = vcardOrg.SelectNodes("./vcard:hasEmail", nsmgr)
-                            ?.Cast<XmlElement>()
-                            .Any(e => e.GetAttribute("resource", xmlnsRdf) == $"mailto:{contactEmail}") == true;
+                        // Remove all existing hasEmail to avoid duplicates
+                        var existingHasEmails = vcardOrg.SelectNodes("./vcard:hasEmail", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                        foreach (var he in existingHasEmails)
+                            vcardOrg.RemoveChild(he);
 
-                        if (!hasEmailExists)
-                        {
-                            var hasEmail = docService.CreateElement("vcard", "hasEmail", xmlnsVcard);
-                            hasEmail.SetAttribute("resource", xmlnsRdf, $"mailto:{contactEmail}");
-                            vcardOrg.AppendChild(hasEmail);
-                        }
+                        var hasEmail = docService.CreateElement("vcard", "hasEmail", xmlnsVcard);
+                        hasEmail.SetAttribute("resource", xmlnsRdf, $"mailto:{contactEmail}");
+                        vcardOrg.AppendChild(hasEmail);
                     }
                 }
             }
