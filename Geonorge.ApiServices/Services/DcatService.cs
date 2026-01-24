@@ -120,6 +120,10 @@ namespace Geonorge.ApiServices.Services
 
                 AddDataServicesToCatalog(catalogService);
 
+                AddServesDatasetRelations(root, rootService);
+
+                UpdateDataServiceTitleIfServiceServes1Dataset(root, rootService);
+
                 AddConcepts(root);
 
                 Finalize(root, catalog);
@@ -139,6 +143,170 @@ namespace Geonorge.ApiServices.Services
                 throw new Exception($"Error generating DCAT: {e}");
             }
 }
+
+        // Append dataset title to service title when the service serves exactly one dataset
+        private void UpdateDataServiceTitleIfServiceServes1Dataset(XmlElement rootDatasets, XmlElement rootServices)
+        {
+            if (doc == null || docService == null || nsmgr == null) return;
+
+            // For each DataService in the services RDF
+            var dataServicesNodes = docService.DocumentElement?
+                .SelectNodes("//dcat:DataService", nsmgr)
+                ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+            foreach (var ds in dataServicesNodes)
+            {
+                // Count servesDataset entries
+                var serves = ds.SelectNodes("./dcat:servesDataset", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                if (serves.Count != 1) continue;
+
+                var datasetUri = serves[0].GetAttribute("resource", xmlnsRdf);
+                if (string.IsNullOrEmpty(datasetUri)) continue;
+
+                // Find the dataset by rdf:about and read its dct:title (prefer nb/no, else first)
+                var datasetNode = doc.DocumentElement?
+                    .SelectNodes($"//dcat:Dataset[@rdf:about='{datasetUri}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .FirstOrDefault();
+                if (datasetNode == null) continue;
+
+                var datasetTitles = datasetNode.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                if (datasetTitles.Count == 0) continue;
+
+                string? datasetTitle =
+                    datasetTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "nb", StringComparison.OrdinalIgnoreCase))?.InnerText
+                    ?? datasetTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "no", StringComparison.OrdinalIgnoreCase))?.InnerText
+                    ?? datasetTitles.First().InnerText;
+
+                if (string.IsNullOrWhiteSpace(datasetTitle)) continue;
+
+                // Find/ensure a Norwegian title element on the DataService
+                var serviceTitles = ds.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                XmlElement? nbTitleEl = serviceTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "nb", StringComparison.OrdinalIgnoreCase))
+                                        ?? serviceTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "no", StringComparison.OrdinalIgnoreCase))
+                                        ?? serviceTitles.FirstOrDefault();
+
+                if (nbTitleEl == null)
+                {
+                    nbTitleEl = docService.CreateElement("dct", "title", xmlnsDct);
+                    nbTitleEl.SetAttribute("xml:lang", "nb");
+                    nbTitleEl.InnerText = "Dataservice";
+                    ds.AppendChild(nbTitleEl);
+                }
+
+                // Append dataset title if not already included
+                var currentTitle = nbTitleEl.InnerText ?? string.Empty;
+                if (!currentTitle.Contains(datasetTitle, StringComparison.Ordinal))
+                {
+                    nbTitleEl.InnerText = string.IsNullOrEmpty(currentTitle)
+                        ? datasetTitle
+                        : $"{currentTitle} - {datasetTitle}";
+                }
+            }
+        }
+
+        // Build dcat:servesDataset relations based on dcat:accessService and dcat:accessURL
+        // Rule: If a Distribution has accessService @rdf:resource = S and accessURL @rdf:resource = U,
+        // and there exists a dcat:DataService in docService with rdf:about = U, then add:
+        //   <dcat:servesDataset rdf:resource="dataset-about"/>
+        // to that DataService node.
+        private void AddServesDatasetRelations(XmlElement rootDatasets, XmlElement rootServices)
+        {
+            if (doc == null || docService == null || nsmgr == null) return;
+
+            // Helper local normalizer to reduce mismatch risks
+            static string NormalizeUrl(string? u)
+            {
+                if (string.IsNullOrWhiteSpace(u)) return string.Empty;
+                // apply same sanitization as used when creating DataService/about
+                u = u.Replace("{", "%7B").Replace("}", "%7D");
+                // trim trailing slash for matching consistency
+                if (u.Length > 1 && u.EndsWith("/")) u = u.Substring(0, u.Length - 1);
+                return u;
+            }
+
+            var distributions = doc.DocumentElement?
+                .SelectNodes("//dcat:Distribution", nsmgr)
+                ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+            foreach (var distribution in distributions)
+            {
+                var distributionAbout = distribution.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(distributionAbout)) continue;
+
+                // Find dataset owning this distribution
+                var datasetEl = doc.DocumentElement?
+                    .SelectNodes($"//dcat:Dataset[dcat:distribution/@rdf:resource='{distributionAbout}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .FirstOrDefault();
+                if (datasetEl == null) continue;
+
+                var datasetAbout = datasetEl.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(datasetAbout)) continue;
+
+                // Read accessService and accessURL
+                var accessServiceResRaw = distribution
+                    .SelectNodes("./dcat:accessService", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Select(a => a.GetAttribute("resource", xmlnsRdf))
+                    .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+
+                var accessUrlResRaw = distribution
+                    .SelectNodes("./dcat:accessURL", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Select(a => a.GetAttribute("resource", xmlnsRdf))
+                    .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+
+                var accessServiceRes = NormalizeUrl(accessServiceResRaw);
+                var accessUrlRes = NormalizeUrl(accessUrlResRaw);
+
+                // Try match DataService by accessService first, then accessURL
+                XmlElement? matchingService = null;
+                if (!string.IsNullOrEmpty(accessServiceRes))
+                {
+                    matchingService = docService.DocumentElement?
+                        .SelectNodes($"//dcat:DataService[@rdf:about='{accessServiceRes}']", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .FirstOrDefault();
+                    // if not found, attempt with trailing slash alternative
+                    if (matchingService == null)
+                    {
+                        var alt = accessServiceRes + "/";
+                        matchingService = docService.DocumentElement?
+                            .SelectNodes($"//dcat:DataService[@rdf:about='{alt}']", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .FirstOrDefault();
+                    }
+                }
+                if (matchingService == null && !string.IsNullOrEmpty(accessUrlRes))
+                {
+                    matchingService = docService.DocumentElement?
+                        .SelectNodes($"//dcat:DataService[@rdf:about='{accessUrlRes}']", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .FirstOrDefault();
+                    if (matchingService == null)
+                    {
+                        var alt = accessUrlRes + "/";
+                        matchingService = docService.DocumentElement?
+                            .SelectNodes($"//dcat:DataService[@rdf:about='{alt}']", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .FirstOrDefault();
+                    }
+                }
+                if (matchingService == null) continue;
+
+                // Avoid duplicates
+                bool alreadyServes = matchingService
+                    .SelectNodes("./dcat:servesDataset", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Any(sd => sd.GetAttribute("resource", xmlnsRdf) == datasetAbout) == true;
+                if (alreadyServes) continue;
+
+                var servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
+                servesDataset.SetAttribute("resource", xmlnsRdf, datasetAbout);
+                matchingService.AppendChild(servesDataset);
+            }
+        }
 
         private Dictionary<string, string> GetMediaTypes()
         {
@@ -1559,7 +1727,6 @@ namespace Geonorge.ApiServices.Services
             dataService.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
 
             // dcat:servesDataset
-            //todo improve point to all datasets it serves, now distribution is pointing relation dcat:accessService 
             XmlElement servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
             servesDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
             dataService.AppendChild(servesDataset);
