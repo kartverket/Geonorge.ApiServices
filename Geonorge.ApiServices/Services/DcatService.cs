@@ -784,6 +784,43 @@ namespace Geonorge.ApiServices.Services
                     dataService.AppendChild(formatEl);
                 }
 
+                // dcat:servesDataset from data.OperatesOn
+                // Accept URIs and UUIDs; build dataset URI consistent with our Dataset rdf:about pattern.
+                if (data?.OperatesOn != null && data.OperatesOn.Count > 0)
+                {
+                    foreach (var operatesOn in data.OperatesOn.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        string datasetUri;
+                        if (Uri.IsWellFormedUriString(operatesOn, UriKind.Absolute))
+                        {
+                            datasetUri = operatesOn;
+                        }
+                        else if (Guid.TryParse(operatesOn, out _))
+                        {
+                            datasetUri = $"{kartkatalogenUrl}Metadata/uuid/{operatesOn}";
+                        }
+                        else
+                        {
+                            // Skip unrecognized formats to avoid bad triples
+                            _logger.LogDebug($"Skipping OperatesOn entry with unrecognized format: [{operatesOn}]");
+                            continue;
+                        }
+
+                        // Avoid duplicates on the node
+                        bool alreadyServes = dataService
+                            .SelectNodes("./dcat:servesDataset", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(sd => sd.GetAttribute("resource", xmlnsRdf).Equals(datasetUri, StringComparison.Ordinal)) == true;
+
+                        if (!alreadyServes)
+                        {
+                            var servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
+                            servesDataset.SetAttribute("resource", xmlnsRdf, datasetUri);
+                            dataService.AppendChild(servesDataset);
+                        }
+                    }
+                }
+
                 docService.DocumentElement?.AppendChild(dataService);
 
                 var key = !string.IsNullOrEmpty(endpointUrl) ? endpointUrl : about;
@@ -2194,7 +2231,7 @@ namespace Geonorge.ApiServices.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "779a554b-fc3e-48a6-b202-561b07e9d4c2";
+            //string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
             //var filters = new object[]
             //          {
 
