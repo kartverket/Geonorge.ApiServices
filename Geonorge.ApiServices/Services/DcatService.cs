@@ -147,6 +147,8 @@ namespace Geonorge.ApiServices.Services
         // Append dataset title to service title when the service serves exactly one dataset
         private void UpdateDataServiceTitleIfServiceServes1Dataset(XmlElement rootDatasets, XmlElement rootServices)
         {
+            _logger.LogInformation($"Processing UpdateDataServiceTitleIfServiceServes1Dataset");
+
             if (doc == null || docService == null || nsmgr == null) return;
 
             // For each DataService in the services RDF
@@ -203,6 +205,8 @@ namespace Geonorge.ApiServices.Services
                         : $"{currentTitle} - {datasetTitle}";
                 }
             }
+
+            _logger.LogInformation($"Processing UpdateDataServiceTitleIfServiceServes1Dataset ended");
         }
 
         // Build dcat:servesDataset relations based on dcat:accessService and dcat:accessURL
@@ -212,6 +216,8 @@ namespace Geonorge.ApiServices.Services
         // to that DataService node.
         private void AddServesDatasetRelations(XmlElement rootDatasets, XmlElement rootServices)
         {
+            _logger.LogInformation($"Processing AddServesDatasetRelations");
+
             if (doc == null || docService == null || nsmgr == null) return;
 
             // Helper local normalizer to reduce mismatch risks
@@ -306,6 +312,8 @@ namespace Geonorge.ApiServices.Services
                 servesDataset.SetAttribute("resource", xmlnsRdf, datasetAbout);
                 matchingService.AppendChild(servesDataset);
             }
+
+            _logger.LogInformation($"Processing AddServesDatasetRelations ended");
         }
 
         private Dictionary<string, string> GetMediaTypes()
@@ -630,6 +638,8 @@ namespace Geonorge.ApiServices.Services
             foreach (var metadata in servicesMetadata)
             {
                 string uuid = metadata.Items[0].Text[0];
+
+                _logger.LogInformation($"Processing dataset service: [uuid={uuid}]");
 
                 MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
                 var data = new SimpleMetadata(md);
@@ -1382,12 +1392,12 @@ namespace Geonorge.ApiServices.Services
 
                                     XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
                                     distributionTitle.SetAttribute("xml:lang", "no");
-                                    if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                        distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
+                                    if (distro.Protocol != null && !string.IsNullOrEmpty(distro.Protocol))
+                                        distributionTitle.InnerText = GetDistributionTitle(distro.Protocol);
 
                                     XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                    if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                        distributionDescription.InnerText = GetDistributionDescription(data.DistributionDetails.Protocol);
+                                    if (distro.Protocol != null && !string.IsNullOrEmpty(distro.Protocol))
+                                        distributionDescription.InnerText = GetDistributionDescription(distro.Protocol);
                                     distribution.AppendChild(distributionDescription);
 
                                     XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
@@ -2184,7 +2194,7 @@ namespace Geonorge.ApiServices.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "no.met.adc:8e73a697-46ec-50a6-915c-f53fb1349f85";
+            //string searchString = "779a554b-fc3e-48a6-b202-561b07e9d4c2";
             //var filters = new object[]
             //          {
 
