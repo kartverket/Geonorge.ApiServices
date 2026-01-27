@@ -202,7 +202,7 @@ namespace Geonorge.ApiServices.Services
                 {
                     nbTitleEl.InnerText = string.IsNullOrEmpty(currentTitle)
                         ? datasetTitle
-                        : $"{currentTitle} - {datasetTitle}";
+                        : $"{datasetTitle} - {currentTitle}";
                 }
             }
 
