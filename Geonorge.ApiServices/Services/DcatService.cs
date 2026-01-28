@@ -124,6 +124,8 @@ namespace Geonorge.ApiServices.Services
 
                 UpdateDataServiceTitleIfServiceServes1Dataset(root, rootService);
 
+                RemoveDistributionsWithAccessServiceReference(root);
+
                 AddConcepts(root);
 
                 Finalize(root, catalog);
@@ -143,6 +145,48 @@ namespace Geonorge.ApiServices.Services
                 throw new Exception($"Error generating DCAT: {e}");
             }
 }
+
+        // Remove all dcat:Distribution (rdf:about=...) that have a dcat:accessService,
+        // and also remove the dcat:distribution references from the owning dcat:Dataset.
+        private void RemoveDistributionsWithAccessServiceReference(XmlElement root)
+        {
+            _logger.LogInformation("Processing RemoveDistributionsWithAccessServiceReference");
+
+            if (doc == null || nsmgr == null || doc.DocumentElement == null) return;
+
+            // Find all dcat:Distribution elements that contain a dcat:accessService child
+            var distributionsWithAccessService = doc.DocumentElement
+                .SelectNodes("//dcat:Distribution[dcat:accessService]", nsmgr)
+                ?.Cast<XmlElement>()
+                .ToList() ?? new List<XmlElement>();
+
+            foreach (var dist in distributionsWithAccessService)
+            {
+                var about = dist.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(about))
+                    continue;
+
+                // Remove dcat:distribution references from any Dataset that points to this distribution
+                // XPath: //dcat:Dataset/dcat:distribution[@rdf:resource='{about}']
+                var datasetRefs = doc.DocumentElement
+                    .SelectNodes($"//dcat:Dataset/dcat:distribution[@rdf:resource='{about}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .ToList() ?? new List<XmlElement>();
+
+                foreach (var dsRef in datasetRefs)
+                {
+                    var parentDataset = dsRef.ParentNode as XmlElement;
+                    parentDataset?.RemoveChild(dsRef);
+                }
+
+                // Finally remove the Distribution itself from the RDF document
+                dist.ParentNode?.RemoveChild(dist);
+
+                _logger.LogDebug($"Removed Distribution and references: [about={about}]");
+            }
+
+            _logger.LogInformation("Processing RemoveDistributionsWithAccessServiceReference ended");
+        }
 
         // Append dataset title to service title when the service serves exactly one dataset
         private void UpdateDataServiceTitleIfServiceServes1Dataset(XmlElement rootDatasets, XmlElement rootServices)
@@ -718,29 +762,33 @@ namespace Geonorge.ApiServices.Services
                 if (data?.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization)
                     && OrganizationsLink != null && OrganizationsLink.TryGetValue(data.ContactPublisher.Organization, out var orgLink))
                 {
-                    var publisherUri = orgLink.Replace("organisasjoner/kartverket/", "organisasjoner/");
-                    if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
-                        publisherUri = publisherUri + "/" + GetUsernameFromEmail(data.ContactPublisher.Email);
+                    // Publisher: organization root only
+                    var publisherOrgRoot = GetOrganizationRootUri(orgLink);
 
-                    XmlElement publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
-                    publisher.SetAttribute("resource", xmlnsRdf, publisherUri);
+                    var publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
+                    publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot);
                     dataService.AppendChild(publisher);
 
+                    // Contact point: prefer contact metadata org + email; else fall back to publisher + email; else org root
                     string? contactPointUri = null;
                     string? orgName = null;
 
                     if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Organization)
                         && OrganizationsLink.TryGetValue(data.ContactMetadata.Organization, out var cpOrgLink))
                     {
-                        contactPointUri = cpOrgLink.Replace("organisasjoner/kartverket/", "organisasjoner/");
+                        var cpOrgRoot = GetOrganizationRootUri(cpOrgLink);
+                        contactPointUri = cpOrgRoot;
                         if (!string.IsNullOrEmpty(data.ContactMetadata.Email))
-                            contactPointUri = contactPointUri + "/" + GetUsernameFromEmail(data.ContactMetadata.Email);
+                            contactPointUri = cpOrgRoot + "/" + GetUsernameFromEmail(data.ContactMetadata.Email);
                         orgName = data.ContactMetadata.Organization;
                     }
                     else
                     {
-                        contactPointUri = publisherUri;
+                        // Fall back to publisher org root; optionally append publisher email for contact point if present
+                        contactPointUri = publisherOrgRoot;
                         orgName = data.ContactPublisher.Organization;
+                        if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
+                            contactPointUri = publisherOrgRoot + "/" + GetUsernameFromEmail(data.ContactPublisher.Email);
                     }
 
                     if (!string.IsNullOrEmpty(contactPointUri))
@@ -750,15 +798,13 @@ namespace Geonorge.ApiServices.Services
                         dataService.AppendChild(contactPoint);
                     }
 
-                    string emailIdentifier = data?.ContactMetadata?.Email;
-                    if (string.IsNullOrEmpty(emailIdentifier))
-                        emailIdentifier = data?.ContactOwner?.Email;
-                    if (string.IsNullOrEmpty(emailIdentifier))
-                        emailIdentifier = data?.ContactPublisher?.Email;
+                    string emailIdentifier = data?.ContactMetadata?.Email
+                                             ?? data?.ContactOwner?.Email
+                                             ?? data?.ContactPublisher?.Email;
 
                     // Ensure about-nodes with identifiers
                     EnsureAgentAndContactPointNodes(
-                        publisherUri,
+                        publisherOrgRoot,
                         contactPointUri,
                         orgName,
                         agentIdentifier: publisherIdentifier,
@@ -912,23 +958,24 @@ namespace Geonorge.ApiServices.Services
 
                 if (!string.IsNullOrEmpty(providedPublisher))
                 {
+                    var normalizedPublisher = GetOrganizationRootUri(providedPublisher);
+
                     var publisherRef = docService.CreateElement("dct", "publisher", xmlnsDct);
-                    publisherRef.SetAttribute("resource", xmlnsRdf, providedPublisher);
+                    publisherRef.SetAttribute("resource", xmlnsRdf, normalizedPublisher);
                     ds.AppendChild(publisherRef);
 
                     var contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
-                    contactPoint.SetAttribute("resource", xmlnsRdf, providedPublisher);
+                    contactPoint.SetAttribute("resource", xmlnsRdf, normalizedPublisher);
                     ds.AppendChild(contactPoint);
 
                     EnsureAgentAndContactPointNodes(
-                        providedPublisher,
-                        providedPublisher,
+                        normalizedPublisher,
+                        normalizedPublisher,
                         organizationName: null,
                         agentIdentifier: null,
                         orgIdentifier: null,
                         contactEmail: null);
                 }
-
                 docService.DocumentElement?.AppendChild(ds);
             }
         }
@@ -1764,6 +1811,21 @@ namespace Geonorge.ApiServices.Services
                 .Replace("}", "%7D");
         }
 
+        // Keep only the organization root in a register.geonorge.no org URI:
+        // https://register.geonorge.no/organisasjoner/{org-slug}[/...suffix] -> https://register.geonorge.no/organisasjoner/{org-slug}
+        private static string GetOrganizationRootUri(string? uri)
+        {
+            if (string.IsNullOrEmpty(uri)) return uri ?? string.Empty;
+
+            const string marker = "/organisasjoner/";
+            var idx = uri.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return uri;
+
+            var start = idx + marker.Length;
+            var nextSlash = uri.IndexOf('/', start);
+            return nextSlash > -1 ? uri.Substring(0, nextSlash) : uri;
+        }
+
         private XmlElement CreateXmlElementForDataservice(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
                 dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format, string publisherUri, string organizationUri,
                 string organization, Dictionary<string, XmlNode> vcardKinds)
@@ -1794,8 +1856,9 @@ namespace Geonorge.ApiServices.Services
             {
                 publisherUri = organizationUri;
             }
-            XmlElement publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
-            publisher.SetAttribute("resource", xmlnsRdf, publisherUri);
+            var publisherOrgRoot2 = GetOrganizationRootUri(publisherUri);
+            var publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
+            publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot2);
             dataService.AppendChild(publisher);
 
             // contactPoint selection
