@@ -154,7 +154,6 @@ namespace Geonorge.ApiServices.Services
 
             if (doc == null || nsmgr == null || doc.DocumentElement == null) return;
 
-            // Find all dcat:Distribution elements that contain a dcat:accessService child
             var distributionsWithAccessService = doc.DocumentElement
                 .SelectNodes("//dcat:Distribution[dcat:accessService]", nsmgr)
                 ?.Cast<XmlElement>()
@@ -162,12 +161,21 @@ namespace Geonorge.ApiServices.Services
 
             foreach (var dist in distributionsWithAccessService)
             {
+                // Preserve distribution if dct:title equals "Geonorge nedlastning"
+                var titles = dist.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                bool isGeonorgeDownload = titles.Any(t =>
+                    string.Equals(t.InnerText?.Trim(), "Geonorge nedlastning", StringComparison.OrdinalIgnoreCase));
+
+                if (isGeonorgeDownload)
+                {
+                    _logger.LogDebug("Preserved Distribution due to title 'Geonorge nedlastning'.");
+                    continue;
+                }
+
                 var about = dist.GetAttribute("about", xmlnsRdf);
                 if (string.IsNullOrEmpty(about))
                     continue;
 
-                // Remove dcat:distribution references from any Dataset that points to this distribution
-                // XPath: //dcat:Dataset/dcat:distribution[@rdf:resource='{about}']
                 var datasetRefs = doc.DocumentElement
                     .SelectNodes($"//dcat:Dataset/dcat:distribution[@rdf:resource='{about}']", nsmgr)
                     ?.Cast<XmlElement>()
@@ -179,7 +187,6 @@ namespace Geonorge.ApiServices.Services
                     parentDataset?.RemoveChild(dsRef);
                 }
 
-                // Finally remove the Distribution itself from the RDF document
                 dist.ParentNode?.RemoveChild(dist);
 
                 _logger.LogDebug($"Removed Distribution and references: [about={about}]");
@@ -865,6 +872,145 @@ namespace Geonorge.ApiServices.Services
                             dataService.AppendChild(servesDataset);
                         }
                     }
+                }
+
+                // Improve DataService documentation from operations
+                try 
+                { 
+                    if (data?.ContainOperations != null && data.ContainOperations.Count > 0)
+                    {
+                        // Map common operation names to standards and endpointDescription hints
+                        foreach (var op in data.ContainOperations.Where(o => !string.IsNullOrWhiteSpace(o?.Name)))
+                        {
+                            var opName = op.Name.Trim();
+
+                            // Endpoint description: capabilities or API description
+                            // Heuristics: if the endpointUrl looks like a capabilities/doc endpoint, reuse it;
+                            // else, attach typical capability URIs for known ops.
+                            string? endpointDescriptionUrl = null;
+                            if (!string.IsNullOrEmpty(endpointUrl) &&
+                                (endpointUrl.Contains("capabilities", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("api", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("swagger", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("openapi", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                endpointDescriptionUrl = endpointUrl;
+                            }
+                            else
+                            {
+                                // Suggest well-known description endpoints for OGC services
+                                if (opName.Equals("GetCapabilities", StringComparison.OrdinalIgnoreCase))
+                                    endpointDescriptionUrl = endpointUrl;
+                                else if (opName.Contains("Describe", StringComparison.OrdinalIgnoreCase))
+                                    endpointDescriptionUrl = endpointUrl;
+                            }
+
+                            if (!string.IsNullOrEmpty(endpointDescriptionUrl))
+                            {
+                                var endpointDesc = docService.CreateElement("dcat", "endpointDescription", xmlnsDcat);
+                                endpointDesc.SetAttribute("resource", xmlnsRdf, endpointDescriptionUrl);
+                                // Avoid duplicates
+                                var exists = dataService.SelectNodes("./dcat:endpointDescription", nsmgr)
+                                    ?.Cast<XmlElement>()
+                                    .Any(e => e.GetAttribute("resource", xmlnsRdf) == endpointDescriptionUrl) == true;
+                                if (!exists) dataService.AppendChild(endpointDesc);
+                            }
+
+                            // Standards conformance from operation set
+                            string? standardUri = null;
+                            // Lightweight heuristic mapping
+                            if (opName.Contains("WMS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetMap", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wms";
+                            else if (opName.Contains("WFS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetFeature", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wfs";
+                            else if (opName.Contains("WMTS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetTile", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wmts";
+                            else if (opName.Contains("WCS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetCoverage", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wcs";
+                            else if (opName.Contains("OGC API", StringComparison.OrdinalIgnoreCase) || opName.Contains("API-Features", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/features/1.0";
+                            else if (opName.Contains("API-Maps", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/maps/1.0";
+                            else if (opName.Contains("API-Tiles", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/tiles/1.0";
+                            else if (opName.Contains("API-Processes", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/processes/1.0";
+
+                            if (!string.IsNullOrEmpty(standardUri))
+                            {
+                                var conformsTo = docService.CreateElement("dct", "conformsTo", xmlnsDct);
+                                conformsTo.SetAttribute("resource", xmlnsRdf, standardUri);
+                                var exists = dataService.SelectNodes("./dct:conformsTo", nsmgr)
+                                    ?.Cast<XmlElement>()
+                                    .Any(e => e.GetAttribute("resource", xmlnsRdf) == standardUri) == true;
+                                if (!exists) dataService.AppendChild(conformsTo);
+                            }
+
+                            // Optional: add a typed hint for operation
+                            var typeEl = docService.CreateElement("dct", "type", xmlnsDct);
+                            typeEl.InnerText = opName;
+                            // Keep it concise and avoid many duplicates
+                            var typeExists = dataService.SelectNodes("./dct:type", nsmgr)
+                                ?.Cast<XmlElement>()
+                                .Any(e => string.Equals(e.InnerText, opName, StringComparison.Ordinal)) == true;
+                            if (!typeExists) dataService.AppendChild(typeEl);
+                        }
+
+                        // Append a short summary of operations to description (nb/no)
+                        var descEl = dataService.SelectNodes("./dct:description", nsmgr)?.Cast<XmlElement>()?.FirstOrDefault();
+                        if (descEl != null)
+                        {
+                            var opsSummary = string.Join(
+                                ", ",
+                                data.ContainOperations
+                                    .Where(o => !string.IsNullOrWhiteSpace(o?.Name))
+                                    .Select(o => o!.Name.Trim())
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                            );
+                            if (!string.IsNullOrWhiteSpace(opsSummary))
+                            {
+                                var current = descEl.InnerText ?? string.Empty;
+                                var addition = $" Støttede operasjoner: {opsSummary}.";
+                                if (!current.Contains(opsSummary, StringComparison.OrdinalIgnoreCase))
+                                    descEl.InnerText = string.IsNullOrEmpty(current) ? addition.Trim() : (current.TrimEnd() + addition);
+                            }
+                        }
+                    }
+
+                    // Fallback: if no endpointDescription was added, use endpointURL itself
+                    if (!string.IsNullOrEmpty(endpointUrl))
+                    {
+                        var hasEndpointDesc = dataService.SelectNodes("./dcat:endpointDescription", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(e => e.GetAttribute("resource", xmlnsRdf) == endpointUrl) == true;
+
+                        if (!hasEndpointDesc)
+                        {
+                            var endpointDescFallback = docService.CreateElement("dcat", "endpointDescription", xmlnsDcat);
+                            endpointDescFallback.SetAttribute("resource", xmlnsRdf, endpointUrl);
+                            dataService.AppendChild(endpointDescFallback);
+                        }
+                    }
+
+                    // Documentation page (foaf:page) -> Kartkatalogen metadata record for this service
+                    if (!string.IsNullOrEmpty(uuid))
+                    {
+                        var docPageUrl = $"{kartkatalogenUrl}Metadata/uuid/{uuid}";
+                        var hasFoafPage = dataService.SelectNodes("./foaf:page", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(e => e.GetAttribute("resource", xmlnsRdf) == docPageUrl) == true;
+
+                        if (!hasFoafPage)
+                        {
+                            var foafPage = docService.CreateElement("foaf", "page", xmlnsFoaf);
+                            foafPage.SetAttribute("resource", xmlnsRdf, docPageUrl);
+                            dataService.AppendChild(foafPage);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"Error enhancing DataService [{about}] with operations: {ex.Message}");
                 }
 
                 docService.DocumentElement?.AppendChild(dataService);
