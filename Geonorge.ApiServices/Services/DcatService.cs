@@ -538,7 +538,7 @@ namespace Geonorge.ApiServices.Services
                     if (publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
                     {
                         var agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
-                        agentSameAs.InnerText = "https://data.brreg.no/enhetsregisteret/api/enheter/971040238";
+                        agentSameAs.SetAttribute("resource", xmlnsRdf, "https://data.brreg.no/enhetsregisteret/api/enheter/971040238");
                         agent.AppendChild(agentSameAs);
                     }
 
@@ -1441,7 +1441,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                            agentSameAs.SetAttribute("resource", xmlnsRdf, "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number);
                             agent.AppendChild(agentSameAs);
                         }
 
@@ -2290,7 +2290,7 @@ namespace Geonorge.ApiServices.Services
             foafAgent.AppendChild(agentType);
 
             XmlElement agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
-            agentSameAs.InnerText = "https://data.brreg.no/enhetsregisteret/api/enheter/971040238";
+            agentSameAs.SetAttribute("resource", xmlnsRdf, "https://data.brreg.no/enhetsregisteret/api/enheter/971040238");
             foafAgent.AppendChild(agentSameAs);
 
             rootService.AppendChild(foafAgent);
