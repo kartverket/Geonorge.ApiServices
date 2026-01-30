@@ -1434,7 +1434,7 @@ namespace Geonorge.ApiServices.Services
                         if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
                         {
                             XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                            agentMbox.InnerText = data.ContactOwner.Email;
+                            agentMbox.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
                             agent.AppendChild(agentMbox);
                         }
 
@@ -1498,7 +1498,7 @@ namespace Geonorge.ApiServices.Services
                         if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Email))
                         {
                             XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                            agentMbox.InnerText = data.ContactPublisher.Email;
+                            agentMbox.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactPublisher.Email);
                             agent.AppendChild(agentMbox);
                         }
 
