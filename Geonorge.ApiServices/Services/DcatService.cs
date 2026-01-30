@@ -124,7 +124,8 @@ namespace Geonorge.ApiServices.Services
 
                 UpdateDataServiceTitleIfServiceServes1Dataset(root, rootService);
 
-                RemoveDistributionsWithAccessServiceReference(root);
+                //Do not remove distributions with accessService reference since https://data.europa.eu does not support API to dataset display (dcat:servesDataset)
+                //RemoveDistributionsWithAccessServiceReference(root);
 
                 AddConcepts(root);
 
