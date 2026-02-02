@@ -747,7 +747,7 @@ namespace Geonorge.ApiServices.Services
                     try
                     {
                         publisherOrg = _organizationService.GetOrganizationByName(data.ContactPublisher.Organization).Result;
-                        publisherIdentifier = publisherOrg?.Number;
+                        publisherIdentifier = publisherOrg?.Number?.Trim();
                     }
                     catch (Exception ex)
                     {
@@ -759,7 +759,7 @@ namespace Geonorge.ApiServices.Services
                     try
                     {
                         contactOrg = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization).Result;
-                        contactIdentifier = contactOrg?.Number;
+                        contactIdentifier = contactOrg?.Number?.Trim();
                     }
                     catch (Exception ex)
                     {
@@ -1416,7 +1416,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = organization.Number;
+                            agentIdentifier.InnerText = organization.Number.Trim();
                             agent.AppendChild(agentIdentifier);
                         }
                         else
@@ -1442,7 +1442,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.SetAttribute("resource", xmlnsRdf, "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number);
+                            agentSameAs.SetAttribute("resource", xmlnsRdf, "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim());
                             agent.AppendChild(agentSameAs);
                         }
 
@@ -1480,7 +1480,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = organization.Number;
+                            agentIdentifier.InnerText = organization.Number.Trim();
                             agent.AppendChild(agentIdentifier);
                         }
                         else
@@ -1506,7 +1506,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim();
                             agent.AppendChild(agentSameAs);
                         }
 
@@ -2054,8 +2054,8 @@ namespace Geonorge.ApiServices.Services
                 if (!string.IsNullOrEmpty(organization))
                 {
                     var orgInfo = _organizationService.GetOrganizationByName(organization).Result;
-                    agentIdentifier = orgInfo?.Number;
-                    orgIdentifier = orgInfo?.Number;
+                    agentIdentifier = orgInfo?.Number?.Trim();
+                    orgIdentifier = orgInfo?.Number?.Trim();
                 }
             }
             catch (Exception ex)
