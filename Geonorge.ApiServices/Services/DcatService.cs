@@ -83,11 +83,11 @@ namespace Geonorge.ApiServices.Services
         private readonly OrganizationService _organizationService;
 
         Dictionary<string, string> OrganizationsLink;
-        Dictionary<string, string> ConceptObjects = new Dictionary<string, string>();
+        Dictionary<string, string> ConceptObjects = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, string> MediaTypes;
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
-        Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>();
+        Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>(StringComparer.OrdinalIgnoreCase);
 
         List<string> distributionFormats = new List<string>();
 
@@ -370,7 +370,7 @@ namespace Geonorge.ApiServices.Services
 
         private Dictionary<string, string> GetMediaTypes()
         {
-            return new Dictionary<string, string>()
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                { "Shape", "https://www.iana.org/assignments/media-types/application/vnd.shp" },
                { "SOSI", "https://www.iana.org/assignments/media-types/text/vnd.sosi" },
@@ -395,8 +395,9 @@ namespace Geonorge.ApiServices.Services
 
         private Dictionary<string, string> GetFormatUrls()
         {
-            return new Dictionary<string, string>()
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
+               // todo improve problem with service input is freetext ex. png/jpg
                { "Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
                { "SOSI", "http://publications.europa.eu/resource/authority/file-type/TXT" },
                { "GML", "http://publications.europa.eu/resource/authority/file-type/GML" },
@@ -416,6 +417,7 @@ namespace Geonorge.ApiServices.Services
                { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
                { "ZIP", "http://publications.europa.eu/resource/authority/file-type/ZIP" },
                { "PNG", "http://publications.europa.eu/resource/authority/file-type/PNG" },
+               { "JSON", "http://publications.europa.eu/resource/authority/file-type/JSON" },
 
             };
         }
@@ -2003,9 +2005,9 @@ namespace Geonorge.ApiServices.Services
             {
                 publisherUri = organizationUri;
             }
-            var publisherOrgRoot2 = GetOrganizationRootUri(publisherUri);
+            var publisherOrgRoot = GetOrganizationRootUri(publisherUri); // normalize once and reuse
             var publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
-            publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot2);
+            publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot);
             dataService.AppendChild(publisher);
 
             // contactPoint selection
@@ -2064,8 +2066,9 @@ namespace Geonorge.ApiServices.Services
             }
 
             // Ensure foaf:Agent and vcard:Organization include identifiers and type
+            // IMPORTANT: use normalized publisherOrgRoot to match dct:publisher resource
             EnsureAgentAndContactPointNodes(
-                publisherUri,
+                publisherOrgRoot,
                 contactPointUri,
                 organization,
                 agentIdentifier: agentIdentifier,
@@ -2073,7 +2076,6 @@ namespace Geonorge.ApiServices.Services
                 contactEmail: emailIdentifier);
 
             return dataService;
-
         }
 
         private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
@@ -2111,11 +2113,11 @@ namespace Geonorge.ApiServices.Services
 
             XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
 
-            if (FormatUrls.ContainsKey(protocolName))
+            if (FormatUrls.ContainsKey(format))
             {
-                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[protocolName]);
+                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
             }
-            else { distributionFormat.InnerText = protocolName; }
+            else { distributionFormat.InnerText = format; }
 
             distribution.AppendChild(distributionFormat);
 
@@ -2441,7 +2443,7 @@ namespace Geonorge.ApiServices.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
+            //string searchString = "439731d4-bfce-41f8-bf46-5412bed86801";
             //var filters = new object[]
             //          {
 
@@ -2634,7 +2636,7 @@ namespace Geonorge.ApiServices.Services
 
         public Dictionary<string, DistributionType> GetDistributionTypes()
         {
-            Dictionary<string, DistributionType> DistributionTypes = new Dictionary<string, DistributionType>();
+            Dictionary<string, DistributionType> DistributionTypes = new Dictionary<string, DistributionType>(StringComparer.OrdinalIgnoreCase);
 
             var httpClient = _httpClientFactory.GetHttpClient();
             string url = _settings["RegistryUrl"] + "api/metadata-kodelister/distribusjonstyper";
