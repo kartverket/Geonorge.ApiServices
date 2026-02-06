@@ -17,7 +17,7 @@ namespace Geonorge.ApiServices.Controllers
         }
 
         /// <summary>
-        ///     Metadata catalogue in dcat format
+        ///     Metadata catalogue over datasets in dcat format
         /// </summary>
         [Route("metadata/dcat")]
         [HttpGet]
@@ -32,6 +32,21 @@ namespace Geonorge.ApiServices.Controllers
         }
 
         /// <summary>
+        ///     Metadata catalogue services in dcat format
+        /// </summary>
+        [Route("metadata/dcat-services")]
+        [HttpGet]
+        public IActionResult GetDcatServices()
+        {
+            var doc = new XmlDocument();
+            var filePath = _settings["DcatFolder"] + "\\geonorge_dcat_service.rdf";
+            doc.Load(filePath);
+            var fileName = "geonorge_dcat_services.rdf";
+            var fileBytes = Encoding.UTF8.GetBytes(doc.OuterXml);
+            return File(fileBytes, "application/rdf+xml", fileName);
+        }
+
+        /// <summary>
         ///     Update dcat file from metadata csw server
         /// </summary>
         [Route("metadata/updatedcat")]
@@ -39,8 +54,8 @@ namespace Geonorge.ApiServices.Controllers
         [ApiExplorerSettings(IgnoreApi = true)]
         public IActionResult UpdateDcat()
         {
-            var dcat = _dcatService.GenerateDcat();
-            return Content(dcat.OuterXml, "application/rdf+xml", Encoding.UTF8);
+            _dcatService.GenerateDcat();
+            return Ok();
         }
     }
 }
