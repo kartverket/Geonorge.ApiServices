@@ -1,9 +1,11 @@
-﻿using Geonorge.ApiServices.Models;
+using Geonorge.ApiServices.Models;
 using GeoNorgeAPI;
 using Kartverket.Geonorge.Api.Services;
 using Kartverket.Geonorge.Utilities.Organization;
 using System;
+using System.Data;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Web;
 using System.Xml;
@@ -15,8 +17,9 @@ namespace Geonorge.ApiServices.Services
 {
     public interface IDcatService
     {
-        XmlDocument GenerateDcat();
+        void GenerateDcat();
         List<RecordType> GetDatasets();
+        List<RecordType> GetServices();
         Dictionary<string, string> GetOrganizationsLink();
         Dictionary<string, DcatService.DistributionType> GetDistributionTypes();
     }
@@ -66,10 +69,12 @@ namespace Geonorge.ApiServices.Services
         string registryUrl;
 
         XmlDocument doc;
+        XmlDocument docService;
         XmlDocument conceptsDoc;
         XmlNamespaceManager nsmgr;
 
         List<RecordType> metadataSets;
+        List<RecordType> metadataServices;
 
         GeoNorge geoNorge;
 
@@ -82,10 +87,11 @@ namespace Geonorge.ApiServices.Services
         Dictionary<string, string> MediaTypes;
         Dictionary<string, string> FormatUrls;
         Dictionary<string, DistributionType> DistributionTypes;
+        Dictionary<string, XmlNode> dataServices = new Dictionary<string, XmlNode>();
 
         List<string> distributionFormats = new List<string>();
 
-        public XmlDocument GenerateDcat()
+        public void GenerateDcat()
         {
             _logger.LogInformation("Generating DCAT");
 
@@ -95,31 +101,271 @@ namespace Geonorge.ApiServices.Services
                 MediaTypes = GetMediaTypes();
                 OrganizationsLink = GetOrganizationsLink();
                 DistributionTypes = GetDistributionTypes();
+                metadataServices = GetServices();
                 metadataSets = GetDatasets();
 
                 XmlElement root = Setup();
+                XmlElement rootService = SetupService();
 
                 GetConcepts();
 
                 XmlElement catalog = CreateCatalog(root);
+                XmlElement catalogService = CreateCatalogService(rootService);
+
+                dataServices = CreateDataServices(metadataServices);
 
                 CreateDatasets(root, catalog);
+
+                AddCreatedDataServicesFromDatasets(dataServices);
+
+                AddDataServicesToCatalog(catalogService);
+
+                AddServesDatasetRelations(root, rootService);
+
+                UpdateDataServiceTitleIfServiceServes1Dataset(root, rootService);
+
+                //Do not remove distributions with accessService reference since https://data.europa.eu does not support API to dataset display (dcat:servesDataset)
+                //RemoveDistributionsWithAccessServiceReference(root);
 
                 AddConcepts(root);
 
                 Finalize(root, catalog);
+                FinalizeService(rootService, catalogService);
 
                 var path = _settings["DcatFolder"] + "\\geonorge_dcat.rdf";
                 doc.Save(path);
+
+                var pathService = _settings["DcatFolder"] + "\\geonorge_dcat_service.rdf";
+                docService.Save(pathService);
 
                 _logger.LogInformation("Finished generating DCAT");
             }
             catch (Exception e)
             {
                 _logger.LogError($"Error generating DCAT: {e}");
+                throw new Exception($"Error generating DCAT: {e}");
+            }
+}
+
+        // Remove all dcat:Distribution (rdf:about=...) that have a dcat:accessService,
+        // and also remove the dcat:distribution references from the owning dcat:Dataset.
+        private void RemoveDistributionsWithAccessServiceReference(XmlElement root)
+        {
+            _logger.LogInformation("Processing RemoveDistributionsWithAccessServiceReference");
+
+            if (doc == null || nsmgr == null || doc.DocumentElement == null) return;
+
+            var distributionsWithAccessService = doc.DocumentElement
+                .SelectNodes("//dcat:Distribution[dcat:accessService]", nsmgr)
+                ?.Cast<XmlElement>()
+                .ToList() ?? new List<XmlElement>();
+
+            foreach (var dist in distributionsWithAccessService)
+            {
+                // Preserve distribution if dct:title equals "Geonorge nedlastning"
+                var titles = dist.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                bool isGeonorgeDownload = titles.Any(t =>
+                    string.Equals(t.InnerText?.Trim(), "Geonorge nedlastning", StringComparison.OrdinalIgnoreCase));
+
+                if (isGeonorgeDownload)
+                {
+                    _logger.LogDebug("Preserved Distribution due to title 'Geonorge nedlastning'.");
+                    continue;
+                }
+
+                var about = dist.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(about))
+                    continue;
+
+                var datasetRefs = doc.DocumentElement
+                    .SelectNodes($"//dcat:Dataset/dcat:distribution[@rdf:resource='{about}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .ToList() ?? new List<XmlElement>();
+
+                foreach (var dsRef in datasetRefs)
+                {
+                    var parentDataset = dsRef.ParentNode as XmlElement;
+                    parentDataset?.RemoveChild(dsRef);
+                }
+
+                dist.ParentNode?.RemoveChild(dist);
+
+                _logger.LogDebug($"Removed Distribution and references: [about={about}]");
             }
 
-            return doc;
+            _logger.LogInformation("Processing RemoveDistributionsWithAccessServiceReference ended");
+        }
+
+        // Append dataset title to service title when the service serves exactly one dataset
+        private void UpdateDataServiceTitleIfServiceServes1Dataset(XmlElement rootDatasets, XmlElement rootServices)
+        {
+            _logger.LogInformation($"Processing UpdateDataServiceTitleIfServiceServes1Dataset");
+
+            if (doc == null || docService == null || nsmgr == null) return;
+
+            // For each DataService in the services RDF
+            var dataServicesNodes = docService.DocumentElement?
+                .SelectNodes("//dcat:DataService", nsmgr)
+                ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+            foreach (var ds in dataServicesNodes)
+            {
+                // Count servesDataset entries
+                var serves = ds.SelectNodes("./dcat:servesDataset", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                if (serves.Count != 1) continue;
+
+                var datasetUri = serves[0].GetAttribute("resource", xmlnsRdf);
+                if (string.IsNullOrEmpty(datasetUri)) continue;
+
+                // Find the dataset by rdf:about and read its dct:title (prefer nb/no, else first)
+                var datasetNode = doc.DocumentElement?
+                    .SelectNodes($"//dcat:Dataset[@rdf:about='{datasetUri}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .FirstOrDefault();
+                if (datasetNode == null) continue;
+
+                var datasetTitles = datasetNode.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                if (datasetTitles.Count == 0) continue;
+
+                string? datasetTitle =
+                    datasetTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "nb", StringComparison.OrdinalIgnoreCase))?.InnerText
+                    ?? datasetTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "no", StringComparison.OrdinalIgnoreCase))?.InnerText
+                    ?? datasetTitles.First().InnerText;
+
+                if (string.IsNullOrWhiteSpace(datasetTitle)) continue;
+
+                // Find/ensure a Norwegian title element on the DataService
+                var serviceTitles = ds.SelectNodes("./dct:title", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                XmlElement? nbTitleEl = serviceTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "nb", StringComparison.OrdinalIgnoreCase))
+                                        ?? serviceTitles.FirstOrDefault(t => string.Equals(t.GetAttribute("xml:lang"), "no", StringComparison.OrdinalIgnoreCase))
+                                        ?? serviceTitles.FirstOrDefault();
+
+                if (nbTitleEl == null)
+                {
+                    nbTitleEl = docService.CreateElement("dct", "title", xmlnsDct);
+                    nbTitleEl.SetAttribute("xml:lang", "nb");
+                    nbTitleEl.InnerText = "Dataservice";
+                    ds.AppendChild(nbTitleEl);
+                }
+
+                // Append dataset title if not already included
+                var currentTitle = nbTitleEl.InnerText ?? string.Empty;
+                if (!currentTitle.Contains(datasetTitle, StringComparison.Ordinal))
+                {
+                    nbTitleEl.InnerText = string.IsNullOrEmpty(currentTitle)
+                        ? datasetTitle
+                        : $"{datasetTitle} - {currentTitle}";
+                }
+            }
+
+            _logger.LogInformation($"Processing UpdateDataServiceTitleIfServiceServes1Dataset ended");
+        }
+
+        // Build dcat:servesDataset relations based on dcat:accessService and dcat:accessURL
+        // Rule: If a Distribution has accessService @rdf:resource = S and accessURL @rdf:resource = U,
+        // and there exists a dcat:DataService in docService with rdf:about = U, then add:
+        //   <dcat:servesDataset rdf:resource="dataset-about"/>
+        // to that DataService node.
+        private void AddServesDatasetRelations(XmlElement rootDatasets, XmlElement rootServices)
+        {
+            _logger.LogInformation($"Processing AddServesDatasetRelations");
+
+            if (doc == null || docService == null || nsmgr == null) return;
+
+            // Helper local normalizer to reduce mismatch risks
+            static string NormalizeUrl(string? u)
+            {
+                if (string.IsNullOrWhiteSpace(u)) return string.Empty;
+                // apply same sanitization as used when creating DataService/about
+                u = u.Replace("{", "%7B").Replace("}", "%7D");
+                // trim trailing slash for matching consistency
+                if (u.Length > 1 && u.EndsWith("/")) u = u.Substring(0, u.Length - 1);
+                return u;
+            }
+
+            var distributions = doc.DocumentElement?
+                .SelectNodes("//dcat:Distribution", nsmgr)
+                ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+            foreach (var distribution in distributions)
+            {
+                var distributionAbout = distribution.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(distributionAbout)) continue;
+
+                // Find dataset owning this distribution
+                var datasetEl = doc.DocumentElement?
+                    .SelectNodes($"//dcat:Dataset[dcat:distribution/@rdf:resource='{distributionAbout}']", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .FirstOrDefault();
+                if (datasetEl == null) continue;
+
+                var datasetAbout = datasetEl.GetAttribute("about", xmlnsRdf);
+                if (string.IsNullOrEmpty(datasetAbout)) continue;
+
+                // Read accessService and accessURL
+                var accessServiceResRaw = distribution
+                    .SelectNodes("./dcat:accessService", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Select(a => a.GetAttribute("resource", xmlnsRdf))
+                    .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+
+                var accessUrlResRaw = distribution
+                    .SelectNodes("./dcat:accessURL", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Select(a => a.GetAttribute("resource", xmlnsRdf))
+                    .FirstOrDefault(r => !string.IsNullOrEmpty(r));
+
+                var accessServiceRes = NormalizeUrl(accessServiceResRaw);
+                var accessUrlRes = NormalizeUrl(accessUrlResRaw);
+
+                // Try match DataService by accessService first, then accessURL
+                XmlElement? matchingService = null;
+                if (!string.IsNullOrEmpty(accessServiceRes))
+                {
+                    matchingService = docService.DocumentElement?
+                        .SelectNodes($"//dcat:DataService[@rdf:about='{accessServiceRes}']", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .FirstOrDefault();
+                    // if not found, attempt with trailing slash alternative
+                    if (matchingService == null)
+                    {
+                        var alt = accessServiceRes + "/";
+                        matchingService = docService.DocumentElement?
+                            .SelectNodes($"//dcat:DataService[@rdf:about='{alt}']", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .FirstOrDefault();
+                    }
+                }
+                if (matchingService == null && !string.IsNullOrEmpty(accessUrlRes))
+                {
+                    matchingService = docService.DocumentElement?
+                        .SelectNodes($"//dcat:DataService[@rdf:about='{accessUrlRes}']", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .FirstOrDefault();
+                    if (matchingService == null)
+                    {
+                        var alt = accessUrlRes + "/";
+                        matchingService = docService.DocumentElement?
+                            .SelectNodes($"//dcat:DataService[@rdf:about='{alt}']", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .FirstOrDefault();
+                    }
+                }
+                if (matchingService == null) continue;
+
+                // Avoid duplicates
+                bool alreadyServes = matchingService
+                    .SelectNodes("./dcat:servesDataset", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Any(sd => sd.GetAttribute("resource", xmlnsRdf) == datasetAbout) == true;
+                if (alreadyServes) continue;
+
+                var servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
+                servesDataset.SetAttribute("resource", xmlnsRdf, datasetAbout);
+                matchingService.AppendChild(servesDataset);
+            }
+
+            _logger.LogInformation($"Processing AddServesDatasetRelations ended");
         }
 
         private Dictionary<string, string> GetMediaTypes()
@@ -169,9 +415,34 @@ namespace Geonorge.ApiServices.Services
                { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
                { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
                { "ZIP", "http://publications.europa.eu/resource/authority/file-type/ZIP" },
+               { "PNG", "http://publications.europa.eu/resource/authority/file-type/PNG" },
 
             };
         }
+
+        private readonly List<string> DataserviceProtocols = new List<string>
+        {
+            "GEONORGE:DOWNLOAD",
+            "OGC:API-Coverages",
+            "OGC:API-EDR",
+            "OGC:API-Features",
+            "OGC:API-Maps",
+            "OGC:API-Styles",
+            "OGC:API-Tiles",
+            "OGC:CSW",
+            "OPENDAP:OPENDAP",
+            "W3C:REST",
+            "OGC:SOS",
+            "OGC:WCS",
+            "W3C:WS",
+            "OGC:WFS",
+            "WMS-C",
+            "OGC:WMS",
+            "OGC:WMTS",
+            "OGC:WPS",
+            "OGC:API-Processes",
+            "CNCF:CLOUDEVENTS-HTTP"
+        };
 
         private void GetConcepts()
         {
@@ -206,6 +477,653 @@ namespace Geonorge.ApiServices.Services
             {
                 XmlNode import = doc.ImportNode(concept, true);
                 root.AppendChild(import);
+            }
+        }
+
+        private void AddDataServicesToCatalog(XmlElement catalogService)
+        {
+            if (catalogService == null || dataServices == null || dataServices.Count == 0)
+                return;
+
+            // Add references based on dataServices keys
+            foreach (var kv in dataServices)
+            {
+                var resource = kv.Key;
+                var serviceRef = docService.CreateElement("dcat", "service", xmlnsDcat);
+                serviceRef.SetAttribute("resource", xmlnsRdf, resource);
+                catalogService.AppendChild(serviceRef);
+            }
+        }
+
+        // Helper: ensure foaf:Agent and vcard:Organization nodes exist with rdf:about
+        // Optional: agentIdentifier/orgIdentifier should be the organization number or similar stable identifier.
+        private void EnsureAgentAndContactPointNodes(
+            string? publisherUri,
+            string? contactPointUri,
+            string? organizationName,
+            string? agentIdentifier = null,
+            string? orgIdentifier = null,
+            string? contactEmail = null)
+        {
+            // Publisher foaf:Agent (unchanged except signature)
+            if (!string.IsNullOrEmpty(publisherUri))
+            {
+                var existingAgents = docService.DocumentElement?
+                    .SelectNodes("//foaf:Agent", nsmgr)
+                    ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+                var publisherAgent = existingAgents.FirstOrDefault(el => el.GetAttribute("about", xmlnsRdf) == publisherUri);
+
+                if (publisherAgent == null)
+                {
+                    var agent = docService.CreateElement("foaf", "Agent", xmlnsFoaf);
+                    agent.SetAttribute("about", xmlnsRdf, publisherUri);
+
+                    var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+                    agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                    agent.AppendChild(agentType);
+
+                    if (!string.IsNullOrEmpty(agentIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = agentIdentifier;
+                        agent.AppendChild(idEl);
+                    }
+                    else if (publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = "971040238";
+                        agent.AppendChild(idEl);
+                    }
+
+                    if (publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
+                        agentSameAs.SetAttribute("resource", xmlnsRdf, "https://data.brreg.no/enhetsregisteret/api/enheter/971040238");
+                        agent.AppendChild(agentSameAs);
+                    }
+
+                    if (!string.IsNullOrEmpty(organizationName))
+                    {
+                        var nameEl = docService.CreateElement("foaf", "name", xmlnsFoaf);
+                        nameEl.InnerText = organizationName;
+                        agent.AppendChild(nameEl);
+                    }
+
+                    docService.DocumentElement?.AppendChild(agent);
+                }
+                else
+                {
+                    var hasType = publisherAgent.SelectNodes("./dct:type", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(t => t.GetAttribute("resource", xmlnsRdf) == "http://purl.org/adms/publishertype/NationalAuthority") == true;
+
+                    if (!hasType)
+                    {
+                        var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+                        agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                        publisherAgent.AppendChild(agentType);
+                    }
+
+                    var hasIdentifier = publisherAgent.SelectNodes("./dct:identifier", nsmgr)?.Count > 0;
+                    if (!hasIdentifier)
+                    {
+                        if (!string.IsNullOrEmpty(agentIdentifier) || publisherUri.EndsWith("/kartverket", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                            idEl.InnerText = !string.IsNullOrEmpty(agentIdentifier) ? agentIdentifier : "971040238";
+                            publisherAgent.AppendChild(idEl);
+                        }
+                    }
+                }
+            }
+
+            // ContactPoint vcard:Organization (+ fn + hasEmail)
+            if (!string.IsNullOrEmpty(contactPointUri))
+            {
+                var existingVcards = docService.DocumentElement?
+                    .SelectNodes("//vcard:Organization", nsmgr)
+                    ?.Cast<XmlElement>() ?? Enumerable.Empty<XmlElement>();
+
+                var vcardOrg = existingVcards.FirstOrDefault(el => el.GetAttribute("about", xmlnsRdf) == contactPointUri);
+
+                if (vcardOrg == null)
+                {
+                    vcardOrg = docService.CreateElement("vcard", "Organization", xmlnsVcard);
+                    vcardOrg.SetAttribute("about", xmlnsRdf, contactPointUri);
+
+                    if (!string.IsNullOrEmpty(organizationName))
+                    {
+                        var unit = docService.CreateElement("vcard", "organization-unit", xmlnsVcard);
+                        unit.InnerText = organizationName;
+                        vcardOrg.AppendChild(unit);
+                    }
+
+                    var orgType = docService.CreateElement("dct", "type", xmlnsDct);
+                    orgType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                    vcardOrg.AppendChild(orgType);
+
+                    if (!string.IsNullOrEmpty(orgIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = orgIdentifier;
+                        vcardOrg.AppendChild(idEl);
+                    }
+
+                    // vcard:fn nb = Kundesenteret
+                    var fn = docService.CreateElement("vcard", "fn", xmlnsVcard);
+                    fn.SetAttribute("xml:lang", "nb");
+                    fn.InnerText = "Kundesenteret";
+                    vcardOrg.AppendChild(fn);
+
+                    // vcard:hasEmail if provided
+                    if (!string.IsNullOrEmpty(contactEmail))
+                    {
+                        var hasEmail = docService.CreateElement("vcard", "hasEmail", xmlnsVcard);
+                        hasEmail.SetAttribute("resource", xmlnsRdf, $"mailto:{contactEmail}");
+                        vcardOrg.AppendChild(hasEmail);
+                    }
+
+                    docService.DocumentElement?.AppendChild(vcardOrg);
+                }
+                else
+                {
+                    var hasType = vcardOrg.SelectNodes("./dct:type", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(t => t.GetAttribute("resource", xmlnsRdf) == "http://purl.org/adms/publishertype/NationalAuthority") == true;
+
+                    if (!hasType)
+                    {
+                        var orgType = docService.CreateElement("dct", "type", xmlnsDct);
+                        orgType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+                        vcardOrg.AppendChild(orgType);
+                    }
+
+                    var hasIdentifier = vcardOrg.SelectNodes("./dct:identifier", nsmgr)?.Count > 0;
+                    if (!hasIdentifier && !string.IsNullOrEmpty(orgIdentifier))
+                    {
+                        var idEl = docService.CreateElement("dct", "identifier", xmlnsDct);
+                        idEl.InnerText = orgIdentifier;
+                        vcardOrg.AppendChild(idEl);
+                    }
+
+                    // Ensure vcard:fn nb = Kundesenteret
+                    var hasFn = vcardOrg.SelectNodes("./vcard:fn", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(e =>
+                        {
+                            var lang = e.GetAttribute("xml:lang");
+                            return string.Equals(lang, "nb", StringComparison.OrdinalIgnoreCase)
+                                   && string.Equals(e.InnerText, "Kundesenteret", StringComparison.Ordinal);
+                        }) == true;
+
+                    if (!hasFn)
+                    {
+                        var fn = docService.CreateElement("vcard", "fn", xmlnsVcard);
+                        fn.SetAttribute("xml:lang", "nb");
+                        fn.InnerText = "Kundesenteret";
+                        vcardOrg.AppendChild(fn);
+                    }
+
+                    // Ensure only ONE vcard:hasEmail, applying precedence-chosen contactEmail if provided
+                    if (!string.IsNullOrEmpty(contactEmail))
+                    {
+                        // Remove all existing hasEmail to avoid duplicates
+                        var existingHasEmails = vcardOrg.SelectNodes("./vcard:hasEmail", nsmgr)?.Cast<XmlElement>()?.ToList() ?? new List<XmlElement>();
+                        foreach (var he in existingHasEmails)
+                            vcardOrg.RemoveChild(he);
+
+                        var hasEmail = docService.CreateElement("vcard", "hasEmail", xmlnsVcard);
+                        hasEmail.SetAttribute("resource", xmlnsRdf, $"mailto:{contactEmail}");
+                        vcardOrg.AppendChild(hasEmail);
+                    }
+                }
+            }
+        }
+
+        private Dictionary<string, XmlNode> CreateDataServices(List<RecordType> servicesMetadata)
+        {
+            var result = new Dictionary<string, XmlNode>();
+            if (servicesMetadata == null || servicesMetadata.Count == 0)
+                return result;
+
+            foreach (var metadata in servicesMetadata)
+            {
+                string uuid = metadata.Items[0].Text[0];
+
+                _logger.LogInformation($"Processing dataset service: [uuid={uuid}]");
+
+                MD_Metadata_Type md = geoNorge.GetRecordByUuid(uuid);
+                var data = new SimpleMetadata(md);
+
+                string? endpointUrl = null;
+                string? protocol = null;
+                string? format = null;
+
+                var firstDistro = data?.DistributionsFormats?.FirstOrDefault(df => !string.IsNullOrEmpty(df?.URL));
+                if (firstDistro != null)
+                {
+                    endpointUrl = SanitizeUrlForRdf(firstDistro.URL);
+                    protocol = firstDistro.Protocol;
+                    format = firstDistro.FormatName;
+                }
+
+                bool isDataService = !string.IsNullOrEmpty(protocol) && DataserviceProtocols.Contains(protocol);
+                if (!isDataService && string.IsNullOrEmpty(endpointUrl))
+                    continue;
+
+                var about = endpointUrl;
+
+                XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
+                dataService.SetAttribute("about", xmlnsRdf, about);
+
+                XmlElement titleEl = docService.CreateElement("dct", "title", xmlnsDct);
+                titleEl.SetAttribute("xml:lang", "nb");
+                titleEl.InnerText = string.IsNullOrEmpty(data?.Title) ? uuid : data.Title;
+                dataService.AppendChild(titleEl);
+
+                XmlElement description = docService.CreateElement("dct", "description", xmlnsDct);
+                description.SetAttribute("xml:lang", "no");
+                if (!string.IsNullOrEmpty(data?.Abstract))
+                    description.InnerText = data.Abstract;
+                dataService.AppendChild(description);
+
+                if (!string.IsNullOrEmpty(endpointUrl))
+                {
+                    XmlElement endpoint = docService.CreateElement("dcat", "endpointURL", xmlnsDcat);
+                    endpoint.SetAttribute("resource", xmlnsRdf, endpointUrl);
+                    dataService.AppendChild(endpoint);
+                }
+
+                // Resolve Organization.Number for publisher and contact
+                string? publisherIdentifier = null;
+                string? contactIdentifier = null;
+
+                Organization? publisherOrg = null;
+                Organization? contactOrg = null;
+
+                if (!string.IsNullOrEmpty(data?.ContactPublisher?.Organization))
+                {
+                    try
+                    {
+                        publisherOrg = _organizationService.GetOrganizationByName(data.ContactPublisher.Organization).Result;
+                        publisherIdentifier = publisherOrg?.Number?.Trim();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug($"Organization lookup failed for publisher [{data.ContactPublisher.Organization}]: {ex.Message}");
+                    }
+                }
+                if (!string.IsNullOrEmpty(data?.ContactMetadata?.Organization))
+                {
+                    try
+                    {
+                        contactOrg = _organizationService.GetOrganizationByName(data.ContactMetadata.Organization).Result;
+                        contactIdentifier = contactOrg?.Number?.Trim();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug($"Organization lookup failed for contact [{data.ContactMetadata.Organization}]: {ex.Message}");
+                    }
+                }
+
+                if (data?.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Organization)
+                    && OrganizationsLink != null && OrganizationsLink.TryGetValue(data.ContactPublisher.Organization, out var orgLink))
+                {
+                    // Publisher: organization root only
+                    var publisherOrgRoot = GetOrganizationRootUri(orgLink);
+
+                    var publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
+                    publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot);
+                    dataService.AppendChild(publisher);
+
+                    // Contact point: prefer contact metadata org + email; else fall back to publisher + email; else org root
+                    string? contactPointUri = null;
+                    string? orgName = null;
+
+                    if (data.ContactMetadata != null && !string.IsNullOrEmpty(data.ContactMetadata.Organization)
+                        && OrganizationsLink.TryGetValue(data.ContactMetadata.Organization, out var cpOrgLink))
+                    {
+                        var cpOrgRoot = GetOrganizationRootUri(cpOrgLink);
+                        contactPointUri = cpOrgRoot;
+                        if (!string.IsNullOrEmpty(data.ContactMetadata.Email))
+                            contactPointUri = cpOrgRoot + "/" + GetUsernameFromEmail(data.ContactMetadata.Email);
+                        orgName = data.ContactMetadata.Organization;
+                    }
+                    else
+                    {
+                        // Fall back to publisher org root; optionally append publisher email for contact point if present
+                        contactPointUri = publisherOrgRoot;
+                        orgName = data.ContactPublisher.Organization;
+                        if (!string.IsNullOrEmpty(data.ContactPublisher.Email))
+                            contactPointUri = publisherOrgRoot + "/" + GetUsernameFromEmail(data.ContactPublisher.Email);
+                    }
+
+                    if (!string.IsNullOrEmpty(contactPointUri))
+                    {
+                        var contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                        contactPoint.SetAttribute("resource", xmlnsRdf, contactPointUri);
+                        dataService.AppendChild(contactPoint);
+                    }
+
+                    string emailIdentifier = data?.ContactMetadata?.Email
+                                             ?? data?.ContactOwner?.Email
+                                             ?? data?.ContactPublisher?.Email;
+
+                    // Ensure about-nodes with identifiers
+                    EnsureAgentAndContactPointNodes(
+                        publisherOrgRoot,
+                        contactPointUri,
+                        orgName,
+                        agentIdentifier: publisherIdentifier,
+                        orgIdentifier: contactIdentifier,
+                        contactEmail: emailIdentifier
+                    );
+                }
+
+                if (data?.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                {
+                    XmlElement license = docService.CreateElement("dct", "license", xmlnsDct);
+                    license.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+                    dataService.AppendChild(license);
+                }
+
+                if (!string.IsNullOrEmpty(format))
+                {
+                    XmlElement formatEl = docService.CreateElement("dct", "format", xmlnsDct);
+                    if (FormatUrls.ContainsKey(format))
+                        formatEl.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
+                    else
+                        formatEl.InnerText = format;
+                    dataService.AppendChild(formatEl);
+                }
+
+                // dcat:servesDataset from data.OperatesOn
+                // Accept URIs and UUIDs; build dataset URI consistent with our Dataset rdf:about pattern.
+                if (data?.OperatesOn != null && data.OperatesOn.Count > 0)
+                {
+                    foreach (var operatesOn in data.OperatesOn.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        string datasetUri;
+                        if (Uri.IsWellFormedUriString(operatesOn, UriKind.Absolute))
+                        {
+                            datasetUri = operatesOn;
+                        }
+                        else if (Guid.TryParse(operatesOn, out _))
+                        {
+                            datasetUri = $"{kartkatalogenUrl}Metadata/uuid/{operatesOn}";
+                        }
+                        else
+                        {
+                            // Skip unrecognized formats to avoid bad triples
+                            _logger.LogDebug($"Skipping OperatesOn entry with unrecognized format: [{operatesOn}]");
+                            continue;
+                        }
+
+                        // Avoid duplicates on the node
+                        bool alreadyServes = dataService
+                            .SelectNodes("./dcat:servesDataset", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(sd => sd.GetAttribute("resource", xmlnsRdf).Equals(datasetUri, StringComparison.Ordinal)) == true;
+
+                        if (!alreadyServes)
+                        {
+                            var servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
+                            servesDataset.SetAttribute("resource", xmlnsRdf, datasetUri);
+                            dataService.AppendChild(servesDataset);
+                        }
+                    }
+                }
+
+                // Improve DataService documentation from operations
+                try 
+                { 
+                    if (data?.ContainOperations != null && data.ContainOperations.Count > 0)
+                    {
+                        // Map common operation names to standards and endpointDescription hints
+                        foreach (var op in data.ContainOperations.Where(o => !string.IsNullOrWhiteSpace(o?.Name)))
+                        {
+                            var opName = op.Name.Trim();
+
+                            // Endpoint description: capabilities or API description
+                            // Heuristics: if the endpointUrl looks like a capabilities/doc endpoint, reuse it;
+                            // else, attach typical capability URIs for known ops.
+                            string? endpointDescriptionUrl = null;
+                            if (!string.IsNullOrEmpty(endpointUrl) &&
+                                (endpointUrl.Contains("capabilities", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("api", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("swagger", StringComparison.OrdinalIgnoreCase)
+                                 || endpointUrl.Contains("openapi", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                endpointDescriptionUrl = endpointUrl;
+                            }
+                            else
+                            {
+                                // Suggest well-known description endpoints for OGC services
+                                if (opName.Equals("GetCapabilities", StringComparison.OrdinalIgnoreCase))
+                                    endpointDescriptionUrl = endpointUrl;
+                                else if (opName.Contains("Describe", StringComparison.OrdinalIgnoreCase))
+                                    endpointDescriptionUrl = endpointUrl;
+                            }
+
+                            if (!string.IsNullOrEmpty(endpointDescriptionUrl))
+                            {
+                                var endpointDesc = docService.CreateElement("dcat", "endpointDescription", xmlnsDcat);
+                                endpointDesc.SetAttribute("resource", xmlnsRdf, endpointDescriptionUrl);
+                                // Avoid duplicates
+                                var exists = dataService.SelectNodes("./dcat:endpointDescription", nsmgr)
+                                    ?.Cast<XmlElement>()
+                                    .Any(e => e.GetAttribute("resource", xmlnsRdf) == endpointDescriptionUrl) == true;
+                                if (!exists) dataService.AppendChild(endpointDesc);
+                            }
+
+                            // Standards conformance from operation set
+                            string? standardUri = null;
+                            // Lightweight heuristic mapping
+                            if (opName.Contains("WMS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetMap", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wms";
+                            else if (opName.Contains("WFS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetFeature", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wfs";
+                            else if (opName.Contains("WMTS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetTile", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wmts";
+                            else if (opName.Contains("WCS", StringComparison.OrdinalIgnoreCase) || opName.Contains("GetCoverage", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "http://www.opengis.net/spec/wcs";
+                            else if (opName.Contains("OGC API", StringComparison.OrdinalIgnoreCase) || opName.Contains("API-Features", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/features/1.0";
+                            else if (opName.Contains("API-Maps", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/maps/1.0";
+                            else if (opName.Contains("API-Tiles", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/tiles/1.0";
+                            else if (opName.Contains("API-Processes", StringComparison.OrdinalIgnoreCase))
+                                standardUri = "https://www.opengis.net/ogcapi/processes/1.0";
+
+                            if (!string.IsNullOrEmpty(standardUri))
+                            {
+                                var conformsTo = docService.CreateElement("dct", "conformsTo", xmlnsDct);
+                                conformsTo.SetAttribute("resource", xmlnsRdf, standardUri);
+                                var exists = dataService.SelectNodes("./dct:conformsTo", nsmgr)
+                                    ?.Cast<XmlElement>()
+                                    .Any(e => e.GetAttribute("resource", xmlnsRdf) == standardUri) == true;
+                                if (!exists) dataService.AppendChild(conformsTo);
+                            }
+
+                            // Optional: add a typed hint for operation
+                            var typeEl = docService.CreateElement("dct", "type", xmlnsDct);
+                            typeEl.InnerText = opName;
+                            // Keep it concise and avoid many duplicates
+                            var typeExists = dataService.SelectNodes("./dct:type", nsmgr)
+                                ?.Cast<XmlElement>()
+                                .Any(e => string.Equals(e.InnerText, opName, StringComparison.Ordinal)) == true;
+                            if (!typeExists) dataService.AppendChild(typeEl);
+                        }
+
+                        // Append a short summary of operations to description (nb/no)
+                        var descEl = dataService.SelectNodes("./dct:description", nsmgr)?.Cast<XmlElement>()?.FirstOrDefault();
+                        if (descEl != null)
+                        {
+                            var opsSummary = string.Join(
+                                ", ",
+                                data.ContainOperations
+                                    .Where(o => !string.IsNullOrWhiteSpace(o?.Name))
+                                    .Select(o => o!.Name.Trim())
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                            );
+                            if (!string.IsNullOrWhiteSpace(opsSummary))
+                            {
+                                var current = descEl.InnerText ?? string.Empty;
+                                var addition = $" Støttede operasjoner: {opsSummary}.";
+                                if (!current.Contains(opsSummary, StringComparison.OrdinalIgnoreCase))
+                                    descEl.InnerText = string.IsNullOrEmpty(current) ? addition.Trim() : (current.TrimEnd() + addition);
+                            }
+                        }
+                    }
+
+                    // Fallback: if no endpointDescription was added, use endpointURL itself
+                    if (!string.IsNullOrEmpty(endpointUrl))
+                    {
+                        var hasEndpointDesc = dataService.SelectNodes("./dcat:endpointDescription", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(e => e.GetAttribute("resource", xmlnsRdf) == endpointUrl) == true;
+
+                        if (!hasEndpointDesc)
+                        {
+                            var endpointDescFallback = docService.CreateElement("dcat", "endpointDescription", xmlnsDcat);
+                            endpointDescFallback.SetAttribute("resource", xmlnsRdf, endpointUrl);
+                            dataService.AppendChild(endpointDescFallback);
+                        }
+                    }
+
+                    // Documentation page (foaf:page) -> Kartkatalogen metadata record for this service
+                    if (!string.IsNullOrEmpty(uuid))
+                    {
+                        var docPageUrl = $"{kartkatalogenUrl}Metadata/uuid/{uuid}";
+                        var hasFoafPage = dataService.SelectNodes("./foaf:page", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Any(e => e.GetAttribute("resource", xmlnsRdf) == docPageUrl) == true;
+
+                        if (!hasFoafPage)
+                        {
+                            var foafPage = docService.CreateElement("foaf", "page", xmlnsFoaf);
+                            foafPage.SetAttribute("resource", xmlnsRdf, docPageUrl);
+                            dataService.AppendChild(foafPage);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug($"Error enhancing DataService [{about}] with operations: {ex.Message}");
+                }
+
+                docService.DocumentElement?.AppendChild(dataService);
+
+                var key = !string.IsNullOrEmpty(endpointUrl) ? endpointUrl : about;
+                if (!result.ContainsKey(key))
+                    result.Add(key, dataService);
+            }
+
+            return result;
+        }
+
+        private void AddCreatedDataServicesFromDatasets(Dictionary<string, XmlNode> discoveredDataServices)
+        {
+            if (discoveredDataServices == null || discoveredDataServices.Count == 0)
+                return;
+
+            foreach (var kv in discoveredDataServices)
+            {
+                var endpointUrl = kv.Key;                         // key is the endpoint URL
+                var dataServiceNode = kv.Value as XmlElement;
+
+                // Does a service with this about/endpoint already exist in the RDF doc?
+                bool existsInDoc =
+                    docService.DocumentElement?
+                        .SelectNodes("//dcat:DataService", nsmgr)
+                        ?.Cast<XmlElement>()
+                        .Any(el => el.GetAttribute("about", xmlnsRdf) == endpointUrl) == true;
+
+                if (existsInDoc)
+                    continue;
+
+                // Prefer appending the full node we already built (it already has dct:title)
+                if (dataServiceNode != null)
+                {
+                    var nodeToAppend = dataServiceNode.OwnerDocument == docService
+                        ? dataServiceNode
+                        : (XmlElement)docService.ImportNode(dataServiceNode, true);
+
+                    // Ensure dcat:contactPoint exists; fallback to dct:publisher resource
+                    var contactPointExisting = nodeToAppend.SelectNodes("./dcat:contactPoint", nsmgr)?.Count > 0;
+                    if (!contactPointExisting)
+                    {
+                        var publisherRes = nodeToAppend
+                            .SelectNodes("./dct:publisher", nsmgr)
+                            ?.Cast<XmlElement>()
+                            .Select(p => p.GetAttribute("resource", xmlnsRdf))
+                            .FirstOrDefault(u => !string.IsNullOrEmpty(u));
+
+                        if (!string.IsNullOrEmpty(publisherRes))
+                        {
+                            var contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                            contactPoint.SetAttribute("resource", xmlnsRdf, publisherRes);
+                            nodeToAppend.AppendChild(contactPoint);
+
+                            // Create/patch foaf:Agent and vcard:Organization for this contact point
+                            EnsureAgentAndContactPointNodes(
+                                publisherRes,
+                                publisherRes,
+                                organizationName: null,
+                                agentIdentifier: null,
+                                orgIdentifier: null,
+                                contactEmail: null);
+                        }
+                    }
+
+                    docService.DocumentElement?.AppendChild(nodeToAppend);
+                    continue;
+                }
+
+                // Fallback: create a minimal DataService; try to reuse a provided title if present
+                var ds = docService.CreateElement("dcat", "DataService", xmlnsDcat);
+                ds.SetAttribute("about", xmlnsRdf, endpointUrl);
+
+                var endpoint = docService.CreateElement("dcat", "endpointURL", xmlnsDcat);
+                endpoint.SetAttribute("resource", xmlnsRdf, endpointUrl);
+                ds.AppendChild(endpoint);
+
+                var titleEl = docService.CreateElement("dct", "title", xmlnsDct);
+                titleEl.SetAttribute("xml:lang", "nb");
+                var providedTitle = (kv.Value as XmlElement)?.SelectSingleNode("./dct:title", nsmgr)?.InnerText;
+                titleEl.InnerText = !string.IsNullOrEmpty(providedTitle) ? providedTitle : "Dataservice";
+                ds.AppendChild(titleEl);
+
+                // If the provided node had a publisher, use it as contactPoint
+                var providedPublisher = (kv.Value as XmlElement)?
+                    .SelectNodes("./dct:publisher", nsmgr)
+                    ?.Cast<XmlElement>()
+                    .Select(p => p.GetAttribute("resource", xmlnsRdf))
+                    .FirstOrDefault(u => !string.IsNullOrEmpty(u));
+
+                if (!string.IsNullOrEmpty(providedPublisher))
+                {
+                    var normalizedPublisher = GetOrganizationRootUri(providedPublisher);
+
+                    var publisherRef = docService.CreateElement("dct", "publisher", xmlnsDct);
+                    publisherRef.SetAttribute("resource", xmlnsRdf, normalizedPublisher);
+                    ds.AppendChild(publisherRef);
+
+                    var contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
+                    contactPoint.SetAttribute("resource", xmlnsRdf, normalizedPublisher);
+                    ds.AppendChild(contactPoint);
+
+                    EnsureAgentAndContactPointNodes(
+                        normalizedPublisher,
+                        normalizedPublisher,
+                        organizationName: null,
+                        agentIdentifier: null,
+                        orgIdentifier: null,
+                        contactEmail: null);
+                }
+                docService.DocumentElement?.AppendChild(ds);
             }
         }
 
@@ -472,6 +1390,7 @@ namespace Geonorge.ApiServices.Services
                     }
 
                     string organizationUri = null;
+                    string publisherUri = null;
 
                     //dct:creator => Referanse til akt�ren som er produsent av datasettet => ContactOwner.Email => foaf:Agent
                     if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Organization))
@@ -497,7 +1416,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = organization.Number;
+                            agentIdentifier.InnerText = organization.Number.Trim();
                             agent.AppendChild(agentIdentifier);
                         }
                         else
@@ -516,14 +1435,14 @@ namespace Geonorge.ApiServices.Services
                         if (data.ContactOwner != null && !string.IsNullOrEmpty(data.ContactOwner.Email))
                         {
                             XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                            agentMbox.InnerText = data.ContactOwner.Email;
+                            agentMbox.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactOwner.Email);
                             agent.AppendChild(agentMbox);
                         }
 
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                            agentSameAs.SetAttribute("resource", xmlnsRdf, "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim());
                             agent.AppendChild(agentSameAs);
                         }
 
@@ -561,7 +1480,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentIdentifier = doc.CreateElement("dct", "identifier", xmlnsDct);
-                            agentIdentifier.InnerText = organization.Number;
+                            agentIdentifier.InnerText = organization.Number.Trim();
                             agent.AppendChild(agentIdentifier);
                         }
                         else
@@ -580,19 +1499,21 @@ namespace Geonorge.ApiServices.Services
                         if (data.ContactPublisher != null && !string.IsNullOrEmpty(data.ContactPublisher.Email))
                         {
                             XmlElement agentMbox = doc.CreateElement("foaf", "mbox", xmlnsFoaf);
-                            agentMbox.InnerText = data.ContactPublisher.Email;
+                            agentMbox.SetAttribute("resource", xmlnsRdf, "mailto:" + data.ContactPublisher.Email);
                             agent.AppendChild(agentMbox);
                         }
 
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number;
+                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim();
                             agent.AppendChild(agentSameAs);
                         }
 
                         if (!foafAgents.ContainsKey(organizationUri))
                             foafAgents.Add(organizationUri, agent);
+
+                        publisherUri = organizationUri;
 
                     }
 
@@ -670,6 +1591,10 @@ namespace Geonorge.ApiServices.Services
                         datasetDataQuality.InnerText = data.ProcessHistory;
                     dataset.AppendChild(datasetDataQuality);
 
+                    string org = null;
+                    if (organization != null) org = organization?.Name;
+
+
                     //Distribution
                     if (data.DistributionsFormats != null)
                     {
@@ -683,89 +1608,108 @@ namespace Geonorge.ApiServices.Services
 
                             if (!string.IsNullOrEmpty(distro.FormatName) && !distributionFormats.Contains(distro.FormatName))
                             {
-                                //Map distribution to dataset
-                                XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-                                distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
-                                dataset.AppendChild(distributionDataset);
 
-                                XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
-                                distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
-                                root.AppendChild(distribution);
+                                bool isDataService = !string.IsNullOrEmpty(distro.Protocol) && DataserviceProtocols.Contains(distro.Protocol);
 
-                                XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
-                                distributionTitle.SetAttribute("xml:lang", "no");
-                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                    distributionTitle.InnerText = GetDistributionTitle(data.DistributionDetails.Protocol);
 
-                                XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
-                                if (data.DistributionDetails != null && !string.IsNullOrEmpty(data.DistributionDetails.Protocol))
-                                    distributionDescription.InnerText = GetDistributionDescription(data.DistributionDetails.Protocol);
-                                distribution.AppendChild(distributionDescription);
+                                    //Map distribution to dataset
+                                    XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
+                                    distributionDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
+                                    dataset.AppendChild(distributionDataset);
 
-                                XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
-                                if (FormatUrls.ContainsKey(distro.FormatName))
-                                {
-                                    distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
-                                }
-                                else
-                                {
-                                    distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
-                                    distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.FormatName;
-                                }
-                                distribution.AppendChild(distributionFormat);
+                                    XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
+                                    distribution.SetAttribute("about", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid + "/" + HttpUtility.UrlEncode(distro.FormatName));
+                                    root.AppendChild(distribution);
 
-                                XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
-                                if (MediaTypes.ContainsKey(distro.FormatName))
-                                {
-                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.FormatName]);
-                                }
-                                else
-                                {
-                                    distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
-                                }
-                                distribution.AppendChild(distributionMediaType);
+                                    XmlElement distributionTitle = doc.CreateElement("dct", "title", xmlnsDct);
+                                    distributionTitle.SetAttribute("xml:lang", "no");
+                                    if (distro.Protocol != null && !string.IsNullOrEmpty(distro.Protocol))
+                                        distributionTitle.InnerText = GetDistributionTitle(distro.Protocol);
 
-                                distribution.AppendChild(distributionTitle);
+                                    XmlElement distributionDescription = doc.CreateElement("dct", "description", xmlnsDct);
+                                    if (distro.Protocol != null && !string.IsNullOrEmpty(distro.Protocol))
+                                        distributionDescription.InnerText = GetDistributionDescription(distro.Protocol);
+                                    distribution.AppendChild(distributionDescription);
 
-                                XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
-                                if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
-                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, distro.URL);
-                                else
-                                    distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
+                                    XmlElement distributionFormat = doc.CreateElement("dct", "format", xmlnsDct);
+                                    if (FormatUrls.ContainsKey(distro.FormatName))
+                                    {
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[distro.FormatName]);
+                                    }
+                                    else
+                                    {
+                                        distributionFormat.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/file-type/OCTET");
+                                        distributionTitle.InnerText = distributionTitle.InnerText + " " + distro.FormatName;
+                                    }
+                                    distribution.AppendChild(distributionFormat);
 
-                                distribution.AppendChild(distributionAccessURL);
+                                    XmlElement distributionMediaType = doc.CreateElement("dcat", "mediaType", xmlnsDcat);
+                                    if (MediaTypes.ContainsKey(distro.FormatName))
+                                    {
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, MediaTypes[distro.FormatName]);
+                                    }
+                                    else
+                                    {
+                                        distributionMediaType.SetAttribute("resource", xmlnsRdf, "https://www.iana.org/assignments/media-types/application/octet-stream");
+                                    }
+                                    distribution.AppendChild(distributionMediaType);
 
-                                if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
-                                {
-                                    XmlElement downloadURL = doc.CreateElement("dcat", "downloadURL", xmlnsDcat);
-                                    downloadURL.SetAttribute("resource", xmlnsRdf, distro.URL);
-                                    distribution.AppendChild(downloadURL);
-                                }
+                                    distribution.AppendChild(distributionTitle);
 
-                                XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
-                                if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
-                                    distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
-                                distribution.AppendChild(distributionLicense);
+                                    XmlElement distributionAccessURL = doc.CreateElement("dcat", "accessURL", xmlnsDcat);
+                                    if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                    else
+                                        distributionAccessURL.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "metadata/uuid/" + uuid);
 
-                                //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
-                                //if (!string.IsNullOrEmpty(data.Status))
-                                //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
-                                //distribution.AppendChild(distributionStatus);
+                                    distribution.AppendChild(distributionAccessURL);
 
-                                if (hasHighValueDataset)
-                                {
+                                    if (!string.IsNullOrEmpty(distro.URL) && distro.Protocol != null && (distro.Protocol == "GEONORGE:FILEDOWNLOAD" || distro.Protocol == "WWW:DOWNLOAD-1.0-http--download"))
+                                    {
+                                        XmlElement downloadURL = doc.CreateElement("dcat", "downloadURL", xmlnsDcat);
+                                        downloadURL.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                        distribution.AppendChild(downloadURL);
+                                    }
 
-                                    XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
-                                    applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
-                                    distribution.AppendChild(applicableLegislation);
+                                    XmlElement distributionLicense = doc.CreateElement("dct", "license", xmlnsDct);
+                                    if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                                        distributionLicense.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+                                    distribution.AppendChild(distributionLicense);
 
+                                    //XmlElement distributionStatus = doc.CreateElement("adms", "status", xmlnsAdms);
+                                    //if (!string.IsNullOrEmpty(data.Status))
+                                    //    distributionStatus.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/status/" + data.Status);
+                                    //distribution.AppendChild(distributionStatus);
+
+                                    if (hasHighValueDataset)
+                                    {
+
+                                        XmlElement applicableLegislation = doc.CreateElement("dcatap", "applicableLegislation", xmlnsDcatAp);
+                                        applicableLegislation.SetAttribute("resource", xmlnsRdf, "http://data.europa.eu/eli/reg_impl/2023/138/oj");
+                                        distribution.AppendChild(applicableLegislation);
+
+                                    }
+
+                                if (isDataService) {
+                                    XmlElement accessService = doc.CreateElement("dcat", "accessService", xmlnsDcat);
+                                    accessService.SetAttribute("resource", xmlnsRdf, distro.URL);
+                                    distribution.AppendChild(accessService);
+
+                                    if (!dataServices.ContainsKey(distro.URL))
+                                    {
+                                        distribution = CreateXmlElementForDataservice(dataset, data, null, distro.Protocol,
+                                        null, distro.URL, distro.FormatName, publisherUri, organizationUri, org, vcardKinds);
+
+                                        dataServices.Add(distro.URL, distribution);
+                                    }
                                 }
 
                                 distributionFormats.Add(distro.FormatName);
-                            }
-                            // Dataset distributions
-                            AddDistributions(uuid, dataset, data, services);
+                                }
                         }
+
+                        // Dataset distributions and services
+                        AddServiceAndDistributions(uuid, dataset, data, services, publisherUri, organizationUri, org, vcardKinds);
 
                     }
                     //}
@@ -863,7 +1807,8 @@ namespace Geonorge.ApiServices.Services
             return link;
         }
 
-        private void AddDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services)
+        private void AddServiceAndDistributions(string uuid, XmlElement dataset, SimpleMetadata data, Dictionary<string, XmlNode> services
+            , string publisherUri, string organizationUri, string organization, Dictionary<string, XmlNode> vcardKinds)
         {
             // Get distribution from index in kartkatalog 
             string metadataUrl = _settings["KartkatalogenUrl"] + "api/getdata/" + uuid;
@@ -900,7 +1845,7 @@ namespace Geonorge.ApiServices.Services
 
                             distributionFormats.Add(format);
 
-                            if (services.ContainsKey(serviceDistributionUrl))
+                            if (dataServices.ContainsKey(serviceDistributionUrl))
                                 continue;
 
                             string protocolName = protocol;
@@ -909,12 +1854,20 @@ namespace Geonorge.ApiServices.Services
 
                             protocol = "OGC:" + protocolName;
 
-                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS")
+                            if (protocol == "OGC:WMS" || protocol == "OGC:WFS" || protocol == "OGC:WCS" || protocol == "OGC:API-Features" || protocol == "OGC:API-Processes")
                             {
                                 var distribution = CreateXmlElementForDistribution(dataset, data, uuidService, protocol,
-                                    protocolName, serviceDistributionUrl, format);
+                                            protocolName, serviceDistributionUrl, format);
                                 if (!services.ContainsKey(serviceDistributionUrl))
                                     services.Add(serviceDistributionUrl, distribution);
+
+                                if (!dataServices.ContainsKey(serviceDistributionUrl)) 
+                                {
+                                    distribution = CreateXmlElementForDataservice(dataset, data, uuidService, protocol,
+                                    protocolName, serviceDistributionUrl, format, publisherUri, organizationUri, organization, vcardKinds);
+
+                                    dataServices.Add(serviceDistributionUrl, distribution);
+                                }
                             }
                         }
                     }
@@ -930,9 +1883,9 @@ namespace Geonorge.ApiServices.Services
                             string? urlDownload = distro?.URL?.Value;
                             if(string.IsNullOrEmpty(urlDownload))
                                 continue;
-                            var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
                             if (!services.ContainsKey(serviceDistributionUrl))
                             {
+                                var distribution = CreateXmlElementForDistributionAtomFeed(dataset, data, serviceDistributionUrl, urlDownload);
 
                                 //Map distribution to dataset
                                 XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
@@ -954,11 +1907,6 @@ namespace Geonorge.ApiServices.Services
 
         private XmlNode CreateXmlElementForDistributionAtomFeed(XmlElement dataset, SimpleMetadata data, dynamic serviceDistributionUrl, string urlDownload)
         {
-            XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
-            distributionDataset.SetAttribute("resource", xmlnsRdf,
-                serviceDistributionUrl);
-            dataset.AppendChild(distributionDataset);
-
             XmlElement distribution = doc.CreateElement("dcat", "Distribution", xmlnsDcat);
             distribution.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
 
@@ -1000,9 +1948,139 @@ namespace Geonorge.ApiServices.Services
             return distribution;
         }
 
+        private static string SanitizeUrlForRdf(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return url;
+            // Percent-encode characters that are illegal in URIs but may appear in templated endpoints
+            // Already handled elsewhere: spaces, commas, [ and ]
+            return url
+                .Replace("{", "%7B")
+                .Replace("}", "%7D");
+        }
+
+        // Keep only the organization root in a register.geonorge.no org URI:
+        // https://register.geonorge.no/organisasjoner/{org-slug}[/...suffix] -> https://register.geonorge.no/organisasjoner/{org-slug}
+        private static string GetOrganizationRootUri(string? uri)
+        {
+            if (string.IsNullOrEmpty(uri)) return uri ?? string.Empty;
+
+            const string marker = "/organisasjoner/";
+            var idx = uri.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return uri;
+
+            var start = idx + marker.Length;
+            var nextSlash = uri.IndexOf('/', start);
+            return nextSlash > -1 ? uri.Substring(0, nextSlash) : uri;
+        }
+
+        private XmlElement CreateXmlElementForDataservice(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
+                dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format, string publisherUri, string organizationUri,
+                string organization, Dictionary<string, XmlNode> vcardKinds)
+        {
+            serviceDistributionUrl = SanitizeUrlForRdf(serviceDistributionUrl);
+
+            XmlElement dataService = docService.CreateElement("dcat", "DataService", xmlnsDcat);
+            dataService.SetAttribute("about", xmlnsRdf, serviceDistributionUrl);
+
+            // dcat:servesDataset
+            XmlElement servesDataset = docService.CreateElement("dcat", "servesDataset", xmlnsDcat);
+            servesDataset.SetAttribute("resource", xmlnsRdf, kartkatalogenUrl + "Metadata/uuid/" + data.Uuid);
+            dataService.AppendChild(servesDataset);
+
+            // dcat:endpointURL
+            XmlElement endpoint = docService.CreateElement("dcat", "endpointURL", xmlnsDcat);
+            endpoint.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
+            dataService.AppendChild(endpoint);
+
+            // dct:title
+            XmlElement titleEl = docService.CreateElement("dct", "title", xmlnsDct);
+            titleEl.SetAttribute("xml:lang", "nb");
+            titleEl.InnerText = GetDistributionTitle(protocol);
+            dataService.AppendChild(titleEl);
+
+            // dct:publisher
+            if (string.IsNullOrEmpty(publisherUri))
+            {
+                publisherUri = organizationUri;
+            }
+            var publisherOrgRoot2 = GetOrganizationRootUri(publisherUri);
+            var publisher = docService.CreateElement("dct", "publisher", xmlnsDct);
+            publisher.SetAttribute("resource", xmlnsRdf, publisherOrgRoot2);
+            dataService.AppendChild(publisher);
+
+            // contactPoint selection
+            string contactPointUri = string.IsNullOrEmpty(organization)
+                ? organizationUri
+                : vcardKinds.FirstOrDefault(v => v.Value.InnerText == organization).Key;
+
+            if (string.IsNullOrEmpty(contactPointUri))
+            {
+                contactPointUri = organizationUri;
+            }
+
+            XmlElement contactPoint = docService.CreateElement("dcat", "contactPoint", xmlnsDcat);
+            contactPoint.SetAttribute("resource", xmlnsRdf, contactPointUri);
+            dataService.AppendChild(contactPoint);
+
+            // dct:license
+            XmlElement license = docService.CreateElement("dct", "license", xmlnsDct);
+            if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.UseConstraintsLicenseLink))
+                license.SetAttribute("resource", xmlnsRdf, MapLicense(data.Constraints.UseConstraintsLicenseLink));
+            dataService.AppendChild(license);
+
+            // dct:format 
+            XmlElement distributionFormat = docService.CreateElement("dct", "format", xmlnsDct);
+            if (FormatUrls.ContainsKey(format))
+            {
+                distributionFormat.SetAttribute("resource", xmlnsRdf, FormatUrls[format]);
+            }
+            else { distributionFormat.InnerText = format; }
+
+            dataService.AppendChild(distributionFormat);
+
+            distributionFormats.Add(format);
+
+            // Resolve Organization.Number (identifier) from organization name (if present)
+            string? agentIdentifier = null;
+            string? orgIdentifier = null;
+            string emailIdentifier = data?.ContactMetadata?.Email;
+            if (string.IsNullOrEmpty(emailIdentifier))
+                emailIdentifier = data?.ContactOwner?.Email;
+            if (string.IsNullOrEmpty(emailIdentifier))
+                emailIdentifier = data?.ContactPublisher?.Email;
+
+            try
+            {
+                if (!string.IsNullOrEmpty(organization))
+                {
+                    var orgInfo = _organizationService.GetOrganizationByName(organization).Result;
+                    agentIdentifier = orgInfo?.Number?.Trim();
+                    orgIdentifier = orgInfo?.Number?.Trim();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug($"Organization lookup failed for [{organization}]: {ex.Message}");
+            }
+
+            // Ensure foaf:Agent and vcard:Organization include identifiers and type
+            EnsureAgentAndContactPointNodes(
+                publisherUri,
+                contactPointUri,
+                organization,
+                agentIdentifier: agentIdentifier,
+                orgIdentifier: orgIdentifier,
+                contactEmail: emailIdentifier);
+
+            return dataService;
+
+        }
+
         private XmlElement CreateXmlElementForDistribution(XmlElement dataset, SimpleMetadata data, dynamic uuidService,
             dynamic protocol, string protocolName, dynamic serviceDistributionUrl, string format)
         {
+            serviceDistributionUrl = SanitizeUrlForRdf(serviceDistributionUrl);
+
             XmlElement distributionDataset = doc.CreateElement("dcat", "distribution", xmlnsDcat);
             distributionDataset.SetAttribute("resource", xmlnsRdf,
                 kartkatalogenUrl + "Metadata/uuid/" + uuidService + "/" + HttpUtility.UrlEncode(format));
@@ -1049,6 +2127,11 @@ namespace Geonorge.ApiServices.Services
             if (data.Constraints != null && !string.IsNullOrEmpty(data.Constraints.OtherConstraintsLink))
                 distributionLicense.SetAttribute("resource", xmlnsRdf, data.Constraints.OtherConstraintsLink);
             distribution.AppendChild(distributionLicense);
+
+            XmlElement accessService = doc.CreateElement("dcat", "accessService", xmlnsDcat);
+            accessService.SetAttribute("resource", xmlnsRdf, serviceDistributionUrl);
+            distribution.AppendChild(accessService);
+
             return distribution;
         }
 
@@ -1169,6 +2252,61 @@ namespace Geonorge.ApiServices.Services
             return catalog;
         }
 
+        private XmlElement CreateCatalogService(XmlElement rootService)
+        {
+            //Catalog info
+            XmlElement catalog = docService.CreateElement("dcat", "Catalog", xmlnsDcat);
+            catalog.SetAttribute("about", xmlnsRdf, "https://kartkatalog.geonorge.no?type=service");
+            rootService.AppendChild(catalog);
+
+            XmlElement catalogTitle = docService.CreateElement("dct", "title", xmlnsDct);
+            catalogTitle.SetAttribute("xml:lang", "no");
+            catalogTitle.InnerText = "Data services Geonorge";
+            catalog.AppendChild(catalogTitle);
+
+            XmlElement catalogIdentifier = docService.CreateElement("dct", "identifier", xmlnsDct);
+            catalogIdentifier.InnerText = "https://kartkatalog.geonorge.no?type=service";
+            catalog.AppendChild(catalogIdentifier);
+
+            XmlElement catalogDescription = docService.CreateElement("dct", "description", xmlnsDct);
+            catalogDescription.InnerText = "GeoNorge er den nasjonale katalogen for geografisk informasjon";
+            catalog.AppendChild(catalogDescription);
+
+            XmlElement catalogIssued = docService.CreateElement("dct", "issued", xmlnsDct);
+            catalogIssued.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+            catalogIssued.InnerText = DateTime.Now.ToString("yyyy-MM-dd");
+            catalog.AppendChild(catalogIssued);
+
+            // Add foaf:Agent for Kartverket
+            XmlElement foafAgent = docService.CreateElement("foaf", "Agent", xmlnsFoaf);
+            foafAgent.SetAttribute("about", xmlnsRdf, "https://register.geonorge.no/organisasjoner/kartverket");
+
+            XmlElement agentIdentifier = docService.CreateElement("dct", "identifier", xmlnsDct);
+            agentIdentifier.InnerText = "971040238";
+            foafAgent.AppendChild(agentIdentifier);
+
+            // dct:type -> NationalAuthority
+            var agentType = docService.CreateElement("dct", "type", xmlnsDct);
+            agentType.SetAttribute("resource", xmlnsRdf, "http://purl.org/adms/publishertype/NationalAuthority");
+            foafAgent.AppendChild(agentType);
+
+            XmlElement agentSameAs = docService.CreateElement("owl", "sameAs", xmlnsOwl);
+            agentSameAs.SetAttribute("resource", xmlnsRdf, "https://data.brreg.no/enhetsregisteret/api/enheter/971040238");
+            foafAgent.AppendChild(agentSameAs);
+
+            rootService.AppendChild(foafAgent);
+
+            XmlElement catalogPublisher = docService.CreateElement("dct", "publisher", xmlnsDct);
+            catalogPublisher.SetAttribute("resource", xmlnsRdf, "https://register.geonorge.no/organisasjoner/kartverket");
+            catalog.AppendChild(catalogPublisher);
+
+            XmlElement catalogLanguage = docService.CreateElement("dct", "language", xmlnsDct);
+            catalogLanguage.SetAttribute("resource", xmlnsRdf, "http://publications.europa.eu/resource/authority/language/NOR");
+            catalog.AppendChild(catalogLanguage);
+
+            return catalog;
+        }
+
         private XmlElement Setup()
         {
             doc = new XmlDocument();
@@ -1203,6 +2341,44 @@ namespace Geonorge.ApiServices.Services
             return root;
         }
 
+        private XmlElement SetupService()
+        {
+            docService = new XmlDocument();
+
+            nsmgr = new XmlNamespaceManager(docService.NameTable);
+            nsmgr.AddNamespace("rdf", xmlnsRdf);
+            nsmgr.AddNamespace("skos", xmlnsSkos);
+            nsmgr.AddNamespace("dct", xmlnsDct);
+            nsmgr.AddNamespace("dcat", xmlnsDcat);
+            nsmgr.AddNamespace("foaf", xmlnsFoaf);   
+            nsmgr.AddNamespace("vcard", xmlnsVcard); 
+            nsmgr.AddNamespace("owl", xmlnsOwl);    
+
+            XmlDeclaration dec = docService.CreateXmlDeclaration("1.0", "UTF-8", null);
+            docService.AppendChild(dec);
+            XmlElement root = docService.CreateElement("rdf", "RDF", xmlnsRdf);
+            root.SetAttribute("xmlns:foaf", xmlnsFoaf);
+            root.SetAttribute("xmlns:gco", xmlnsGco);
+            root.SetAttribute("xmlns:void", xmlnsVoid);
+            root.SetAttribute("xmlns:skos", xmlnsSkos);
+            root.SetAttribute("xmlns:dc", xmlnsDc);
+            root.SetAttribute("xmlns:dct", xmlnsDct);
+            root.SetAttribute("xmlns:dctype", xmlnsDctype);
+            root.SetAttribute("xmlns:dcat", xmlnsDcat);
+            root.SetAttribute("xmlns:vcard", xmlnsVcard);
+            root.SetAttribute("xmlns:adms", xmlnsAdms);
+            root.SetAttribute("xmlns:xslUtils", xmlnsXslUtils);
+            root.SetAttribute("xmlns:gmd", xmlnsGmd);
+            root.SetAttribute("xmlns:rdfs", xmlnsRdfs);
+            root.SetAttribute("xmlns:owl", xmlnsOwl);
+            root.SetAttribute("xmlns:locn", xmlnsLocn);
+            root.SetAttribute("xmlns:gml", xmlnsGml);
+            root.SetAttribute("xmlns:dcatap", xmlnsDcatAp);
+
+            docService.AppendChild(root);
+            return root;
+        }
+
         private void Finalize(XmlElement root, XmlElement catalog)
         {
             XmlElement catalogModified = doc.CreateElement("dct", "modified", xmlnsDct);
@@ -1210,6 +2386,15 @@ namespace Geonorge.ApiServices.Services
             if (catalogLastModified.HasValue)
                 catalogModified.InnerText = catalogLastModified.Value.ToString("yyyy-MM-dd");
             catalog.AppendChild(catalogModified);
+        }
+
+        private void FinalizeService(XmlElement rootService, XmlElement catalogService)
+        {
+            XmlElement catalogModified = docService.CreateElement("dct", "modified", xmlnsDct);
+            catalogModified.SetAttribute("datatype", xmlnsRdf, "http://www.w3.org/2001/XMLSchema#date");
+            if (catalogLastModified.HasValue)
+                catalogModified.InnerText = catalogLastModified.Value.ToString("yyyy-MM-dd");
+            catalogService.AppendChild(catalogModified);
         }
 
         public List<RecordType> GetDatasets()
@@ -1256,23 +2441,44 @@ namespace Geonorge.ApiServices.Services
                 };
 
             //test use only 1 dataset todo remove
-            //string searchString = "779a554b-fc3e-48a6-b202-561b07e9d4c2";
+            //string searchString = "041f1e6e-bdbc-4091-b48f-8a5990f3cc5b";
             //var filters = new object[]
-            //{
-            //            new PropertyIsLikeType
-            //                {
-            //                    escapeChar = "\\",
-            //                    singleChar = "_",
-            //                    wildCard = "*",
-            //                    PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
-            //                    Literal = new LiteralType {Text = new[] {searchString}}
-            //                }
-            //};
+            //          {
+
+            //        new BinaryLogicOpType()
+            //            {
+            //                Items = new object[]
+            //                    {
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+            //                            Literal = new LiteralType {Text = new[] { searchString }}
+            //                        },
+            //                        new PropertyIsLikeType
+            //                        {
+            //                            escapeChar = "\\",
+            //                            singleChar = "_",
+            //                            wildCard = "%",
+            //                            PropertyName = new PropertyNameType {Text = new[] {"type"}},
+            //                            Literal = new LiteralType {Text = new[] { "dataset" }}
+            //                        }
+            //                    },
+
+            //                    ItemsElementName = new ItemsChoiceType22[]
+            //                        {
+            //                            ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+            //                        }
+            //            },
+
+            //          };
 
             //var filterNames = new ItemsChoiceType23[]
-            //{
-            //            ItemsChoiceType23.PropertyIsLike,
-            //};
+            //    {
+            //        ItemsChoiceType23.And
+            //    };
 
 
             var stopwatch = new Stopwatch();
@@ -1299,7 +2505,80 @@ namespace Geonorge.ApiServices.Services
 
             stopwatch.Stop();
             _logger.LogDebug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
-            return datasets; //todo test datasets.Take(1).ToList()
+            return datasets;
+        }
+
+
+        public List<RecordType> GetServices()
+        {
+            GeoNorge _geoNorge = new GeoNorge("", "", _settings["GeoNetworkUrl"]);
+            _geoNorge.OnLogEventDebug += new GeoNorgeAPI.LogEventHandlerDebug(LogEventsDebug);
+            _geoNorge.OnLogEventError += new GeoNorgeAPI.LogEventHandlerError(LogEventsError);
+            var filters = new object[]
+                      {
+
+                    new BinaryLogicOpType()
+                        {
+                            Items = new object[]
+                                {
+                                    new PropertyIsLikeType
+                                    {
+                                        escapeChar = "\\",
+                                        singleChar = "_",
+                                        wildCard = "%",
+                                        PropertyName = new PropertyNameType {Text = new[] {"type"}},
+                                        Literal = new LiteralType {Text = new[] { "service" }}
+                                    },
+                                    new PropertyIsLikeType
+                                    {
+                                        escapeChar = "\\",
+                                        singleChar = "_",
+                                        wildCard = "%",
+                                        PropertyName = new PropertyNameType {Text = new[] {"AnyText"}},
+                                        Literal = new LiteralType {Text = new[] { "*" }}
+                                    }
+                                },
+
+                                ItemsElementName = new ItemsChoiceType22[]
+                                    {
+                                        ItemsChoiceType22.PropertyIsLike, ItemsChoiceType22.PropertyIsLike
+                                    }
+                        },
+
+                      };
+
+            var filterNames = new ItemsChoiceType23[]
+                {
+                    ItemsChoiceType23.And
+                };
+
+
+
+            var stopwatch = new Stopwatch();
+            var services = new List<RecordType>();
+            stopwatch.Start();
+            int startPosition = 1;
+            int limit = 100;
+            var result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+            var resultItems = result.Items.Cast<RecordType>().ToList();
+            services.AddRange(resultItems);
+            var nextRecord = int.Parse(result.nextRecord);
+            startPosition = nextRecord;
+            var numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            while (nextRecord < numberOfRecordsMatched && nextRecord > 0)
+            {
+                result = _geoNorge.SearchWithFilters(filters, filterNames, startPosition, limit, false);
+                resultItems = result.Items.Cast<RecordType>().ToList();
+                services.AddRange(resultItems);
+
+                nextRecord = int.Parse(result.nextRecord);
+                startPosition = nextRecord;
+                numberOfRecordsMatched = int.Parse(result.numberOfRecordsMatched);
+            }
+
+            stopwatch.Stop();
+            _logger.LogDebug($"Looking up metadata from GeonorgeApi [timespent={stopwatch.ElapsedMilliseconds}ms]");
+            return services;
         }
 
         private void LogEventsDebug(string log)
