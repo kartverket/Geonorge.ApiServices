@@ -379,6 +379,7 @@ namespace Geonorge.ApiServices.Services
                { "XML", "https://www.iana.org/assignments/media-types/application/xml"  },
                { "CSV", "https://www.iana.org/assignments/media-types/text/csv" },
                { "GeoJSON", "https://www.iana.org/assignments/media-types/application/geo+json" },
+               { "OGC:API Features", "https://www.iana.org/assignments/media-types/application/geo+json" },
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
                { "TIFF", "https://www.iana.org/assignments/media-types/image/tiff" },
                { "PDF", "https://www.iana.org/assignments/media-types/application/pdf" },
@@ -436,6 +437,7 @@ namespace Geonorge.ApiServices.Services
                { "png/jpg", "http://publications.europa.eu/resource/authority/file-type/PNG" },
                { "OGC WMTS", "http://publications.europa.eu/resource/authority/file-type/WMTS_SRVC" },
                { "NetCDF", "http://publications.europa.eu/resource/authority/file-type/NETCDF" },
+               { "OGC:API Features", "http://publications.europa.eu/resource/authority/file-type/GEOJSON" },
             };
         }
 
