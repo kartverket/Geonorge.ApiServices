@@ -373,8 +373,10 @@ namespace Geonorge.ApiServices.Services
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                { "Shape", "https://www.iana.org/assignments/media-types/application/vnd.shp" },
+               { "ESRI Shape", "https://www.iana.org/assignments/media-types/application/vnd.shp" },
                { "SOSI", "https://www.iana.org/assignments/media-types/text/vnd.sosi" },
                { "GML", "https://www.iana.org/assignments/media-types/application/gml+xml" },
+               { "XML", "https://www.iana.org/assignments/media-types/application/xml"  },
                { "CSV", "https://www.iana.org/assignments/media-types/text/csv" },
                { "GeoJSON", "https://www.iana.org/assignments/media-types/application/geo+json" },
                { "GeoPackage", "https://www.iana.org/assignments/media-types/application/geopackage+sqlite3" },
@@ -388,7 +390,12 @@ namespace Geonorge.ApiServices.Services
                { "KML", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kml+xml" },
                { "KMZ", "https://www.iana.org/assignments/media-types/application/vnd.google-earth.kmz+xml" },
                { "ZIP", "https://www.iana.org/assignments/media-types/application/zip" },
-               //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" } //not found iana ppt
+               //{ "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" }, //not found iana ppt
+               { "WMS", "https://www.iana.org/assignments/media-types/application/vnd.ogc.wms_xml" },
+               { "PNG", "https://www.iana.org/assignments/media-types/image/png" },
+               { "png/jpg", "https://www.iana.org/assignments/media-types/image/png" },
+               { "image/png", "https://www.iana.org/assignments/media-types/image/png" },
+               { "JSON", "https://www.iana.org/assignments/media-types/application/json" },
 
             };
         }
@@ -397,14 +404,15 @@ namespace Geonorge.ApiServices.Services
         {
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-               // todo improve problem with service input is freetext ex. png/jpg
                { "Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
+               { "ESRI Shape", "http://publications.europa.eu/resource/authority/file-type/SHP" },
                { "SOSI", "http://publications.europa.eu/resource/authority/file-type/TXT" },
                { "GML", "http://publications.europa.eu/resource/authority/file-type/GML" },
                { "CSV", "http://publications.europa.eu/resource/authority/file-type/CSV" },
                { "GeoJSON", "http://publications.europa.eu/resource/authority/file-type/GEOJSON" },
                { "GeoPackage", "http://publications.europa.eu/resource/authority/file-type/GPKG" },
                { "TIFF", "http://publications.europa.eu/resource/authority/file-type/TIFF" },
+               { "GeoTiff", "http://publications.europa.eu/resource/authority/file-type/GEOTIFF" },
                { "PDF", "http://publications.europa.eu/resource/authority/file-type/PDF" },
                { "FGDB", "http://publications.europa.eu/resource/authority/file-type/GDB" },
                { "PostGIS", "http://publications.europa.eu/resource/authority/file-type/SQL" },
@@ -414,11 +422,20 @@ namespace Geonorge.ApiServices.Services
                { "KML", "http://publications.europa.eu/resource/authority/file-type/KML" },
                { "KMZ", "http://publications.europa.eu/resource/authority/file-type/KMZ" },
                { "PPTX", "http://publications.europa.eu/resource/authority/file-type/PPTX" },
-               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
                { "ZIP", "http://publications.europa.eu/resource/authority/file-type/ZIP" },
                { "PNG", "http://publications.europa.eu/resource/authority/file-type/PNG" },
+               { "image/png", "http://publications.europa.eu/resource/authority/file-type/PNG" },
                { "JSON", "http://publications.europa.eu/resource/authority/file-type/JSON" },
-
+               { "XML", "http://publications.europa.eu/resource/authority/file-type/XML"  },
+               { "wcs","http://publications.europa.eu/resource/authority/file-type/WCS_SRVC"},
+               { "WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
+               { "OGC:WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
+               { "OGC WMS", "http://publications.europa.eu/resource/authority/file-type/WMS_SRVC" },
+               { "OGC:WFS", "http://publications.europa.eu/resource/authority/file-type/WFS_SRVC" },
+               { "wfs", "http://publications.europa.eu/resource/authority/file-type/WFS_SRVC" },
+               { "png/jpg", "http://publications.europa.eu/resource/authority/file-type/PNG" },
+               { "OGC WMTS", "http://publications.europa.eu/resource/authority/file-type/WMTS_SRVC" },
+               { "NetCDF", "http://publications.europa.eu/resource/authority/file-type/NETCDF" },
             };
         }
 
