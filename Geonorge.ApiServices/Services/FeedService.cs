@@ -1,4 +1,4 @@
-﻿using Geonorge.ApiServices.Models;
+using Geonorge.ApiServices.Models;
 using GeoNorgeAPI;
 
 namespace Geonorge.ApiServices.Services
@@ -51,7 +51,13 @@ namespace Geonorge.ApiServices.Services
                     foreach (var item in dataset.Datasets)
                     {
                         try
-                        { metadataInfo.DatasetDateUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture); }
+                        { 
+                            DateTime? lastUpdated = DateTime.Parse(item.LastUpdated, System.Globalization.CultureInfo.InvariantCulture);
+                            if(lastUpdated.HasValue && metadataInfo.DatasetDateUpdated == null) 
+                                metadataInfo.DatasetDateUpdated = lastUpdated;
+                            if(lastUpdated != null && lastUpdated.HasValue && lastUpdated > metadataInfo.DatasetDateUpdated)
+                                metadataInfo.DatasetDateUpdated = lastUpdated;
+                        }
                         catch (Exception e)
                         {
                             _logger.LogError("Error with LastUpdated: " + item.LastUpdated + $": {e}");
