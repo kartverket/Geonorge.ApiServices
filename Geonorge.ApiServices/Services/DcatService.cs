@@ -1463,7 +1463,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.SetAttribute("resource", xmlnsRdf, "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim());
+                            agentSameAs.SetAttribute("resource", xmlnsRdf, "https://data.brreg.no/enhetsregisteret/api/enheter/" + organization.Number.Trim());
                             agent.AppendChild(agentSameAs);
                         }
 
@@ -1527,7 +1527,7 @@ namespace Geonorge.ApiServices.Services
                         if (organization != null && !string.IsNullOrEmpty(organization.Number))
                         {
                             XmlElement agentSameAs = doc.CreateElement("owl", "sameAs", xmlnsOwl);
-                            agentSameAs.InnerText = "http://data.brreg.no/enhetsregisteret/enhet/" + organization.Number.Trim();
+                            agentSameAs.InnerText = "https://data.brreg.no/enhetsregisteret/api/enheter/" + organization.Number.Trim();
                             agent.AppendChild(agentSameAs);
                         }
 
